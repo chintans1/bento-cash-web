@@ -8,6 +8,7 @@ export function useToken() {
   const [token, setTokenState] = useState<string | null>(null)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- SSR-safe localStorage read; must run in effect to avoid hydration mismatch
     setTokenState(localStorage.getItem(STORAGE_KEY))
   }, [])
 

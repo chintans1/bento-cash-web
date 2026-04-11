@@ -64,7 +64,9 @@ export default function SettingsPage() {
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-xl">{user.name}</CardTitle>
-            <CardDescription className="text-base">{user.budget_name}</CardDescription>
+            <CardDescription className="text-base">
+              {user.budget_name}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <dl className="flex flex-col gap-3 text-base">
@@ -74,7 +76,9 @@ export default function SettingsPage() {
               </div>
               <div className="flex justify-between gap-4">
                 <dt className="text-muted-foreground">Currency</dt>
-                <dd className="font-medium uppercase">{user.primary_currency}</dd>
+                <dd className="font-medium uppercase">
+                  {user.primary_currency}
+                </dd>
               </div>
               {user.api_key_label && (
                 <div className="flex justify-between gap-4">
@@ -101,7 +105,8 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle className="text-xl">Connect Lunch Money</CardTitle>
           <CardDescription className="text-base">
-            Enter your API token to get started. Find it under Settings → Developers.
+            Enter your API token to get started. Find it under Settings →
+            Developers.
           </CardDescription>
         </CardHeader>
         <CardContent>

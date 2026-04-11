@@ -72,7 +72,11 @@ export interface CategoriesResponse {
   categories: Category[]
 }
 
-async function request<T>(token: string, path: string, params?: Record<string, any>): Promise<T> {
+async function request<T>(
+  token: string,
+  path: string,
+  params?: Record<string, string>
+): Promise<T> {
   const url = new URL(`${API_BASE}${path}`)
   if (params) {
     for (const [key, value] of Object.entries(params)) {
@@ -96,8 +100,8 @@ export function getMe(token: string): Promise<UserInfo> {
 
 export function getTransactions(token: string): Promise<TransactionsResponse> {
   return request<TransactionsResponse>(token, "/transactions", {
-    limit: 10,
-    offset: 0,
+    limit: "10",
+    offset: "0",
   })
 }
 

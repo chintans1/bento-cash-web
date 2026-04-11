@@ -40,13 +40,15 @@ export default function HomePage() {
   const [categoryMap, setCategoryMap] = useState<
     Map<number, { name: string; is_income: boolean }>
   >(new Map())
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [{ loading, error }, setFetchStatus] = useState<{
+    loading: boolean
+    error: string | null
+  }>({ loading: false, error: null })
 
   useEffect(() => {
     if (!token) return
-    setLoading(true)
-    setError(null)
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: sets loading before async fetch, cleared in .then/.catch
+    setFetchStatus({ loading: true, error: null })
     Promise.all([getTransactions(token), getCategories(token)])
       .then(([txRes, catRes]) => {
         setTransactions(txRes.transactions.slice(0, 10))
@@ -58,11 +60,14 @@ export default function HomePage() {
           }
         }
         setCategoryMap(map)
+        setFetchStatus({ loading: false, error: null })
       })
       .catch((err) => {
-        setError(err instanceof Error ? err.message : "Something went wrong")
+        setFetchStatus({
+          loading: false,
+          error: err instanceof Error ? err.message : "Something went wrong",
+        })
       })
-      .finally(() => setLoading(false))
   }, [token])
 
   if (!token) {
@@ -111,7 +116,7 @@ export default function HomePage() {
                   return (
                     <li
                       key={tx.id}
-                      className="flex items-center gap-3 border-b border-border/50 py-3 last:border-0 last:pb-0 first:pt-0"
+                      className="flex items-center gap-3 border-b border-border/50 py-3 first:pt-0 last:border-0 last:pb-0"
                     >
                       <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
                         <Icon className="size-4" />
@@ -130,8 +135,7 @@ export default function HomePage() {
                         <span
                           className={cn(
                             "text-sm font-medium tabular-nums",
-                            isCredit &&
-                              "text-green-600 dark:text-green-400"
+                            isCredit && "text-green-600 dark:text-green-400"
                           )}
                         >
                           {isCredit ? "+" : "−"}

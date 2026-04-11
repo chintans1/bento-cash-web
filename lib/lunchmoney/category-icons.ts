@@ -117,7 +117,7 @@ const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
   entertainment: Film,
   movies: Film,
   "movie theater": Film,
-  "movie": Film,
+  movie: Film,
   streaming: Film,
   music: Music,
   games: Gamepad2,
