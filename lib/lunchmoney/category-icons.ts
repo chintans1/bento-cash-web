@@ -39,6 +39,7 @@ import {
   Wrench,
   Zap,
   Ticket,
+  CircleQuestionMark,
 } from "lucide-react"
 
 // Maps lowercased category name keywords to a Lucide icon.
@@ -190,6 +191,9 @@ const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
   "home improvement": Wrench,
   repairs: Wrench,
   maintenance: Wrench,
+
+  // Uncategorized
+  uncategorized: CircleQuestionMark,
 }
 
 export function getCategoryIcon(categoryName: string | null): LucideIcon {

@@ -5,10 +5,11 @@ import { useEffect, useState } from "react"
 import { useToken } from "@/hooks/use-token"
 import {
   getCategories,
-  getTransactions,
+  getMostRecentTransactions,
   type Transaction,
 } from "@/lib/lunchmoney/client"
 import { getCategoryIcon } from "@/lib/lunchmoney/category-icons"
+import { type CategoryInfo, UNCATEGORIZED } from "@/lib/lunchmoney/categories"
 import {
   Card,
   CardContent,
@@ -37,9 +38,9 @@ function formatDate(date: string): string {
 export default function HomePage() {
   const { token } = useToken()
   const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [categoryMap, setCategoryMap] = useState<
-    Map<number, { name: string; is_income: boolean }>
-  >(new Map())
+  const [categoryMap, setCategoryMap] = useState<Map<number, CategoryInfo>>(
+    new Map()
+  )
   const [{ loading, error }, setFetchStatus] = useState<{
     loading: boolean
     error: string | null
@@ -49,9 +50,9 @@ export default function HomePage() {
     if (!token) return
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: sets loading before async fetch, cleared in .then/.catch
     setFetchStatus({ loading: true, error: null })
-    Promise.all([getTransactions(token), getCategories(token)])
+    Promise.all([getMostRecentTransactions(token), getCategories(token)])
       .then(([txRes, catRes]) => {
-        setTransactions(txRes.transactions.slice(0, 10))
+        setTransactions(txRes.transactions.splice(0, 10))
         const map = new Map<number, { name: string; is_income: boolean }>()
         for (const cat of catRes.categories) {
           map.set(cat.id, cat)
@@ -108,28 +109,38 @@ export default function HomePage() {
               <ul className="flex flex-col">
                 {transactions.map((tx) => {
                   const category = tx.category_id
-                    ? categoryMap.get(tx.category_id)
-                    : null
-                  const Icon = getCategoryIcon(category?.name ?? null)
+                    ? (categoryMap.get(tx.category_id) ?? UNCATEGORIZED)
+                    : UNCATEGORIZED
+                  const Icon = getCategoryIcon(category.name)
                   const isCredit = parseFloat(tx.amount) < 0
+                  const isUncategorized = category === UNCATEGORIZED
 
                   return (
                     <li
                       key={tx.id}
                       className="flex items-center gap-3 border-b border-border/50 py-3 first:pt-0 last:border-0 last:pb-0"
                     >
-                      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                      <div
+                        className={cn(
+                          "flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground"
+                        )}
+                      >
                         <Icon className="size-4" />
                       </div>
                       <div className="flex min-w-0 flex-1 flex-col gap-0.5">
                         <span className="truncate text-sm font-medium">
                           {tx.payee}
                         </span>
-                        {category && (
-                          <span className="text-xs text-muted-foreground">
-                            {category.name}
-                          </span>
-                        )}
+                        <span
+                          className={cn(
+                            "text-xs",
+                            isUncategorized
+                              ? "text-amber-600 dark:text-amber-400"
+                              : "text-muted-foreground"
+                          )}
+                        >
+                          {category.name}
+                        </span>
                       </div>
                       <div className="flex shrink-0 flex-col items-end gap-0.5">
                         <span
