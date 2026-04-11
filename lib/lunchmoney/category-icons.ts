@@ -39,6 +39,8 @@ import {
   Wrench,
   Zap,
   Ticket,
+  Palmtree,
+  Gem,
 } from "lucide-react"
 
 // Maps lowercased category name keywords to a Lucide icon.
@@ -65,6 +67,7 @@ const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
   apparel: Shirt,
   electronics: ShoppingBag,
   amazon: ShoppingBag,
+  jewelry: Gem,
 
   // Transportation
   transportation: Car,
@@ -87,6 +90,7 @@ const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
   hotel: Home,
   hotels: Home,
   airbnb: Home,
+  vacation: Palmtree,
 
   // Housing
   rent: Home,

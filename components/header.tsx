@@ -15,7 +15,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur-sm">
       <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-4">
-        <span className="font-heading text-2xl font-semibold">Bento Cash</span>
+        <span className="font-heading text-2xl font-semibold">Bento Cash <span className="text-xs font-mono text-muted-foreground">web</span></span>
         <nav className="flex items-center gap-1">
           {NAV_LINKS.map(({ href, label }) => (
             <Link

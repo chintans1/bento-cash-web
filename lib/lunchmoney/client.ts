@@ -101,6 +101,33 @@ export function getTransactions(token: string): Promise<TransactionsResponse> {
   })
 }
 
+export interface TransactionRangeParams {
+  start_date?: string
+  end_date?: string
+}
+
+export async function getAllTransactions(
+  token: string,
+  params: TransactionRangeParams = {}
+): Promise<Transaction[]> {
+  const all: Transaction[] = []
+  let offset = 0
+  const LIMIT = 500
+
+  for (let page = 0; page < 20; page++) {
+    const res = await request<TransactionsResponse>(token, "/transactions", {
+      ...params,
+      limit: LIMIT,
+      offset,
+    })
+    all.push(...res.transactions)
+    if (!res.has_more) break
+    offset += LIMIT
+  }
+
+  return all
+}
+
 export function getCategories(token: string): Promise<CategoriesResponse> {
   return request<CategoriesResponse>(token, "/categories")
 }
