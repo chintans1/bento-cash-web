@@ -1,15 +1,21 @@
 "use client"
 
 import Link from "next/link"
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useToken } from "@/hooks/use-token"
 import {
   getCategories,
   getMostRecentTransactions,
   type Transaction,
 } from "@/lib/lunchmoney/client"
+import {
+  buildCategoryMap,
+  computeCategoryTotals,
+  type CategoryTotal,
+} from "@/lib/lunchmoney/analytics"
 import { getCategoryIcon } from "@/lib/lunchmoney/category-icons"
 import { type CategoryInfo, UNCATEGORIZED } from "@/lib/lunchmoney/categories"
+import { formatAmount, formatShortDate } from "@/lib/format"
 import {
   Card,
   CardContent,
@@ -19,21 +25,15 @@ import {
 } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
-function formatAmount(amount: string, currency: string): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: currency.toUpperCase(),
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(Math.abs(parseFloat(amount)))
-}
-
-function formatDate(date: string): string {
-  return new Date(`${date}T00:00:00`).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  })
-}
+const CAT_COLORS = [
+  "#e85d4a",
+  "#f97316",
+  "#eab308",
+  "#22c55e",
+  "#06b6d4",
+  "#8b5cf6",
+  "#ec4899",
+]
 
 export default function HomePage() {
   const { token } = useToken()
@@ -52,15 +52,8 @@ export default function HomePage() {
     setFetchStatus({ loading: true, error: null })
     Promise.all([getMostRecentTransactions(token), getCategories(token)])
       .then(([txRes, catRes]) => {
-        setTransactions(txRes.transactions.splice(0, 10))
-        const map = new Map<number, { name: string; is_income: boolean }>()
-        for (const cat of catRes.categories) {
-          map.set(cat.id, cat)
-          for (const child of cat.children ?? []) {
-            map.set(child.id, child)
-          }
-        }
-        setCategoryMap(map)
+        setTransactions(txRes.transactions)
+        setCategoryMap(buildCategoryMap(catRes))
         setFetchStatus({ loading: false, error: null })
       })
       .catch((err) => {
@@ -70,6 +63,18 @@ export default function HomePage() {
         })
       })
   }, [token])
+
+  const categoryTotals: CategoryTotal[] = useMemo(
+    () => computeCategoryTotals(transactions, categoryMap),
+    [transactions, categoryMap]
+  )
+
+  const recentTransactions = useMemo(
+    () => transactions.slice(0, 10),
+    [transactions]
+  )
+
+  const maxCatSpend = categoryTotals[0]?.spend ?? 0
 
   if (!token) {
     return (
@@ -91,6 +96,63 @@ export default function HomePage() {
   return (
     <div className="mx-auto max-w-2xl p-6 pt-12">
       <div className="grid grid-cols-1 gap-6">
+        {/* Spend by Category */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Spend by Category</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <p className="text-sm text-muted-foreground">Loading…</p>
+            ) : error ? (
+              <p className="text-sm text-destructive">{error}</p>
+            ) : categoryTotals.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No spending data found.
+              </p>
+            ) : (
+              <ul className="flex flex-col gap-4">
+                {categoryTotals.map((cat, i) => {
+                  const Icon = getCategoryIcon(cat.name)
+                  const color = CAT_COLORS[i % CAT_COLORS.length]
+                  return (
+                    <li key={cat.id} className="flex items-center gap-3">
+                      <div
+                        className="flex size-7 shrink-0 items-center justify-center rounded-lg"
+                        style={{ backgroundColor: `${color}22` }}
+                      >
+                        <Icon className="size-3.5" style={{ color }} />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-1.5 flex items-center justify-between">
+                          <span className="truncate text-xs font-medium">
+                            {cat.name}
+                          </span>
+                          <span className="ml-3 shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
+                            {formatAmount(cat.spend)}
+                          </span>
+                        </div>
+                        <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width:
+                                maxCatSpend > 0
+                                  ? `${(cat.spend / maxCatSpend) * 100}%`
+                                  : "0%",
+                              backgroundColor: color,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Recent Transactions */}
         <Card>
           <CardHeader>
@@ -101,13 +163,13 @@ export default function HomePage() {
               <p className="text-sm text-muted-foreground">Loading…</p>
             ) : error ? (
               <p className="text-sm text-destructive">{error}</p>
-            ) : transactions.length === 0 ? (
+            ) : recentTransactions.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No transactions found.
               </p>
             ) : (
               <ul className="flex flex-col">
-                {transactions.map((tx) => {
+                {recentTransactions.map((tx) => {
                   const category = tx.category_id
                     ? (categoryMap.get(tx.category_id) ?? UNCATEGORIZED)
                     : UNCATEGORIZED
@@ -150,10 +212,10 @@ export default function HomePage() {
                           )}
                         >
                           {isCredit ? "+" : "−"}
-                          {formatAmount(tx.amount, tx.currency)}
+                          {formatAmount(Math.abs(parseFloat(tx.amount)), true)}
                         </span>
                         <span className="text-xs text-muted-foreground">
-                          {formatDate(tx.date)}
+                          {formatShortDate(tx.date)}
                         </span>
                       </div>
                     </li>

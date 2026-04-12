@@ -2,10 +2,9 @@ echo "Running lint..."
 npm run lint
 
 echo "Running prettier..."
-npx prettier --check .
+npx prettier --write .
 
 # Optional: auto-fix instead of check
-npx prettier --write .
 git add .
 
 echo "Pre-commit checks passed"
