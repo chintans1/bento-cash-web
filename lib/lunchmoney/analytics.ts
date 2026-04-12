@@ -36,7 +36,7 @@ export function filterExpenses(transactions: Transaction[]): Transaction[] {
 export function computeCategoryTotals(
   transactions: Transaction[],
   catMap: Map<number, CategoryInfo>,
-  limit = 7
+  limit = 10
 ): CategoryTotal[] {
   const map = new Map<number, CategoryTotal>()
   for (const tx of filterExpenses(transactions)) {
