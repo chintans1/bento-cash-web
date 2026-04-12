@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useToken } from "@/hooks/use-token"
 import {
   getCategories,
-  getMostRecentTransactions,
+  getTransactionsForMonth,
   type Transaction,
 } from "@/lib/lunchmoney/client"
 import {
@@ -23,7 +23,44 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+const MONTH_NAMES = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
+]
+
+function isCurrentOrFutureMonth(year: number, month: number) {
+  const now = new Date()
+  return (
+    year > now.getFullYear() ||
+    (year === now.getFullYear() && month >= now.getMonth() + 1)
+  )
+}
+
+function prevMonth(year: number, month: number) {
+  return month === 1
+    ? { year: year - 1, month: 12 }
+    : { year, month: month - 1 }
+}
+
+function nextMonth(year: number, month: number) {
+  return month === 12
+    ? { year: year + 1, month: 1 }
+    : { year, month: month + 1 }
+}
 
 const CAT_COLORS = [
   "#e85d4a",
@@ -37,6 +74,9 @@ const CAT_COLORS = [
 
 export default function HomePage() {
   const { token } = useToken()
+  const now = new Date()
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear())
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [categoryMap, setCategoryMap] = useState<Map<number, CategoryInfo>>(
     new Map()
@@ -50,7 +90,10 @@ export default function HomePage() {
     if (!token) return
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: sets loading before async fetch, cleared in .then/.catch
     setFetchStatus({ loading: true, error: null })
-    Promise.all([getMostRecentTransactions(token), getCategories(token)])
+    Promise.all([
+      getTransactionsForMonth(token, selectedYear, selectedMonth),
+      getCategories(token),
+    ])
       .then(([txRes, catRes]) => {
         setTransactions(txRes.transactions)
         setCategoryMap(buildCategoryMap(catRes))
@@ -62,17 +105,14 @@ export default function HomePage() {
           error: err instanceof Error ? err.message : "Something went wrong",
         })
       })
-  }, [token])
+  }, [token, selectedYear, selectedMonth])
 
   const categoryTotals: CategoryTotal[] = useMemo(
     () => computeCategoryTotals(transactions, categoryMap),
     [transactions, categoryMap]
   )
 
-  const recentTransactions = useMemo(
-    () => transactions.slice(0, 10),
-    [transactions]
-  )
+  const recentTransactions = useMemo(() => transactions, [transactions])
 
   const maxCatSpend = categoryTotals[0]?.spend ?? 0
 
@@ -94,8 +134,39 @@ export default function HomePage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl p-6 pt-12">
-      <div className="grid grid-cols-1 gap-6">
+    <div className="mx-auto max-w-6xl pt-6 pb-6">
+      {/* Month Selector */}
+      <div className="align-left mb-6 flex items-center justify-end">
+        <span className="text-sm text-muted-foreground">viewing for</span>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          onClick={() => {
+            const p = prevMonth(selectedYear, selectedMonth)
+            setSelectedYear(p.year)
+            setSelectedMonth(p.month)
+          }}
+        >
+          <ChevronLeft className="size-4" />
+        </Button>
+        <span className="text-sm font-medium">
+          {MONTH_NAMES[selectedMonth - 1]} {selectedYear}
+        </span>
+        <Button
+          variant="ghost"
+          size="icon-sm"
+          disabled={isCurrentOrFutureMonth(selectedYear, selectedMonth)}
+          onClick={() => {
+            const n = nextMonth(selectedYear, selectedMonth)
+            setSelectedYear(n.year)
+            setSelectedMonth(n.month)
+          }}
+        >
+          <ChevronRight className="size-4" />
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-2 items-start gap-6">
         {/* Spend by Category */}
         <Card>
           <CardHeader>
@@ -156,7 +227,7 @@ export default function HomePage() {
         {/* Recent Transactions */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg">Recent Transactions</CardTitle>
+            <CardTitle className="text-lg">Transactions</CardTitle>
           </CardHeader>
           <CardContent>
             {loading ? (

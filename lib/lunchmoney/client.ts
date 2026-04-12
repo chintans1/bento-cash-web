@@ -98,17 +98,17 @@ export function getMe(token: string): Promise<UserInfo> {
   return request<UserInfo>(token, "/me")
 }
 
-export function getMostRecentTransactions(
-  token: string
+export function getTransactionsForMonth(
+  token: string,
+  year: number,
+  month: number // 1-indexed
 ): Promise<TransactionsResponse> {
-  // For now this is just fetching <now> to <now - 1 year> transactions, upto given limit
-  // In the future, we should have a smaller duration + a for loop to keep fetching transactions until the limit is achieved.
-  const endDate = new Date()
-  const startDate = new Date()
-  startDate.setMonth(startDate.getMonth() - 1)
+  const start = `${year}-${String(month).padStart(2, "0")}-01`
+  const lastDay = new Date(year, month, 0).getDate()
+  const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
   return request<TransactionsResponse>(token, "/transactions", {
-    start_date: startDate.toISOString().split("T")[0],
-    end_date: endDate.toISOString().split("T")[0],
+    start_date: start,
+    end_date: end,
     limit: String(250),
     offset: String(0),
   }).then((response) => ({
