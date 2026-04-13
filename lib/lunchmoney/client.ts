@@ -42,7 +42,8 @@ export function getTransactionsForMonth(
     })
     .then(({ transactions, hasMore }) => ({
       transactions: transactions.sort(
-        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+        (a, b) =>
+          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       ),
       has_more: hasMore,
     }))

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react"
 import { useToken } from "@/hooks/use-token"
 import {
   getCategories,
+  getMe,
   getTransactionsForMonth,
   type Transaction,
 } from "@/lib/lunchmoney/client"
@@ -15,7 +16,7 @@ import {
 } from "@/lib/lunchmoney/analytics"
 import { getCategoryIcon } from "@/lib/lunchmoney/category-icons"
 import { type CategoryInfo, UNCATEGORIZED } from "@/lib/lunchmoney/categories"
-import { formatAmount, formatShortDate } from "@/lib/format"
+import { formatAmount, formatShortDate, formatCurrency } from "@/lib/format"
 import {
   Card,
   CardContent,
@@ -81,6 +82,7 @@ export default function HomePage() {
   const [categoryMap, setCategoryMap] = useState<Map<number, CategoryInfo>>(
     new Map()
   )
+  const [primaryCurrency, setPrimaryCurrency] = useState("usd")
   const [{ loading, error }, setFetchStatus] = useState<{
     loading: boolean
     error: string | null
@@ -90,6 +92,9 @@ export default function HomePage() {
     if (!token) return
     // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional: sets loading before async fetch, cleared in .then/.catch
     setFetchStatus({ loading: true, error: null })
+    getMe(token)
+      .then((user) => setPrimaryCurrency(user.primary_currency))
+      .catch(() => {})
     Promise.all([
       getTransactionsForMonth(token, selectedYear, selectedMonth),
       getCategories(token),
@@ -113,6 +118,49 @@ export default function HomePage() {
   )
 
   const recentTransactions = useMemo(() => transactions, [transactions])
+
+  const quickStats = useMemo(() => {
+    if (transactions.length === 0) return null
+
+    const expenses = transactions.filter((tx) => parseFloat(tx.amount) > 0)
+    const incomeTransactions = transactions.filter(
+      (tx) => parseFloat(tx.amount) < 0
+    )
+
+    const totalSpend = expenses.reduce(
+      (sum, tx) => sum + parseFloat(tx.amount),
+      0
+    )
+    const totalIncome = incomeTransactions.reduce(
+      (sum, tx) => sum + Math.abs(parseFloat(tx.amount)),
+      0
+    )
+
+    const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate()
+    const now = new Date()
+    const isCurrentMonth =
+      selectedYear === now.getFullYear() && selectedMonth === now.getMonth() + 1
+    const daysElapsed = isCurrentMonth ? now.getDate() : daysInMonth
+    const avgSpendPerDay = daysElapsed > 0 ? totalSpend / daysElapsed : 0
+
+    const spendByDay = new Map<string, number>()
+    for (const tx of expenses) {
+      spendByDay.set(
+        tx.date,
+        (spendByDay.get(tx.date) ?? 0) + parseFloat(tx.amount)
+      )
+    }
+    let peakDay = ""
+    let peakAmount = 0
+    for (const [date, amount] of spendByDay.entries()) {
+      if (amount > peakAmount) {
+        peakAmount = amount
+        peakDay = date
+      }
+    }
+
+    return { totalSpend, totalIncome, avgSpendPerDay, peakDay, peakAmount }
+  }, [transactions, selectedYear, selectedMonth])
 
   const maxCatSpend = categoryTotals[0]?.spend ?? 0
 
@@ -164,6 +212,108 @@ export default function HomePage() {
         >
           <ChevronRight className="size-4" />
         </Button>
+      </div>
+
+      {/* Quick Stats */}
+      <div className="mb-6 grid grid-cols-4 gap-4">
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="h-24 animate-pulse rounded-xl bg-muted" />
+          ))
+        ) : quickStats ? (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-4xl text-green-500">
+                  {formatCurrency(
+                    quickStats.totalIncome,
+                    primaryCurrency,
+                    false
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-0.5 text-sm font-medium tracking-wide text-muted-foreground">
+                  Income{" "}
+                  <span className="font-mono text-[11px] text-muted-foreground/50">
+                    (
+                    {
+                      transactions.filter((tx) => parseFloat(tx.amount) < 0)
+                        .length
+                    }{" "}
+                    deposits)
+                  </span>
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-4xl text-rose-500">
+                  {formatCurrency(
+                    quickStats.totalSpend,
+                    primaryCurrency,
+                    false
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-0.5 text-sm font-medium tracking-wide text-muted-foreground">
+                  Spend{" "}
+                  <span className="font-mono text-[11px] text-muted-foreground/50">
+                    (
+                    {
+                      transactions.filter((tx) => parseFloat(tx.amount) > 0)
+                        .length
+                    }{" "}
+                    transactions)
+                  </span>
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-4xl text-blue-500">
+                  {formatCurrency(
+                    quickStats.avgSpendPerDay,
+                    primaryCurrency,
+                    false
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-0.5 text-sm font-medium tracking-wide text-muted-foreground">
+                  Avg / Day{" "}
+                  <span className="font-mono text-[11px] text-muted-foreground/50">
+                    (this {MONTH_NAMES[selectedMonth - 1].toLowerCase()})
+                  </span>
+                </p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-4xl text-amber-500">
+                  {formatCurrency(
+                    quickStats.peakAmount,
+                    primaryCurrency,
+                    false
+                  )}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-0.5 text-sm font-medium tracking-wide text-muted-foreground">
+                  Peak Day{" "}
+                  <span className="font-mono text-[11px] text-muted-foreground/50">
+                    (
+                    {quickStats.peakDay
+                      ? formatShortDate(quickStats.peakDay)
+                      : "—"}
+                    )
+                  </span>
+                </p>
+              </CardContent>
+            </Card>
+          </>
+        ) : null}
       </div>
 
       <div className="grid grid-cols-2 items-start gap-6">
