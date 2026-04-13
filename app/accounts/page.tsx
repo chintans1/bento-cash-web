@@ -69,6 +69,14 @@ function normalizePlaid(a: PlaidAccount): NormalizedAccount {
   }
 }
 
+const ALL_CAPS_SUBTYPES = new Set(["ira", "tfsa", "hsa", "401k", "403b", "529"])
+
+function formatSubtype(subtype: string): string {
+  const lower = subtype.toLowerCase()
+  if (ALL_CAPS_SUBTYPES.has(lower)) return subtype.toUpperCase()
+  return subtype.charAt(0).toUpperCase() + subtype.slice(1)
+}
+
 function formatUpdated(dateStr: string | null): string {
   if (!dateStr) return "—"
   const d = new Date(dateStr)
@@ -92,7 +100,7 @@ function AccountRow({
   const isInactive = account.status !== "active"
 
   return (
-    <li className="flex items-center gap-3 border-b border-border/50 py-3 first:pt-0 last:border-0 last:pb-0">
+    <li className="flex items-center gap-3 border-b border-border/50 py-3 last:border-0">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span
@@ -104,8 +112,8 @@ function AccountRow({
             {account.name}
           </span>
           {account.subtype && (
-            <span className="rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground capitalize">
-              {account.subtype}
+            <span className="rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+              {formatSubtype(account.subtype)}
             </span>
           )}
           {isInactive && (
@@ -114,11 +122,6 @@ function AccountRow({
             </span>
           )}
         </div>
-        {account.institution && (
-          <span className="text-xs text-muted-foreground">
-            {account.institution}
-          </span>
-        )}
       </div>
       <div className="flex shrink-0 flex-col items-end gap-0.5">
         {account.balanceValid ? (
@@ -145,6 +148,19 @@ function AccountRow({
   )
 }
 
+function groupByInstitution(
+  accounts: NormalizedAccount[]
+): [string, NormalizedAccount[]][] {
+  const map = new Map<string, NormalizedAccount[]>()
+  for (const a of accounts) {
+    const key = a.institution ?? "Other"
+    const group = map.get(key) ?? []
+    group.push(a)
+    map.set(key, group)
+  }
+  return Array.from(map.entries())
+}
+
 function AccountSection({
   title,
   accounts,
@@ -158,8 +174,10 @@ function AccountSection({
 }) {
   if (accounts.length === 0) return null
 
+  const groups = groupByInstitution(accounts)
+
   return (
-    <Card>
+    <Card className="pb-0">
       <CardHeader className="pb-2">
         <div className="flex items-baseline justify-between">
           <CardTitle className="text-lg">{title}</CardTitle>
@@ -168,16 +186,37 @@ function AccountSection({
           </span>
         </div>
       </CardHeader>
-      <CardContent>
-        <ul className="flex flex-col">
-          {accounts.map((a) => (
-            <AccountRow
-              key={a.id}
-              account={a}
-              primaryCurrency={primaryCurrency}
-            />
-          ))}
-        </ul>
+      <CardContent className="p-0">
+        {groups.map(([institution, groupAccounts], i) => {
+          const groupTotal = groupAccounts.reduce(
+            (sum, a) => sum + (a.balanceValid ? a.toBase : 0),
+            0
+          )
+          return (
+            <div
+              key={institution}
+              className={cn(i > 0 && "border-t border-border")}
+            >
+              <div className="flex items-baseline justify-between bg-muted/90 px-6 py-2">
+                <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                  {institution}
+                </span>
+                <span className="font-mono text-xs font-medium tabular-nums">
+                  {formatCurrency(groupTotal, primaryCurrency, true)}
+                </span>
+              </div>
+              <ul className="flex flex-col px-6">
+                {groupAccounts.map((a) => (
+                  <AccountRow
+                    key={a.id}
+                    account={a}
+                    primaryCurrency={primaryCurrency}
+                  />
+                ))}
+              </ul>
+            </div>
+          )
+        })}
       </CardContent>
     </Card>
   )
@@ -277,7 +316,7 @@ export default function AccountsPage() {
               </p>
             </div>
             <div className="flex justify-center">
-              <div className="-px-36 h-10 w-px bg-gray-300" />
+              <div className="-px-36 h-10 w-px bg-gray-300 dark:bg-gray-600" />
             </div>
             <div className="-ml-36 text-left">
               <p className="text-xs text-muted-foreground">Liabilities</p>
