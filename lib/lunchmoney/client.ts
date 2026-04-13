@@ -4,6 +4,8 @@ export type {
   Transaction,
   Category,
   User as UserInfo,
+  ManualAccount,
+  PlaidAccount,
 } from "@lunch-money/lunch-money-js-v2"
 
 export type CategoriesResponse = { categories: Category[] }
@@ -50,4 +52,12 @@ export function getCategories(token: string): Promise<CategoriesResponse> {
   return getClient(token)
     .categories.getAll()
     .then((categories) => ({ categories }))
+}
+
+export function getAccounts(token: string) {
+  const client = getClient(token)
+  return Promise.all([
+    client.manualAccounts.getAll(),
+    client.plaidAccounts.getAll(),
+  ]).then(([manual, plaid]) => ({ manual, plaid }))
 }
