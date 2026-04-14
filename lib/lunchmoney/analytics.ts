@@ -127,9 +127,7 @@ export function computeMoMDeltas(
     const p = prevMap.get(cat.id)
     const prevSpend = p?.spend ?? 0
     const pct =
-      prevSpend === 0
-        ? null
-        : ((cat.spend - prevSpend) / prevSpend) * 100
+      prevSpend === 0 ? null : ((cat.spend - prevSpend) / prevSpend) * 100
     result.set(cat.id, {
       categoryId: cat.id,
       currentSpend: cat.spend,
@@ -171,9 +169,7 @@ export function getTransactionsForCategory(
 ): Transaction[] {
   return filterExpenses(transactions)
     .filter((tx) =>
-      categoryId === -1
-        ? tx.category_id == null
-        : tx.category_id === categoryId
+      categoryId === -1 ? tx.category_id == null : tx.category_id === categoryId
     )
     .sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount))
     .slice(0, 5)

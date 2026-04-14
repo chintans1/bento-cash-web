@@ -129,7 +129,9 @@ export default function SettingsPage() {
                 onChange={(e) => handleFloorMonthsChange(e.target.value)}
                 className="h-11 w-24 text-center font-mono text-base"
               />
-              <span className="text-base text-muted-foreground">months savings target</span>
+              <span className="text-base text-muted-foreground">
+                months savings target
+              </span>
             </div>
             <p className="mt-3 text-sm text-muted-foreground">
               Savings target:{" "}

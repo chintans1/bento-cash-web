@@ -1,5 +1,9 @@
 import { LunchMoneyClient } from "@lunch-money/lunch-money-js-v2"
-import type { Category, RecurringItem, AlignedSummaryResponse } from "@lunch-money/lunch-money-js-v2"
+import type {
+  Category,
+  RecurringItem,
+  AlignedSummaryResponse,
+} from "@lunch-money/lunch-money-js-v2"
 export type {
   Transaction,
   Category,

@@ -104,13 +104,13 @@ type InvestableState =
       status: "ready"
       investableAmount: number
       totalCheckingBalance: number
-      checkingFloor: number        // 1× avg monthly spend
+      checkingFloor: number // 1× avg monthly spend
       totalSavingsBalance: number
-      savingsTarget: number        // N× avg monthly spend
-      savingsFunded: boolean       // savings >= savingsTarget
-      savingsShortfall: number     // max(0, savingsTarget - savingsBalance)
+      savingsTarget: number // N× avg monthly spend
+      savingsFunded: boolean // savings >= savingsTarget
+      savingsShortfall: number // max(0, savingsTarget - savingsBalance)
       avgMonthlySpend: number
-      savingsMonths: number        // the configured N
+      savingsMonths: number // the configured N
     }
 
 function InvestableCashCard({
@@ -171,24 +171,49 @@ function InvestableCashCard({
             <div className="space-y-2 border-t border-border pt-3">
               {/* Condition 1: checking buffer */}
               {(() => {
-                const surplus = Math.max(0, state.totalCheckingBalance - state.checkingFloor)
+                const surplus = Math.max(
+                  0,
+                  state.totalCheckingBalance - state.checkingFloor
+                )
                 const ok = state.totalCheckingBalance >= state.checkingFloor
                 return (
                   <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className={cn("text-sm", ok ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400")}>
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span
+                        className={cn(
+                          "text-sm",
+                          ok
+                            ? "text-green-600 dark:text-green-400"
+                            : "text-amber-600 dark:text-amber-400"
+                        )}
+                      >
                         {ok ? "✓" : "✗"}
                       </span>
-                      <span className="text-sm text-muted-foreground truncate">
+                      <span className="truncate text-sm text-muted-foreground">
                         Checking buffer (1mo)
                       </span>
                     </div>
-                    <span className="font-mono text-sm tabular-nums shrink-0 text-muted-foreground">
-                      {formatCurrency(state.totalCheckingBalance, primaryCurrency, true)}
+                    <span className="shrink-0 font-mono text-sm text-muted-foreground tabular-nums">
+                      {formatCurrency(
+                        state.totalCheckingBalance,
+                        primaryCurrency,
+                        true
+                      )}
                       {" − "}
-                      {formatCurrency(state.checkingFloor, primaryCurrency, true)}
+                      {formatCurrency(
+                        state.checkingFloor,
+                        primaryCurrency,
+                        true
+                      )}
                       {" = "}
-                      <span className={cn("font-medium", ok ? "text-foreground" : "text-amber-600 dark:text-amber-400")}>
+                      <span
+                        className={cn(
+                          "font-medium",
+                          ok
+                            ? "text-foreground"
+                            : "text-amber-600 dark:text-amber-400"
+                        )}
+                      >
                         {formatCurrency(surplus, primaryCurrency, true)}
                       </span>
                     </span>
@@ -198,23 +223,47 @@ function InvestableCashCard({
 
               {/* Condition 2: savings emergency fund */}
               <div className="flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className={cn("text-sm", state.savingsFunded ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400")}>
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    className={cn(
+                      "text-sm",
+                      state.savingsFunded
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-amber-600 dark:text-amber-400"
+                    )}
+                  >
                     {state.savingsFunded ? "✓" : "✗"}
                   </span>
-                  <span className="text-sm text-muted-foreground truncate">
+                  <span className="truncate text-sm text-muted-foreground">
                     Emergency fund ({state.savingsMonths}mo)
                   </span>
                 </div>
-                <span className="font-mono text-sm tabular-nums shrink-0 text-muted-foreground">
-                  {formatCurrency(state.totalSavingsBalance, primaryCurrency, true)}
+                <span className="shrink-0 font-mono text-sm text-muted-foreground tabular-nums">
+                  {formatCurrency(
+                    state.totalSavingsBalance,
+                    primaryCurrency,
+                    true
+                  )}
                   {" / "}
-                  <span className={cn("font-medium", state.savingsFunded ? "text-foreground" : "text-amber-600 dark:text-amber-400")}>
+                  <span
+                    className={cn(
+                      "font-medium",
+                      state.savingsFunded
+                        ? "text-foreground"
+                        : "text-amber-600 dark:text-amber-400"
+                    )}
+                  >
                     {formatCurrency(state.savingsTarget, primaryCurrency, true)}
                   </span>
                   {!state.savingsFunded && (
                     <span className="text-amber-600 dark:text-amber-400">
-                      {" (−"}{formatCurrency(state.savingsShortfall, primaryCurrency, true)}{")"}
+                      {" (−"}
+                      {formatCurrency(
+                        state.savingsShortfall,
+                        primaryCurrency,
+                        true
+                      )}
+                      {")"}
                     </span>
                   )}
                 </span>
@@ -222,7 +271,9 @@ function InvestableCashCard({
             </div>
 
             <p className="text-xs text-muted-foreground">
-              avg {formatCurrency(state.avgMonthlySpend, primaryCurrency, false)}/mo · last 3 months
+              avg{" "}
+              {formatCurrency(state.avgMonthlySpend, primaryCurrency, false)}/mo
+              · last 3 months
             </p>
           </>
         )}
@@ -434,10 +485,16 @@ export default function AccountsPage() {
         // Savings must hold N months as the emergency fund
         const savingsTarget = avgMonthlySpend * n
         const savingsFunded = totalSavingsBalance >= savingsTarget
-        const savingsShortfall = Math.max(0, savingsTarget - totalSavingsBalance)
+        const savingsShortfall = Math.max(
+          0,
+          savingsTarget - totalSavingsBalance
+        )
 
         // Only the checking surplus is investable, and only once savings is funded
-        const checkingSurplus = Math.max(0, totalCheckingBalance - checkingFloor)
+        const checkingSurplus = Math.max(
+          0,
+          totalCheckingBalance - checkingFloor
+        )
         const investableAmount = savingsFunded ? checkingSurplus : 0
 
         setInvestable({

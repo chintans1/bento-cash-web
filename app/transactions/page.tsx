@@ -19,8 +19,18 @@ import { ChevronLeft, ChevronRight, Search, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ]
 
 function isCurrentOrFutureMonth(year: number, month: number) {
@@ -32,11 +42,15 @@ function isCurrentOrFutureMonth(year: number, month: number) {
 }
 
 function prevMonth(year: number, month: number) {
-  return month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 }
+  return month === 1
+    ? { year: year - 1, month: 12 }
+    : { year, month: month - 1 }
 }
 
 function nextMonth(year: number, month: number) {
-  return month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 }
+  return month === 12
+    ? { year: year + 1, month: 1 }
+    : { year, month: month + 1 }
 }
 
 type SortKey = "date" | "amount" | "payee"
@@ -48,8 +62,13 @@ export default function TransactionsPage() {
   const [selectedYear, setSelectedYear] = useState(now.getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
   const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [categoryMap, setCategoryMap] = useState<Map<number, CategoryInfo>>(new Map())
-  const [{ loading, error }, setFetchStatus] = useState<{ loading: boolean; error: string | null }>({ loading: false, error: null })
+  const [categoryMap, setCategoryMap] = useState<Map<number, CategoryInfo>>(
+    new Map()
+  )
+  const [{ loading, error }, setFetchStatus] = useState<{
+    loading: boolean
+    error: string | null
+  }>({ loading: false, error: null })
   const [query, setQuery] = useState("")
   const [filterCatId, setFilterCatId] = useState<number | null>(null)
   const [sortKey, setSortKey] = useState<SortKey>("date")
@@ -128,7 +147,10 @@ export default function TransactionsPage() {
 
   function toggleSort(key: SortKey) {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"))
-    else { setSortKey(key); setSortDir("desc") }
+    else {
+      setSortKey(key)
+      setSortDir("desc")
+    }
   }
 
   async function handleCategoryChange(txId: number, newCatId: number | null) {
@@ -152,7 +174,10 @@ export default function TransactionsPage() {
       <div className="flex flex-col items-center gap-5 p-6 pt-12">
         <p className="text-base text-muted-foreground">
           Connect your Lunch Money account in{" "}
-          <Link href="/settings" className="font-medium text-foreground underline-offset-4 hover:underline">
+          <Link
+            href="/settings"
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+          >
             Settings
           </Link>{" "}
           to get started.
@@ -163,7 +188,9 @@ export default function TransactionsPage() {
 
   const SortIcon = ({ k }: { k: SortKey }) =>
     sortKey === k ? (
-      <span className="ml-0.5 text-[10px]">{sortDir === "asc" ? "↑" : "↓"}</span>
+      <span className="ml-0.5 text-[10px]">
+        {sortDir === "asc" ? "↑" : "↓"}
+      </span>
     ) : null
 
   return (
@@ -204,17 +231,17 @@ export default function TransactionsPage() {
 
       {/* Filters */}
       <div className="mb-4 flex flex-wrap gap-2">
-        <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-3.5 text-muted-foreground" />
+        <div className="relative min-w-48 flex-1">
+          <Search className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
-            className="pl-8 h-8 text-sm"
+            className="h-8 pl-8 text-sm"
             placeholder="Search payee or notes…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
           {query && (
             <button
-              className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
               onClick={() => setQuery("")}
             >
               <X className="size-3.5" />
@@ -233,21 +260,32 @@ export default function TransactionsPage() {
           <option value="">All categories</option>
           <option value="-1">Uncategorized</option>
           {categories.map(([id, name]) => (
-            <option key={id} value={id}>{name}</option>
+            <option key={id} value={id}>
+              {name}
+            </option>
           ))}
         </select>
       </div>
 
       {/* Table header */}
       <div className="mb-1 grid grid-cols-[1fr_auto_auto_auto] gap-4 px-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-        <button className="text-left hover:text-foreground" onClick={() => toggleSort("payee")}>
+        <button
+          className="text-left hover:text-foreground"
+          onClick={() => toggleSort("payee")}
+        >
           Payee <SortIcon k="payee" />
         </button>
         <button className="text-left hover:text-foreground">Category</button>
-        <button className="text-left hover:text-foreground" onClick={() => toggleSort("date")}>
+        <button
+          className="text-left hover:text-foreground"
+          onClick={() => toggleSort("date")}
+        >
           Date <SortIcon k="date" />
         </button>
-        <button className="text-right hover:text-foreground" onClick={() => toggleSort("amount")}>
+        <button
+          className="text-right hover:text-foreground"
+          onClick={() => toggleSort("amount")}
+        >
           Amount <SortIcon k="amount" />
         </button>
       </div>
@@ -261,9 +299,11 @@ export default function TransactionsPage() {
       ) : error ? (
         <p className="text-sm text-destructive">{error}</p>
       ) : filtered.length === 0 ? (
-        <p className="py-12 text-center text-sm text-muted-foreground">No transactions match.</p>
+        <p className="py-12 text-center text-sm text-muted-foreground">
+          No transactions match.
+        </p>
       ) : (
-        <div className="divide-y divide-border/50 rounded-xl border border-border overflow-hidden">
+        <div className="divide-y divide-border/50 overflow-hidden rounded-xl border border-border">
           {filtered.map((tx) => {
             const category =
               tx.category_id != null
@@ -278,17 +318,19 @@ export default function TransactionsPage() {
             return (
               <div
                 key={tx.id}
-                className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 bg-background px-4 py-3 hover:bg-muted/30 transition-colors"
+                className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 bg-background px-4 py-3 transition-colors hover:bg-muted/30"
               >
                 {/* Payee */}
-                <div className="flex items-center gap-3 min-w-0">
+                <div className="flex min-w-0 items-center gap-3">
                   <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
                     <Icon className="size-4" />
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{tx.payee}</p>
                     {tx.notes && (
-                      <p className="truncate text-xs text-muted-foreground">{tx.notes}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {tx.notes}
+                      </p>
                     )}
                   </div>
                 </div>
@@ -304,12 +346,17 @@ export default function TransactionsPage() {
                       onBlur={() => setEditingCatId(null)}
                       onChange={(e) => {
                         const val = e.target.value
-                        handleCategoryChange(tx.id, val === "" ? null : Number(val))
+                        handleCategoryChange(
+                          tx.id,
+                          val === "" ? null : Number(val)
+                        )
                       }}
                     >
                       <option value="">Uncategorized</option>
                       {Array.from(categoryMap.entries()).map(([id, info]) => (
-                        <option key={id} value={id}>{info.name}</option>
+                        <option key={id} value={id}>
+                          {info.name}
+                        </option>
                       ))}
                     </select>
                   ) : (
@@ -335,7 +382,7 @@ export default function TransactionsPage() {
                 {/* Amount */}
                 <span
                   className={cn(
-                    "shrink-0 text-sm font-medium tabular-nums font-mono",
+                    "shrink-0 font-mono text-sm font-medium tabular-nums",
                     isCredit && "text-green-600 dark:text-green-400"
                   )}
                 >
@@ -353,7 +400,10 @@ export default function TransactionsPage() {
         <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
           <span>{filtered.length} transactions</span>
           <span className="font-mono tabular-nums">
-            Total spend: <span className="font-semibold text-foreground">{formatAmount(totalSpend)}</span>
+            Total spend:{" "}
+            <span className="font-semibold text-foreground">
+              {formatAmount(totalSpend)}
+            </span>
           </span>
         </div>
       )}

@@ -45,8 +45,18 @@ import {
 import { cn } from "@/lib/utils"
 
 const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December",
 ]
 
 function isCurrentOrFutureMonth(year: number, month: number) {
@@ -58,16 +68,25 @@ function isCurrentOrFutureMonth(year: number, month: number) {
 }
 
 function prevMonthOf(year: number, month: number) {
-  return month === 1 ? { year: year - 1, month: 12 } : { year, month: month - 1 }
+  return month === 1
+    ? { year: year - 1, month: 12 }
+    : { year, month: month - 1 }
 }
 
 function nextMonthOf(year: number, month: number) {
-  return month === 12 ? { year: year + 1, month: 1 } : { year, month: month + 1 }
+  return month === 12
+    ? { year: year + 1, month: 1 }
+    : { year, month: month + 1 }
 }
 
 const CAT_COLORS = [
-  "#e85d4a", "#f97316", "#eab308", "#22c55e",
-  "#06b6d4", "#8b5cf6", "#ec4899",
+  "#e85d4a",
+  "#f97316",
+  "#eab308",
+  "#22c55e",
+  "#06b6d4",
+  "#8b5cf6",
+  "#ec4899",
 ]
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -135,7 +154,7 @@ function CategoryRow({
   return (
     <li>
       <button
-        className="flex w-full items-center gap-3 rounded-lg px-1 py-1 hover:bg-muted/50 transition-colors"
+        className="flex w-full items-center gap-3 rounded-lg px-1 py-1 transition-colors hover:bg-muted/50"
         onClick={() => setExpanded((v) => !v)}
       >
         <div
@@ -173,7 +192,7 @@ function CategoryRow({
       </button>
 
       {expanded && topTxs.length > 0 && (
-        <ul className="ml-10 mt-1 mb-2 flex flex-col gap-0.5 border-l-2 border-border pl-3">
+        <ul className="mt-1 mb-2 ml-10 flex flex-col gap-0.5 border-l-2 border-border pl-3">
           {topTxs.map((tx) => {
             const isEditing = editingId === tx.id
             const isUpdating = updatingId === tx.id
@@ -186,7 +205,9 @@ function CategoryRow({
                 key={tx.id}
                 className="flex items-center justify-between gap-2 rounded py-1 text-xs"
               >
-                <span className="truncate text-muted-foreground">{tx.payee}</span>
+                <span className="truncate text-muted-foreground">
+                  {tx.payee}
+                </span>
                 <div className="flex shrink-0 items-center gap-2">
                   {isEditing ? (
                     <select
@@ -197,12 +218,17 @@ function CategoryRow({
                       onBlur={() => setEditingId(null)}
                       onChange={(e) => {
                         const val = e.target.value
-                        handleCategoryChange(tx.id, val === "" ? null : Number(val))
+                        handleCategoryChange(
+                          tx.id,
+                          val === "" ? null : Number(val)
+                        )
                       }}
                     >
                       <option value="">Uncategorized</option>
                       {Array.from(categoryMap.entries()).map(([id, info]) => (
-                        <option key={id} value={id}>{info.name}</option>
+                        <option key={id} value={id}>
+                          {info.name}
+                        </option>
                       ))}
                     </select>
                   ) : (
@@ -248,13 +274,17 @@ function DailySpendChart({
   primaryCurrency: string
 }) {
   const max = Math.max(...data.map((d) => d.amount), 1)
-  const [hovered, setHovered] = useState<{ date: string; amount: number } | null>(null)
+  const [hovered, setHovered] = useState<{
+    date: string
+    amount: number
+  } | null>(null)
 
   return (
     <div className="relative">
       {hovered && (
-        <div className="absolute -top-8 left-1/2 -translate-x-1/2 rounded bg-foreground px-2 py-0.5 text-xs text-background whitespace-nowrap z-10 pointer-events-none">
-          {formatShortDate(hovered.date)}: {formatCurrency(hovered.amount, primaryCurrency, false)}
+        <div className="pointer-events-none absolute -top-8 left-1/2 z-10 -translate-x-1/2 rounded bg-foreground px-2 py-0.5 text-xs whitespace-nowrap text-background">
+          {formatShortDate(hovered.date)}:{" "}
+          {formatCurrency(hovered.amount, primaryCurrency, false)}
         </div>
       )}
       <div className="flex items-end gap-px" style={{ height: 80 }}>
@@ -264,7 +294,7 @@ function DailySpendChart({
           return (
             <div
               key={d.date}
-              className="flex-1 relative cursor-pointer"
+              className="relative flex-1 cursor-pointer"
               style={{ height: "100%" }}
               onMouseEnter={() => setHovered(d)}
               onMouseLeave={() => setHovered(null)}
@@ -274,7 +304,10 @@ function DailySpendChart({
                   "absolute bottom-0 w-full rounded-t-sm transition-colors",
                   isHov ? "bg-primary" : "bg-primary/30"
                 )}
-                style={{ height: `${heightPct}%`, minHeight: d.amount > 0 ? 2 : 0 }}
+                style={{
+                  height: `${heightPct}%`,
+                  minHeight: d.amount > 0 ? 2 : 0,
+                }}
               />
             </div>
           )
@@ -308,11 +341,15 @@ function NetCashFlowBar({
     <Card>
       <CardHeader className="pb-2">
         <div className="flex items-baseline justify-between">
-          <CardTitle className="text-sm font-medium text-muted-foreground">Net Cash Flow</CardTitle>
+          <CardTitle className="text-sm font-medium text-muted-foreground">
+            Net Cash Flow
+          </CardTitle>
           <span
             className={cn(
               "font-mono text-lg font-bold tabular-nums",
-              isPositive ? "text-green-600 dark:text-green-400" : "text-rose-500"
+              isPositive
+                ? "text-green-600 dark:text-green-400"
+                : "text-rose-500"
             )}
           >
             {isPositive ? "+" : "−"}
@@ -321,21 +358,21 @@ function NetCashFlowBar({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="h-3 overflow-hidden rounded-full flex">
+        <div className="flex h-3 overflow-hidden rounded-full">
           <div
-            className="h-full bg-green-500 rounded-l-full"
+            className="h-full rounded-l-full bg-green-500"
             style={{ width: `${incomeWidth}%` }}
           />
           <div
-            className="h-full bg-rose-500 rounded-r-full"
+            className="h-full rounded-r-full bg-rose-500"
             style={{ width: `${spendWidth}%` }}
           />
         </div>
         <div className="mt-1.5 flex justify-between text-[11px] text-muted-foreground">
-          <span className="text-green-600 dark:text-green-400 font-medium">
+          <span className="font-medium text-green-600 dark:text-green-400">
             {formatCurrency(income, primaryCurrency, false)} in
           </span>
-          <span className="text-rose-500 font-medium">
+          <span className="font-medium text-rose-500">
             {formatCurrency(spend, primaryCurrency, false)} out
           </span>
         </div>
@@ -359,7 +396,12 @@ function BudgetProgressCard({
       const spent = c.totals.other_activity + c.totals.recurring_activity
       const budget = c.totals.budgeted!
       const catInfo = categoryMap.get(c.category_id)
-      return { id: c.category_id, name: catInfo?.name ?? "Unknown", spent, budget }
+      return {
+        id: c.category_id,
+        name: catInfo?.name ?? "Unknown",
+        spent,
+        budget,
+      }
     })
     .sort((a, b) => b.spent / b.budget - a.spent / a.budget)
 
@@ -379,14 +421,24 @@ function BudgetProgressCard({
               <li key={item.id}>
                 <div className="mb-1 flex items-center justify-between text-xs">
                   <span className="font-medium">{item.name}</span>
-                  <span className={cn("font-mono tabular-nums", over && "text-rose-500")}>
+                  <span
+                    className={cn(
+                      "font-mono tabular-nums",
+                      over && "text-rose-500"
+                    )}
+                  >
                     {formatCurrency(item.spent, primaryCurrency, false)}{" "}
-                    <span className="text-muted-foreground">/ {formatCurrency(item.budget, primaryCurrency, false)}</span>
+                    <span className="text-muted-foreground">
+                      / {formatCurrency(item.budget, primaryCurrency, false)}
+                    </span>
                   </span>
                 </div>
                 <div className="h-2 overflow-hidden rounded-full bg-muted">
                   <div
-                    className={cn("h-full rounded-full transition-all", over ? "bg-rose-500" : "bg-primary")}
+                    className={cn(
+                      "h-full rounded-full transition-all",
+                      over ? "bg-rose-500" : "bg-primary"
+                    )}
                     style={{ width: `${pct}%` }}
                   />
                 </div>
@@ -443,7 +495,7 @@ function SubscriptionsCard({
               className="flex items-center justify-between border-b border-border/50 py-2.5 first:pt-0 last:border-0 last:pb-0"
             >
               <span className="text-sm">{item.name}</span>
-              <span className="font-mono text-sm tabular-nums text-muted-foreground">
+              <span className="font-mono text-sm text-muted-foreground tabular-nums">
                 {formatCurrency(item.monthlyAmount, primaryCurrency, false)}/mo
               </span>
             </li>
@@ -463,10 +515,13 @@ export default function HomePage() {
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
   const [transactions, setTransactions] = useState<Transaction[]>([])
   const [prevTransactions, setPrevTransactions] = useState<Transaction[]>([])
-  const [categoryMap, setCategoryMap] = useState<Map<number, CategoryInfo>>(new Map())
+  const [categoryMap, setCategoryMap] = useState<Map<number, CategoryInfo>>(
+    new Map()
+  )
   const [primaryCurrency, setPrimaryCurrency] = useState("usd")
   const [recurringItems, setRecurringItems] = useState<RecurringItem[]>([])
-  const [budgetSummary, setBudgetSummary] = useState<AlignedSummaryResponse | null>(null)
+  const [budgetSummary, setBudgetSummary] =
+    useState<AlignedSummaryResponse | null>(null)
   const [{ loading, error }, setFetchStatus] = useState<{
     loading: boolean
     error: string | null
@@ -477,7 +532,6 @@ export default function HomePage() {
     if (!token) return
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFetchStatus({ loading: true, error: null })
-
 
     getMe(token)
       .then((user) => setPrimaryCurrency(user.primary_currency))
@@ -549,9 +603,14 @@ export default function HomePage() {
     if (transactions.length === 0) return null
 
     const expenses = transactions.filter((tx) => parseFloat(tx.amount) > 0)
-    const incomeTransactions = transactions.filter((tx) => parseFloat(tx.amount) < 0)
+    const incomeTransactions = transactions.filter(
+      (tx) => parseFloat(tx.amount) < 0
+    )
 
-    const totalSpend = expenses.reduce((sum, tx) => sum + parseFloat(tx.amount), 0)
+    const totalSpend = expenses.reduce(
+      (sum, tx) => sum + parseFloat(tx.amount),
+      0
+    )
     const totalIncome = incomeTransactions.reduce(
       (sum, tx) => sum + Math.abs(parseFloat(tx.amount)),
       0
@@ -565,7 +624,10 @@ export default function HomePage() {
 
     const spendByDay = new Map<string, number>()
     for (const tx of expenses) {
-      spendByDay.set(tx.date, (spendByDay.get(tx.date) ?? 0) + parseFloat(tx.amount))
+      spendByDay.set(
+        tx.date,
+        (spendByDay.get(tx.date) ?? 0) + parseFloat(tx.amount)
+      )
     }
     let peakDay = ""
     let peakAmount = 0
@@ -583,9 +645,7 @@ export default function HomePage() {
 
   function handleCategoryUpdated(txId: number, newCatId: number | null) {
     setTransactions((prev) =>
-      prev.map((tx) =>
-        tx.id === txId ? { ...tx, category_id: newCatId } : tx
-      )
+      prev.map((tx) => (tx.id === txId ? { ...tx, category_id: newCatId } : tx))
     )
   }
 
@@ -647,7 +707,8 @@ export default function HomePage() {
           <AlertTriangle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <p className="flex-1 text-sm text-amber-800 dark:text-amber-300">
             <span className="font-semibold">
-              {uncategorizedCount} uncategorized transaction{uncategorizedCount !== 1 ? "s" : ""}
+              {uncategorizedCount} uncategorized transaction
+              {uncategorizedCount !== 1 ? "s" : ""}
             </span>
             {" — "}
             <Link
@@ -671,14 +732,23 @@ export default function HomePage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-4xl text-green-500">
-                  {formatCurrency(quickStats.totalIncome, primaryCurrency, false)}
+                  {formatCurrency(
+                    quickStats.totalIncome,
+                    primaryCurrency,
+                    false
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm font-medium tracking-wide text-muted-foreground">
                   Income{" "}
                   <span className="font-mono text-[11px] text-muted-foreground/50">
-                    ({transactions.filter((tx) => parseFloat(tx.amount) < 0).length} deposits)
+                    (
+                    {
+                      transactions.filter((tx) => parseFloat(tx.amount) < 0)
+                        .length
+                    }{" "}
+                    deposits)
                   </span>
                 </p>
               </CardContent>
@@ -686,14 +756,23 @@ export default function HomePage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-4xl text-rose-500">
-                  {formatCurrency(quickStats.totalSpend, primaryCurrency, false)}
+                  {formatCurrency(
+                    quickStats.totalSpend,
+                    primaryCurrency,
+                    false
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm font-medium tracking-wide text-muted-foreground">
                   Spend{" "}
                   <span className="font-mono text-[11px] text-muted-foreground/50">
-                    ({transactions.filter((tx) => parseFloat(tx.amount) > 0).length} transactions)
+                    (
+                    {
+                      transactions.filter((tx) => parseFloat(tx.amount) > 0)
+                        .length
+                    }{" "}
+                    transactions)
                   </span>
                 </p>
               </CardContent>
@@ -701,7 +780,11 @@ export default function HomePage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-4xl text-blue-500">
-                  {formatCurrency(quickStats.avgSpendPerDay, primaryCurrency, false)}
+                  {formatCurrency(
+                    quickStats.avgSpendPerDay,
+                    primaryCurrency,
+                    false
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -716,14 +799,22 @@ export default function HomePage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-4xl text-amber-500">
-                  {formatCurrency(quickStats.peakAmount, primaryCurrency, false)}
+                  {formatCurrency(
+                    quickStats.peakAmount,
+                    primaryCurrency,
+                    false
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-sm font-medium tracking-wide text-muted-foreground">
                   Peak Day{" "}
                   <span className="font-mono text-[11px] text-muted-foreground/50">
-                    ({quickStats.peakDay ? formatShortDate(quickStats.peakDay) : "—"})
+                    (
+                    {quickStats.peakDay
+                      ? formatShortDate(quickStats.peakDay)
+                      : "—"}
+                    )
                   </span>
                 </p>
               </CardContent>
@@ -747,7 +838,10 @@ export default function HomePage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <DailySpendChart data={dailySpend} primaryCurrency={primaryCurrency} />
+              <DailySpendChart
+                data={dailySpend}
+                primaryCurrency={primaryCurrency}
+              />
             </CardContent>
           </Card>
         </div>
@@ -765,7 +859,9 @@ export default function HomePage() {
             ) : error ? (
               <p className="text-sm text-destructive">{error}</p>
             ) : categoryTotals.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No spending data found.</p>
+              <p className="text-sm text-muted-foreground">
+                No spending data found.
+              </p>
             ) : (
               <ul className="flex flex-col gap-2">
                 {categoryTotals.map((cat, i) => (
@@ -795,7 +891,9 @@ export default function HomePage() {
             {loading ? (
               <p className="text-sm text-muted-foreground">Loading…</p>
             ) : merchantTotals.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No spending data found.</p>
+              <p className="text-sm text-muted-foreground">
+                No spending data found.
+              </p>
             ) : (
               <ul className="flex flex-col gap-3">
                 {merchantTotals.map((m, i) => {
@@ -807,7 +905,9 @@ export default function HomePage() {
                       </span>
                       <div className="min-w-0 flex-1">
                         <div className="mb-1 flex items-center justify-between">
-                          <span className="truncate text-xs font-medium">{m.payee}</span>
+                          <span className="truncate text-xs font-medium">
+                            {m.payee}
+                          </span>
                           <span className="ml-3 shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
                             {formatCurrency(m.spend, primaryCurrency, false)}
                           </span>
@@ -816,7 +916,10 @@ export default function HomePage() {
                           <div
                             className="h-full rounded-full bg-blue-500/70"
                             style={{
-                              width: maxMerchant > 0 ? `${(m.spend / maxMerchant) * 100}%` : "0%",
+                              width:
+                                maxMerchant > 0
+                                  ? `${(m.spend / maxMerchant) * 100}%`
+                                  : "0%",
                             }}
                           />
                         </div>
@@ -845,8 +948,10 @@ export default function HomePage() {
       {!loading && (
         <div
           className={cn(
-            "grid gap-4 items-start",
-            budgetSummary && recurringItems.length > 0 ? "grid-cols-2" : "grid-cols-1"
+            "grid items-start gap-4",
+            budgetSummary && recurringItems.length > 0
+              ? "grid-cols-2"
+              : "grid-cols-1"
           )}
         >
           {budgetSummary && (

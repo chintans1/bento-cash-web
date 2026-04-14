@@ -4,14 +4,14 @@ A Next.js 16 web frontend for [Lunch Money](https://lunchmoney.app) that provide
 
 ## Stack
 
-| Layer | Choice |
-|---|---|
-| Framework | Next.js 16 (App Router, Turbopack) |
-| Language | TypeScript (strict) |
-| Styling | Tailwind CSS v4 + shadcn components |
-| LM SDK | `@lunch-money/lunch-money-js-v2` |
-| Icons | lucide-react |
-| Fonts | Public Sans (body), Geist Mono (mono), Playfair Display (headings via `font-heading`) |
+| Layer     | Choice                                                                                |
+| --------- | ------------------------------------------------------------------------------------- |
+| Framework | Next.js 16 (App Router, Turbopack)                                                    |
+| Language  | TypeScript (strict)                                                                   |
+| Styling   | Tailwind CSS v4 + shadcn components                                                   |
+| LM SDK    | `@lunch-money/lunch-money-js-v2`                                                      |
+| Icons     | lucide-react                                                                          |
+| Fonts     | Public Sans (body), Geist Mono (mono), Playfair Display (headings via `font-heading`) |
 
 ## Running
 
@@ -54,30 +54,30 @@ Thin wrappers around `LunchMoneyClient` from `@lunch-money/lunch-money-js-v2`. T
 
 Exported functions:
 
-| Function | SDK call | Notes |
-|---|---|---|
-| `getMe(token)` | `user.getMe()` | Returns `UserInfo` including `primary_currency` |
-| `getTransactionsForMonth(token, year, month)` | `transactions.getAll()` | Sorts by `created_at` desc; limit 250 |
-| `getCategories(token)` | `categories.getAll()` | Returns `{ categories: Category[] }` |
-| `getAccounts(token)` | `manualAccounts.getAll()` + `plaidAccounts.getAll()` | Both fetched in parallel |
-| `getRecurringItems(token)` | `recurringItems.getAll()` | Returns LM's native recurring item list |
-| `getBudgetSummary(token, year, month)` | `summary.get()` | Budget vs. actual per category |
-| `updateTransactionCategory(token, txId, catId)` | `transactions.update()` | Writes back to LM; `catId=null` clears the category |
+| Function                                        | SDK call                                             | Notes                                               |
+| ----------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------- |
+| `getMe(token)`                                  | `user.getMe()`                                       | Returns `UserInfo` including `primary_currency`     |
+| `getTransactionsForMonth(token, year, month)`   | `transactions.getAll()`                              | Sorts by `created_at` desc; limit 250               |
+| `getCategories(token)`                          | `categories.getAll()`                                | Returns `{ categories: Category[] }`                |
+| `getAccounts(token)`                            | `manualAccounts.getAll()` + `plaidAccounts.getAll()` | Both fetched in parallel                            |
+| `getRecurringItems(token)`                      | `recurringItems.getAll()`                            | Returns LM's native recurring item list             |
+| `getBudgetSummary(token, year, month)`          | `summary.get()`                                      | Budget vs. actual per category                      |
+| `updateTransactionCategory(token, txId, catId)` | `transactions.update()`                              | Writes back to LM; `catId=null` clears the category |
 
 ### `lib/lunchmoney/analytics.ts`
 
 Pure functions that operate on already-fetched transaction arrays. No API calls here.
 
-| Function | Purpose |
-|---|---|
-| `buildCategoryMap(res)` | Flattens nested LM category tree into `Map<id, CategoryInfo>` (handles category groups with children) |
-| `filterExpenses(txs)` | Keeps only transactions with `amount > 0` (LM: positive = expense, negative = income) |
-| `computeCategoryTotals(txs, catMap, limit?)` | Groups expenses by category, sorts by spend desc. Skips categories with `exclude_from_totals=true` |
-| `computeMerchantTotals(txs, limit?)` | Groups expenses by `payee`, sorts by spend desc |
-| `computeDailySpend(txs, year, month)` | Returns `{date, amount}[]` for every day of the month (zero-filled so charts have full x-axis) |
-| `computeMoMDeltas(current, prev)` | Returns `Map<categoryId, MoMDelta>` with `pct` change (null when prev spend = 0) |
-| `countUncategorized(txs, catMap)` | Count of expense transactions with no category_id |
-| `getTransactionsForCategory(txs, catId)` | Top 5 transactions for a category by amount (used for category drill-down) |
+| Function                                     | Purpose                                                                                               |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| `buildCategoryMap(res)`                      | Flattens nested LM category tree into `Map<id, CategoryInfo>` (handles category groups with children) |
+| `filterExpenses(txs)`                        | Keeps only transactions with `amount > 0` (LM: positive = expense, negative = income)                 |
+| `computeCategoryTotals(txs, catMap, limit?)` | Groups expenses by category, sorts by spend desc. Skips categories with `exclude_from_totals=true`    |
+| `computeMerchantTotals(txs, limit?)`         | Groups expenses by `payee`, sorts by spend desc                                                       |
+| `computeDailySpend(txs, year, month)`        | Returns `{date, amount}[]` for every day of the month (zero-filled so charts have full x-axis)        |
+| `computeMoMDeltas(current, prev)`            | Returns `Map<categoryId, MoMDelta>` with `pct` change (null when prev spend = 0)                      |
+| `countUncategorized(txs, catMap)`            | Count of expense transactions with no category_id                                                     |
+| `getTransactionsForCategory(txs, catId)`     | Top 5 transactions for a category by amount (used for category drill-down)                            |
 
 ### `lib/lunchmoney/categories.ts`
 
@@ -89,11 +89,11 @@ Maps lowercase category name keywords → Lucide icon components. `getCategoryIc
 
 ### `lib/format.ts`
 
-| Function | Purpose |
-|---|---|
-| `formatAmount(n, exact?)` | Always USD; `exact=true` shows cents |
+| Function                              | Purpose                                                                                                     |
+| ------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| `formatAmount(n, exact?)`             | Always USD; `exact=true` shows cents                                                                        |
 | `formatCurrency(n, currency, exact?)` | Uses `Intl.NumberFormat` with the given ISO currency code; falls back to `"N.NN CUR"` for unsupported codes |
-| `formatShortDate(dateStr)` | `"Apr 3"` format; uses noon UTC to avoid timezone-off-by-one |
+| `formatShortDate(dateStr)`            | `"Apr 3"` format; uses noon UTC to avoid timezone-off-by-one                                                |
 
 ---
 
@@ -142,6 +142,7 @@ Token entry form. On submit, calls `getMe()` to verify the token, then stores it
 Only shadcn-installed components are used. No custom UI primitive files should be created — install via `npx shadcn add <component>` instead.
 
 Current installed components in `components/ui/`:
+
 - `button` — includes `icon-sm` size variant
 - `card` — `Card`, `CardHeader`, `CardTitle`, `CardContent`, `CardFooter`, `CardDescription`
 - `input`
