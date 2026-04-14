@@ -21,6 +21,7 @@ import {
   computeDailySpend,
   computeMoMDeltas,
   countUncategorized,
+  filterSpendTransactions,
   getTransactionsForCategory,
   type CategoryTotal,
   type MoMDelta,
@@ -585,13 +586,13 @@ export default function HomePage() {
   )
 
   const merchantTotals = useMemo(
-    () => computeMerchantTotals(transactions, 8),
-    [transactions]
+    () => computeMerchantTotals(transactions, categoryMap, 8),
+    [transactions, categoryMap]
   )
 
   const dailySpend = useMemo(
-    () => computeDailySpend(transactions, selectedYear, selectedMonth),
-    [transactions, selectedYear, selectedMonth]
+    () => computeDailySpend(transactions, categoryMap, selectedYear, selectedMonth),
+    [transactions, categoryMap, selectedYear, selectedMonth]
   )
 
   const uncategorizedCount = useMemo(
@@ -602,7 +603,7 @@ export default function HomePage() {
   const quickStats = useMemo(() => {
     if (transactions.length === 0) return null
 
-    const expenses = transactions.filter((tx) => parseFloat(tx.amount) > 0)
+    const expenses = filterSpendTransactions(transactions, categoryMap)
     const incomeTransactions = transactions.filter(
       (tx) => parseFloat(tx.amount) < 0
     )
@@ -639,7 +640,7 @@ export default function HomePage() {
     }
 
     return { totalSpend, totalIncome, avgSpendPerDay, peakDay, peakAmount }
-  }, [transactions, selectedYear, selectedMonth, now])
+  }, [transactions, categoryMap, selectedYear, selectedMonth, now])
 
   const maxCatSpend = categoryTotals[0]?.spend ?? 0
 
@@ -768,10 +769,7 @@ export default function HomePage() {
                   Spend{" "}
                   <span className="font-mono text-[11px] text-muted-foreground/50">
                     (
-                    {
-                      transactions.filter((tx) => parseFloat(tx.amount) > 0)
-                        .length
-                    }{" "}
+                    {filterSpendTransactions(transactions, categoryMap).length}{" "}
                     transactions)
                   </span>
                 </p>

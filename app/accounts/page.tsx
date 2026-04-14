@@ -5,12 +5,16 @@ import { useEffect, useState } from "react"
 import { useToken } from "@/hooks/use-token"
 import {
   getAccounts,
+  getCategories,
   getMe,
   getTransactionsForMonth,
   type ManualAccount,
   type PlaidAccount,
 } from "@/lib/lunchmoney/client"
-import { computeAverageMonthlySpend } from "@/lib/lunchmoney/analytics"
+import {
+  buildCategoryMap,
+  computeAverageMonthlySpend,
+} from "@/lib/lunchmoney/analytics"
 import { formatCurrency } from "@/lib/format"
 import {
   Card,
@@ -461,13 +465,23 @@ export default function AccountsPage() {
     setInvestable({ status: "loading" })
 
     const months = getLastThreeFullMonths(new Date())
-    Promise.all(
-      months.map(({ year, month }) =>
+    Promise.all([
+      ...months.map(({ year, month }) =>
         getTransactionsForMonth(token, year, month).then((r) => r.transactions)
-      )
-    )
-      .then((monthlyTxArrays) => {
-        const avgMonthlySpend = computeAverageMonthlySpend(monthlyTxArrays)
+      ),
+      getCategories(token).then((r) => buildCategoryMap(r)),
+    ] as const)
+      .then((results) => {
+        const catMap = results[results.length - 1] as ReturnType<
+          typeof buildCategoryMap
+        >
+        const monthlyTxArrays = results.slice(0, -1) as Awaited<
+          ReturnType<typeof getTransactionsForMonth>
+        >["transactions"][]
+        const avgMonthlySpend = computeAverageMonthlySpend(
+          monthlyTxArrays,
+          catMap
+        )
         const raw = localStorage.getItem("investable_months")
         const parsed = raw !== null ? parseInt(raw, 10) : NaN
         const n = Number.isFinite(parsed) && parsed > 0 ? parsed : floorMonths

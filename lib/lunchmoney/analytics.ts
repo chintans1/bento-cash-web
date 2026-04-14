@@ -52,16 +52,33 @@ export function filterExpenses(transactions: Transaction[]): Transaction[] {
   return transactions.filter((tx) => parseFloat(tx.amount) > 0)
 }
 
+/**
+ * Filters to expense transactions that should count toward totals —
+ * positive amount AND not in an exclude_from_totals category (e.g. Transfers).
+ */
+export function filterSpendTransactions(
+  transactions: Transaction[],
+  catMap: Map<number, CategoryInfo>
+): Transaction[] {
+  return transactions.filter((tx) => {
+    if (parseFloat(tx.amount) <= 0) return false
+    if (tx.category_id != null) {
+      const cat = catMap.get(tx.category_id)
+      if (cat?.exclude_from_totals) return false
+    }
+    return true
+  })
+}
+
 export function computeCategoryTotals(
   transactions: Transaction[],
   catMap: Map<number, CategoryInfo>,
   limit = 10
 ): CategoryTotal[] {
   const map = new Map<number, CategoryTotal>()
-  for (const tx of filterExpenses(transactions)) {
+  for (const tx of filterSpendTransactions(transactions, catMap)) {
     const catId = tx.category_id ?? -1
     const cat = catMap.get(catId)
-    if (cat?.exclude_from_totals) continue
     const name = cat?.name ?? "Uncategorized"
     const prev = map.get(catId) ?? { id: catId, name, spend: 0, txCount: 0 }
     map.set(catId, {
@@ -78,10 +95,11 @@ export function computeCategoryTotals(
 /** Returns top merchants (by payee) sorted by spend descending. */
 export function computeMerchantTotals(
   transactions: Transaction[],
+  catMap: Map<number, CategoryInfo>,
   limit = 10
 ): MerchantTotal[] {
   const map = new Map<string, MerchantTotal>()
-  for (const tx of filterExpenses(transactions)) {
+  for (const tx of filterSpendTransactions(transactions, catMap)) {
     const payee = tx.payee?.trim() || "Unknown"
     const prev = map.get(payee) ?? { payee, spend: 0, txCount: 0 }
     map.set(payee, {
@@ -98,6 +116,7 @@ export function computeMerchantTotals(
 /** Returns per-day spend for the given year/month. Days with no spending are omitted. */
 export function computeDailySpend(
   transactions: Transaction[],
+  catMap: Map<number, CategoryInfo>,
   year: number,
   month: number
 ): DailySpend[] {
@@ -108,7 +127,7 @@ export function computeDailySpend(
     const key = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`
     map.set(key, 0)
   }
-  for (const tx of filterExpenses(transactions)) {
+  for (const tx of filterSpendTransactions(transactions, catMap)) {
     map.set(tx.date, (map.get(tx.date) ?? 0) + parseFloat(tx.amount))
   }
   return Array.from(map.entries())
@@ -153,11 +172,15 @@ export function countUncategorized(
  * Pass one Transaction[] per month. Returns 0 if no months provided.
  */
 export function computeAverageMonthlySpend(
-  monthlyTxArrays: Transaction[][]
+  monthlyTxArrays: Transaction[][],
+  catMap: Map<number, CategoryInfo>
 ): number {
   if (monthlyTxArrays.length === 0) return 0
   const totals = monthlyTxArrays.map((txs) =>
-    filterExpenses(txs).reduce((sum, tx) => sum + parseFloat(tx.amount), 0)
+    filterSpendTransactions(txs, catMap).reduce(
+      (sum, tx) => sum + parseFloat(tx.amount),
+      0
+    )
   )
   return totals.reduce((a, b) => a + b, 0) / totals.length
 }

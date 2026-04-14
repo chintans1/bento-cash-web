@@ -86,6 +86,17 @@ export function getBudgetSummary(
     .then((res) => res as AlignedSummaryResponse)
 }
 
+export function updateManualAccount(
+  token: string,
+  id: number,
+  data: { type?: string; subtype?: string }
+): Promise<void> {
+  return getClient(token)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .manualAccounts.update(id, data as any)
+    .then(() => undefined)
+}
+
 export function updateTransactionCategory(
   token: string,
   transactionId: number,
