@@ -6,11 +6,19 @@ import { useToken } from "@/hooks/use-token"
 import {
   getAccounts,
   getMe,
+  getTransactionsForMonth,
   type ManualAccount,
   type PlaidAccount,
 } from "@/lib/lunchmoney/client"
+import { computeAverageMonthlySpend } from "@/lib/lunchmoney/analytics"
 import { formatCurrency } from "@/lib/format"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
 // Account types that represent debt (balance = what you owe)
@@ -67,6 +75,160 @@ function normalizePlaid(a: PlaidAccount): NormalizedAccount {
     source: "plaid",
     status: a.status,
   }
+}
+
+function getLastThreeFullMonths(
+  now: Date
+): Array<{ year: number; month: number }> {
+  return [1, 2, 3].map((offset) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - offset, 1)
+    return { year: d.getFullYear(), month: d.getMonth() + 1 }
+  })
+}
+
+// Manual accounts use type="cash" with subtype="checking"/"savings".
+// Plaid accounts vary (type="depository" or "cash") but subtype is always authoritative.
+function isCheckingAccount(a: NormalizedAccount): boolean {
+  return !a.isLiability && a.subtype === "checking"
+}
+
+function isSavingsAccount(a: NormalizedAccount): boolean {
+  return !a.isLiability && a.subtype === "savings"
+}
+
+type InvestableState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "error"; message: string }
+  | {
+      status: "ready"
+      investableAmount: number
+      totalCheckingBalance: number
+      checkingFloor: number        // 1× avg monthly spend
+      totalSavingsBalance: number
+      savingsTarget: number        // N× avg monthly spend
+      savingsFunded: boolean       // savings >= savingsTarget
+      savingsShortfall: number     // max(0, savingsTarget - savingsBalance)
+      avgMonthlySpend: number
+      savingsMonths: number        // the configured N
+    }
+
+function InvestableCashCard({
+  state,
+  primaryCurrency,
+}: {
+  state: InvestableState
+  primaryCurrency: string
+}) {
+  return (
+    <Card className="mb-6">
+      <CardHeader className="pb-2">
+        <div className="flex items-baseline justify-between">
+          <CardTitle className="text-lg">Investable Cash</CardTitle>
+          <Link
+            href="/settings"
+            className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            Adjust target
+          </Link>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {state.status === "idle" || state.status === "loading" ? (
+          <div className="space-y-3">
+            <div className="h-9 w-40 animate-pulse rounded-lg bg-muted" />
+            <div className="h-5 w-full animate-pulse rounded bg-muted" />
+            <div className="h-5 w-full animate-pulse rounded bg-muted" />
+          </div>
+        ) : state.status === "error" ? (
+          <p className="text-sm text-muted-foreground">
+            Could not compute — {state.message}
+          </p>
+        ) : (
+          <>
+            {/* Hero answer */}
+            <div>
+              <p
+                className={cn(
+                  "font-mono text-3xl font-bold tabular-nums",
+                  state.investableAmount > 0
+                    ? "text-green-600 dark:text-green-400"
+                    : "text-muted-foreground"
+                )}
+              >
+                {formatCurrency(state.investableAmount, primaryCurrency, true)}
+              </p>
+              <p className="mt-0.5 text-sm text-muted-foreground">
+                {state.investableAmount > 0
+                  ? "ready to invest"
+                  : state.savingsFunded
+                    ? "checking is at its floor"
+                    : "fund your savings first"}
+              </p>
+            </div>
+
+            {/* Conditions */}
+            <div className="space-y-2 border-t border-border pt-3">
+              {/* Condition 1: checking buffer */}
+              {(() => {
+                const surplus = Math.max(0, state.totalCheckingBalance - state.checkingFloor)
+                const ok = state.totalCheckingBalance >= state.checkingFloor
+                return (
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className={cn("text-sm", ok ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400")}>
+                        {ok ? "✓" : "✗"}
+                      </span>
+                      <span className="text-sm text-muted-foreground truncate">
+                        Checking buffer (1mo)
+                      </span>
+                    </div>
+                    <span className="font-mono text-sm tabular-nums shrink-0 text-muted-foreground">
+                      {formatCurrency(state.totalCheckingBalance, primaryCurrency, true)}
+                      {" − "}
+                      {formatCurrency(state.checkingFloor, primaryCurrency, true)}
+                      {" = "}
+                      <span className={cn("font-medium", ok ? "text-foreground" : "text-amber-600 dark:text-amber-400")}>
+                        {formatCurrency(surplus, primaryCurrency, true)}
+                      </span>
+                    </span>
+                  </div>
+                )
+              })()}
+
+              {/* Condition 2: savings emergency fund */}
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className={cn("text-sm", state.savingsFunded ? "text-green-600 dark:text-green-400" : "text-amber-600 dark:text-amber-400")}>
+                    {state.savingsFunded ? "✓" : "✗"}
+                  </span>
+                  <span className="text-sm text-muted-foreground truncate">
+                    Emergency fund ({state.savingsMonths}mo)
+                  </span>
+                </div>
+                <span className="font-mono text-sm tabular-nums shrink-0 text-muted-foreground">
+                  {formatCurrency(state.totalSavingsBalance, primaryCurrency, true)}
+                  {" / "}
+                  <span className={cn("font-medium", state.savingsFunded ? "text-foreground" : "text-amber-600 dark:text-amber-400")}>
+                    {formatCurrency(state.savingsTarget, primaryCurrency, true)}
+                  </span>
+                  {!state.savingsFunded && (
+                    <span className="text-amber-600 dark:text-amber-400">
+                      {" (−"}{formatCurrency(state.savingsShortfall, primaryCurrency, true)}{")"}
+                    </span>
+                  )}
+                </span>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground">
+              avg {formatCurrency(state.avgMonthlySpend, primaryCurrency, false)}/mo · last 3 months
+            </p>
+          </>
+        )}
+      </CardContent>
+    </Card>
+  )
 }
 
 const ALL_CAPS_SUBTYPES = new Set(["ira", "tfsa", "hsa", "401k", "403b", "529"])
@@ -230,6 +392,75 @@ export default function AccountsPage() {
     loading: boolean
     error: string | null
   }>({ loading: false, error: null })
+  const [investable, setInvestable] = useState<InvestableState>({
+    status: "idle",
+  })
+  const [floorMonths, setFloorMonths] = useState<number>(3)
+
+  // SSR-safe: read localStorage preference for floor months
+  useEffect(() => {
+    const raw = localStorage.getItem("investable_months")
+    const parsed = raw !== null ? parseInt(raw, 10) : NaN
+    setFloorMonths(Number.isFinite(parsed) && parsed > 0 ? parsed : 3)
+  }, [])
+
+  // Non-blocking secondary fetch: triggers after accounts load
+  useEffect(() => {
+    if (!token || accounts.length === 0) return
+    setInvestable({ status: "loading" })
+
+    const months = getLastThreeFullMonths(new Date())
+    Promise.all(
+      months.map(({ year, month }) =>
+        getTransactionsForMonth(token, year, month).then((r) => r.transactions)
+      )
+    )
+      .then((monthlyTxArrays) => {
+        const avgMonthlySpend = computeAverageMonthlySpend(monthlyTxArrays)
+        const raw = localStorage.getItem("investable_months")
+        const parsed = raw !== null ? parseInt(raw, 10) : NaN
+        const n = Number.isFinite(parsed) && parsed > 0 ? parsed : floorMonths
+
+        const totalCheckingBalance = accounts
+          .filter(isCheckingAccount)
+          .reduce((sum, a) => sum + (a.balanceValid ? a.toBase : 0), 0)
+
+        const totalSavingsBalance = accounts
+          .filter(isSavingsAccount)
+          .reduce((sum, a) => sum + (a.balanceValid ? a.toBase : 0), 0)
+
+        // Checking must always hold 1 month of expenses for cash flow
+        const checkingFloor = avgMonthlySpend
+        // Savings must hold N months as the emergency fund
+        const savingsTarget = avgMonthlySpend * n
+        const savingsFunded = totalSavingsBalance >= savingsTarget
+        const savingsShortfall = Math.max(0, savingsTarget - totalSavingsBalance)
+
+        // Only the checking surplus is investable, and only once savings is funded
+        const checkingSurplus = Math.max(0, totalCheckingBalance - checkingFloor)
+        const investableAmount = savingsFunded ? checkingSurplus : 0
+
+        setInvestable({
+          status: "ready",
+          investableAmount,
+          totalCheckingBalance,
+          checkingFloor,
+          totalSavingsBalance,
+          savingsTarget,
+          savingsFunded,
+          savingsShortfall,
+          avgMonthlySpend,
+          savingsMonths: n,
+        })
+      })
+      .catch((err) => {
+        setInvestable({
+          status: "error",
+          message:
+            err instanceof Error ? err.message : "Could not load transactions",
+        })
+      })
+  }, [token, accounts, floorMonths])
 
   useEffect(() => {
     if (!token) return
@@ -337,25 +568,33 @@ export default function AccountsPage() {
       ) : error ? (
         <p className="text-sm text-destructive">{error}</p>
       ) : (
-        <div className="grid grid-cols-2 items-start gap-6">
-          <AccountSection
-            title="Assets"
-            accounts={assets}
-            total={totalAssets}
-            primaryCurrency={primaryCurrency}
-          />
-          <AccountSection
-            title="Liabilities"
-            accounts={liabilities}
-            total={totalLiabilities}
-            primaryCurrency={primaryCurrency}
-          />
-          {accounts.length === 0 && (
-            <p className="text-center text-sm text-muted-foreground">
-              No accounts found.
-            </p>
+        <>
+          {accounts.length > 0 && (
+            <InvestableCashCard
+              state={investable}
+              primaryCurrency={primaryCurrency}
+            />
           )}
-        </div>
+          <div className="grid grid-cols-2 items-start gap-6">
+            <AccountSection
+              title="Assets"
+              accounts={assets}
+              total={totalAssets}
+              primaryCurrency={primaryCurrency}
+            />
+            <AccountSection
+              title="Liabilities"
+              accounts={liabilities}
+              total={totalLiabilities}
+              primaryCurrency={primaryCurrency}
+            />
+            {accounts.length === 0 && (
+              <p className="text-center text-sm text-muted-foreground">
+                No accounts found.
+              </p>
+            )}
+          </div>
+        </>
       )}
     </div>
   )

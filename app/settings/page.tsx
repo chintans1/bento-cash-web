@@ -21,10 +21,26 @@ export default function SettingsPage() {
   const [user, setUser] = useState<UserInfo | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+  const [floorMonths, setFloorMonths] = useState<number>(3)
+  const [floorMonthsInput, setFloorMonthsInput] = useState<string>("3")
 
   useEffect(() => {
     if (token) fetchUser(token)
+    const raw = localStorage.getItem("investable_months")
+    const parsed = raw !== null ? parseInt(raw, 10) : NaN
+    const val = Number.isFinite(parsed) && parsed > 0 ? parsed : 3
+    setFloorMonths(val)
+    setFloorMonthsInput(String(val))
   }, [token])
+
+  function handleFloorMonthsChange(raw: string) {
+    setFloorMonthsInput(raw)
+    const n = parseInt(raw, 10)
+    if (Number.isFinite(n) && n > 0) {
+      localStorage.setItem("investable_months", String(n))
+      setFloorMonths(n)
+    }
+  }
 
   async function fetchUser(apiToken: string) {
     setLoading(true)
@@ -93,6 +109,34 @@ export default function SettingsPage() {
               Change token
             </Button>
           </CardFooter>
+        </Card>
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle className="text-xl">Investable Cash</CardTitle>
+            <CardDescription className="text-base">
+              How many months of expenses your savings should cover as an
+              emergency fund. Checking always keeps 1 month for cash flow.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-3">
+              <Input
+                type="number"
+                min={1}
+                max={24}
+                step={1}
+                value={floorMonthsInput}
+                onChange={(e) => handleFloorMonthsChange(e.target.value)}
+                className="h-11 w-24 text-center font-mono text-base"
+              />
+              <span className="text-base text-muted-foreground">months savings target</span>
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Savings target:{" "}
+              <span className="font-medium text-foreground">{floorMonths}</span>{" "}
+              {floorMonths === 1 ? "month" : "months"} of expenses.
+            </p>
+          </CardContent>
         </Card>
         {hint}
       </div>

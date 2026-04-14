@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
+  { href: "/transactions", label: "Transactions" },
   { href: "/accounts", label: "Accounts" },
   { href: "/settings", label: "Settings" },
 ]
@@ -15,7 +16,7 @@ export function Header() {
 
   return (
     <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur-sm">
-      <div className="mx-auto flex max-w-2xl items-center justify-between px-6 py-4">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <span className="font-heading text-2xl font-semibold">
           Bento Cash{" "}
           <span className="font-mono text-xs text-muted-foreground">web</span>

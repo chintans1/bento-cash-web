@@ -1,11 +1,13 @@
 import { LunchMoneyClient } from "@lunch-money/lunch-money-js-v2"
-import type { Category } from "@lunch-money/lunch-money-js-v2"
+import type { Category, RecurringItem, AlignedSummaryResponse } from "@lunch-money/lunch-money-js-v2"
 export type {
   Transaction,
   Category,
   User as UserInfo,
   ManualAccount,
   PlaidAccount,
+  RecurringItem,
+  AlignedSummaryResponse,
 } from "@lunch-money/lunch-money-js-v2"
 
 export type CategoriesResponse = { categories: Category[] }
@@ -61,4 +63,31 @@ export function getAccounts(token: string) {
     client.manualAccounts.getAll(),
     client.plaidAccounts.getAll(),
   ]).then(([manual, plaid]) => ({ manual, plaid }))
+}
+
+export function getRecurringItems(token: string): Promise<RecurringItem[]> {
+  return getClient(token).recurringItems.getAll()
+}
+
+export function getBudgetSummary(
+  token: string,
+  year: number,
+  month: number
+): Promise<AlignedSummaryResponse> {
+  const start = `${year}-${String(month).padStart(2, "0")}-01`
+  const lastDay = new Date(year, month, 0).getDate()
+  const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
+  return getClient(token)
+    .summary.get({ start_date: start, end_date: end })
+    .then((res) => res as AlignedSummaryResponse)
+}
+
+export function updateTransactionCategory(
+  token: string,
+  transactionId: number,
+  categoryId: number | null
+): Promise<void> {
+  return getClient(token)
+    .transactions.update(transactionId, { category_id: categoryId ?? null })
+    .then(() => undefined)
 }
