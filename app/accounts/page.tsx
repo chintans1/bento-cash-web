@@ -1,18 +1,18 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { useEffect, useState } from "react"
-import { useToken } from "@/hooks/use-token"
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useToken } from "@/hooks/use-token";
 import {
   getAccounts,
   getCategories,
   getMe,
   getTransactionsForMonth,
-} from "@/lib/lunchmoney/client"
+} from "@/lib/lunchmoney/client";
 import {
   buildCategoryMap,
   computeAverageMonthlySpend,
-} from "@/lib/lunchmoney/analytics"
+} from "@/lib/lunchmoney/analytics";
 import {
   type NormalizedAccount,
   normalizeManual,
@@ -20,29 +20,29 @@ import {
   formatSubtype,
   formatUpdated,
   groupByInstitution,
-} from "@/lib/account-utils"
-import { NoTokenPrompt } from "@/components/no-token-prompt"
-import { formatCurrency } from "@/lib/format"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { cn } from "@/lib/utils"
+} from "@/lib/account-utils";
+import { NoTokenPrompt } from "@/components/no-token-prompt";
+import { formatCurrency } from "@/lib/format";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 function getLastThreeFullMonths(
   now: Date
 ): Array<{ year: number; month: number }> {
   return [1, 2, 3].map((offset) => {
-    const d = new Date(now.getFullYear(), now.getMonth() - offset, 1)
-    return { year: d.getFullYear(), month: d.getMonth() + 1 }
-  })
+    const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+    return { year: d.getFullYear(), month: d.getMonth() + 1 };
+  });
 }
 
 // Manual accounts use type="cash" with subtype="checking"/"savings".
 // Plaid accounts vary (type="depository" or "cash") but subtype is always authoritative.
 function isCheckingAccount(a: NormalizedAccount): boolean {
-  return !a.isLiability && a.subtype === "checking"
+  return !a.isLiability && a.subtype === "checking";
 }
 
 function isSavingsAccount(a: NormalizedAccount): boolean {
-  return !a.isLiability && a.subtype === "savings"
+  return !a.isLiability && a.subtype === "savings";
 }
 
 type InvestableState =
@@ -50,24 +50,24 @@ type InvestableState =
   | { status: "loading" }
   | { status: "error"; message: string }
   | {
-      status: "ready"
-      investableAmount: number
-      totalCheckingBalance: number
-      checkingFloor: number // 1× avg monthly spend
-      totalSavingsBalance: number
-      savingsTarget: number // N× avg monthly spend
-      savingsFunded: boolean // savings >= savingsTarget
-      savingsShortfall: number // max(0, savingsTarget - savingsBalance)
-      avgMonthlySpend: number
-      savingsMonths: number // the configured N
-    }
+      status: "ready";
+      investableAmount: number;
+      totalCheckingBalance: number;
+      checkingFloor: number; // 1× avg monthly spend
+      totalSavingsBalance: number;
+      savingsTarget: number; // N× avg monthly spend
+      savingsFunded: boolean; // savings >= savingsTarget
+      savingsShortfall: number; // max(0, savingsTarget - savingsBalance)
+      avgMonthlySpend: number;
+      savingsMonths: number; // the configured N
+    };
 
 function InvestableCashCard({
   state,
   primaryCurrency,
 }: {
-  state: InvestableState
-  primaryCurrency: string
+  state: InvestableState;
+  primaryCurrency: string;
 }) {
   return (
     <Card className="mb-6">
@@ -123,8 +123,8 @@ function InvestableCashCard({
                 const surplus = Math.max(
                   0,
                   state.totalCheckingBalance - state.checkingFloor
-                )
-                const ok = state.totalCheckingBalance >= state.checkingFloor
+                );
+                const ok = state.totalCheckingBalance >= state.checkingFloor;
                 return (
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex min-w-0 items-center gap-2">
@@ -167,7 +167,7 @@ function InvestableCashCard({
                       </span>
                     </span>
                   </div>
-                )
+                );
               })()}
 
               {/* Condition 2: savings emergency fund */}
@@ -228,19 +228,19 @@ function InvestableCashCard({
         )}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 function AccountRow({
   account,
   primaryCurrency,
 }: {
-  account: NormalizedAccount
-  primaryCurrency: string
+  account: NormalizedAccount;
+  primaryCurrency: string;
 }) {
   const showNative =
-    account.currency.toLowerCase() !== primaryCurrency.toLowerCase()
-  const isInactive = account.status !== "active"
+    account.currency.toLowerCase() !== primaryCurrency.toLowerCase();
+  const isInactive = account.status !== "active";
 
   return (
     <li className="flex items-center gap-3 border-b border-border/50 py-3 last:border-0">
@@ -288,7 +288,7 @@ function AccountRow({
         </span>
       </div>
     </li>
-  )
+  );
 }
 
 function AccountSection({
@@ -297,14 +297,14 @@ function AccountSection({
   total,
   primaryCurrency,
 }: {
-  title: string
-  accounts: NormalizedAccount[]
-  total: number
-  primaryCurrency: string
+  title: string;
+  accounts: NormalizedAccount[];
+  total: number;
+  primaryCurrency: string;
 }) {
-  if (accounts.length === 0) return null
+  if (accounts.length === 0) return null;
 
-  const groups = groupByInstitution(accounts)
+  const groups = groupByInstitution(accounts);
 
   return (
     <Card className="pb-0">
@@ -321,7 +321,7 @@ function AccountSection({
           const groupTotal = groupAccounts.reduce(
             (sum, a) => sum + (a.balanceValid ? a.toBase : 0),
             0
-          )
+          );
           return (
             <div
               key={institution}
@@ -345,77 +345,77 @@ function AccountSection({
                 ))}
               </ul>
             </div>
-          )
+          );
         })}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 export default function AccountsPage() {
-  const { token } = useToken()
-  const [accounts, setAccounts] = useState<NormalizedAccount[]>([])
-  const [primaryCurrency, setPrimaryCurrency] = useState("usd")
+  const { token } = useToken();
+  const [accounts, setAccounts] = useState<NormalizedAccount[]>([]);
+  const [primaryCurrency, setPrimaryCurrency] = useState("usd");
   const [{ loading, error }, setFetchStatus] = useState<{
-    loading: boolean
-    error: string | null
-  }>({ loading: false, error: null })
+    loading: boolean;
+    error: string | null;
+  }>({ loading: false, error: null });
   const [investable, setInvestable] = useState<InvestableState>({
     status: "idle",
-  })
-  const [floorMonths, setFloorMonths] = useState<number>(3)
+  });
+  const [floorMonths, setFloorMonths] = useState<number>(3);
 
   // SSR-safe: read localStorage preference for floor months
   useEffect(() => {
-    const raw = localStorage.getItem("investable_months")
-    const parsed = raw !== null ? parseInt(raw, 10) : NaN
+    const raw = localStorage.getItem("investable_months");
+    const parsed = raw !== null ? parseInt(raw, 10) : NaN;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFloorMonths(Number.isFinite(parsed) && parsed > 0 ? parsed : 3)
-  }, [])
+    setFloorMonths(Number.isFinite(parsed) && parsed > 0 ? parsed : 3);
+  }, []);
 
   // Non-blocking secondary fetch: triggers after accounts load
   useEffect(() => {
-    if (!token || accounts.length === 0) return
+    if (!token || accounts.length === 0) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setInvestable({ status: "loading" })
+    setInvestable({ status: "loading" });
 
-    const months = getLastThreeFullMonths(new Date())
-    const catMapPromise = getCategories(token).then((r) => buildCategoryMap(r))
+    const months = getLastThreeFullMonths(new Date());
+    const catMapPromise = getCategories(token).then((r) => buildCategoryMap(r));
     const txPromises = months.map(({ year, month }) =>
       getTransactionsForMonth(token, year, month).then((r) => r.transactions)
-    )
+    );
 
     Promise.all([catMapPromise, Promise.all(txPromises)])
       .then(([catMap, monthlyTxArrays]) => {
         const avgMonthlySpend = computeAverageMonthlySpend(
           monthlyTxArrays,
           catMap
-        )
+        );
 
         const totalCheckingBalance = accounts
           .filter(isCheckingAccount)
-          .reduce((sum, a) => sum + (a.balanceValid ? a.toBase : 0), 0)
+          .reduce((sum, a) => sum + (a.balanceValid ? a.toBase : 0), 0);
 
         const totalSavingsBalance = accounts
           .filter(isSavingsAccount)
-          .reduce((sum, a) => sum + (a.balanceValid ? a.toBase : 0), 0)
+          .reduce((sum, a) => sum + (a.balanceValid ? a.toBase : 0), 0);
 
         // Checking must always hold 1 month of expenses for cash flow
-        const checkingFloor = avgMonthlySpend
+        const checkingFloor = avgMonthlySpend;
         // Savings must hold N months as the emergency fund
-        const savingsTarget = avgMonthlySpend * floorMonths
-        const savingsFunded = totalSavingsBalance >= savingsTarget
+        const savingsTarget = avgMonthlySpend * floorMonths;
+        const savingsFunded = totalSavingsBalance >= savingsTarget;
         const savingsShortfall = Math.max(
           0,
           savingsTarget - totalSavingsBalance
-        )
+        );
 
         // Only the checking surplus is investable, and only once savings is funded
         const checkingSurplus = Math.max(
           0,
           totalCheckingBalance - checkingFloor
-        )
-        const investableAmount = savingsFunded ? checkingSurplus : 0
+        );
+        const investableAmount = savingsFunded ? checkingSurplus : 0;
 
         setInvestable({
           status: "ready",
@@ -428,59 +428,61 @@ export default function AccountsPage() {
           savingsShortfall,
           avgMonthlySpend,
           savingsMonths: floorMonths,
-        })
+        });
       })
       .catch((err) => {
         setInvestable({
           status: "error",
           message:
             err instanceof Error ? err.message : "Could not load transactions",
-        })
-      })
-  }, [token, accounts, floorMonths])
+        });
+      });
+  }, [token, accounts, floorMonths]);
 
   useEffect(() => {
-    if (!token) return
+    if (!token) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFetchStatus({ loading: true, error: null })
+    setFetchStatus({ loading: true, error: null });
 
     getMe(token)
       .then((user) => setPrimaryCurrency(user.primary_currency))
-      .catch(() => {}) // Non-fatal — fall back to usd
+      .catch(() => {}); // Non-fatal — fall back to usd
 
     getAccounts(token)
       .then(({ manual, plaid }) => {
         const all = [
           ...manual.map(normalizeManual),
           ...plaid.map(normalizePlaid),
-        ]
-        setAccounts(all)
-        setFetchStatus({ loading: false, error: null })
+        ];
+        setAccounts(all);
+        setFetchStatus({ loading: false, error: null });
       })
       .catch((err) => {
         setFetchStatus({
           loading: false,
           error: err instanceof Error ? err.message : "Something went wrong",
-        })
-      })
-  }, [token])
+        });
+      });
+  }, [token]);
 
-  if (!token) return <NoTokenPrompt />
+  if (!token) return <NoTokenPrompt />;
 
-  const assets = accounts.filter((a) => !a.isLiability && a.status !== "closed")
+  const assets = accounts.filter(
+    (a) => !a.isLiability && a.status !== "closed"
+  );
   const liabilities = accounts.filter(
     (a) => a.isLiability && a.status !== "closed"
-  )
+  );
 
   const totalAssets = assets.reduce(
     (sum, a) => sum + (a.balanceValid ? a.toBase : 0),
     0
-  )
+  );
   const totalLiabilities = liabilities.reduce(
     (sum, a) => sum + (a.balanceValid ? a.toBase : 0),
     0
-  )
-  const netWorth = totalAssets - totalLiabilities
+  );
+  const netWorth = totalAssets - totalLiabilities;
 
   return (
     <div className="mx-auto max-w-6xl px-6 pt-6 pb-10">
@@ -559,5 +561,5 @@ export default function AccountsPage() {
         </>
       )}
     </div>
-  )
+  );
 }

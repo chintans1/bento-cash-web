@@ -1,111 +1,113 @@
-"use client"
+"use client";
 
-import { useEffect, useMemo, useState } from "react"
-import { useToken } from "@/hooks/use-token"
+import { useEffect, useMemo, useState } from "react";
+import { useToken } from "@/hooks/use-token";
 import {
   getCategories,
   getTransactionsForMonth,
   updateTransactionCategory,
   type Transaction,
-} from "@/lib/lunchmoney/client"
-import { buildCategoryMap } from "@/lib/lunchmoney/analytics"
-import { getCategoryIcon } from "@/lib/lunchmoney/category-icons"
-import { type CategoryInfo, UNCATEGORIZED } from "@/lib/lunchmoney/categories"
-import { formatAmount, formatShortDate } from "@/lib/format"
+} from "@/lib/lunchmoney/client";
+import { buildCategoryMap } from "@/lib/lunchmoney/analytics";
+import { getCategoryIcon } from "@/lib/lunchmoney/category-icons";
+import { type CategoryInfo, UNCATEGORIZED } from "@/lib/lunchmoney/categories";
+import { formatAmount, formatShortDate } from "@/lib/format";
 import {
   MONTH_NAMES,
   isCurrentOrFutureMonth,
   prevMonthOf,
   nextMonthOf,
-} from "@/lib/date-utils"
-import { NoTokenPrompt } from "@/components/no-token-prompt"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { ChevronLeft, ChevronRight, Search, X } from "lucide-react"
-import { cn } from "@/lib/utils"
+} from "@/lib/date-utils";
+import { NoTokenPrompt } from "@/components/no-token-prompt";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-type SortKey = "date" | "amount" | "payee"
-type SortDir = "asc" | "desc"
+type SortKey = "date" | "amount" | "payee";
+type SortDir = "asc" | "desc";
 
 export default function TransactionsPage() {
-  const { token } = useToken()
-  const now = new Date()
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear())
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
-  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const { token } = useToken();
+  const now = new Date();
+  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categoryMap, setCategoryMap] = useState<Map<number, CategoryInfo>>(
     new Map()
-  )
+  );
   const [{ loading, error }, setFetchStatus] = useState<{
-    loading: boolean
-    error: string | null
-  }>({ loading: false, error: null })
-  const [query, setQuery] = useState("")
-  const [filterCatId, setFilterCatId] = useState<number | null>(null)
-  const [sortKey, setSortKey] = useState<SortKey>("date")
-  const [sortDir, setSortDir] = useState<SortDir>("desc")
+    loading: boolean;
+    error: string | null;
+  }>({ loading: false, error: null });
+  const [query, setQuery] = useState("");
+  const [filterCatId, setFilterCatId] = useState<number | null>(null);
+  const [sortKey, setSortKey] = useState<SortKey>("date");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
   // category_id being updated -> optimistic state
-  const [updatingId, setUpdatingId] = useState<number | null>(null)
-  const [editingCatId, setEditingCatId] = useState<number | null>(null)
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [editingCatId, setEditingCatId] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!token) return
-    setFetchStatus({ loading: true, error: null })
+    if (!token) return;
+    setFetchStatus({ loading: true, error: null });
     Promise.all([
       getTransactionsForMonth(token, selectedYear, selectedMonth),
       getCategories(token),
     ])
       .then(([txRes, catRes]) => {
-        setTransactions(txRes.transactions)
-        setCategoryMap(buildCategoryMap(catRes))
-        setFetchStatus({ loading: false, error: null })
+        setTransactions(txRes.transactions);
+        setCategoryMap(buildCategoryMap(catRes));
+        setFetchStatus({ loading: false, error: null });
       })
       .catch((err) => {
         setFetchStatus({
           loading: false,
           error: err instanceof Error ? err.message : "Something went wrong",
-        })
-      })
-  }, [token, selectedYear, selectedMonth])
+        });
+      });
+  }, [token, selectedYear, selectedMonth]);
 
   const categories = useMemo(() => {
-    const seen = new Map<number, string>()
+    const seen = new Map<number, string>();
     for (const tx of transactions) {
       if (tx.category_id != null) {
-        const info = categoryMap.get(tx.category_id)
-        if (info) seen.set(tx.category_id, info.name)
+        const info = categoryMap.get(tx.category_id);
+        if (info) seen.set(tx.category_id, info.name);
       }
     }
-    return Array.from(seen.entries()).sort(([, a], [, b]) => a.localeCompare(b))
-  }, [transactions, categoryMap])
+    return Array.from(seen.entries()).sort(([, a], [, b]) =>
+      a.localeCompare(b)
+    );
+  }, [transactions, categoryMap]);
 
   const filtered = useMemo(() => {
-    let result = [...transactions]
+    let result = [...transactions];
     if (query) {
-      const q = query.toLowerCase()
+      const q = query.toLowerCase();
       result = result.filter(
         (tx) =>
           tx.payee?.toLowerCase().includes(q) ||
           tx.notes?.toLowerCase().includes(q)
-      )
+      );
     }
     if (filterCatId !== null) {
       result = result.filter((tx) =>
         filterCatId === -1
           ? tx.category_id == null
           : tx.category_id === filterCatId
-      )
+      );
     }
     result.sort((a, b) => {
-      let cmp = 0
-      if (sortKey === "date") cmp = a.date.localeCompare(b.date)
+      let cmp = 0;
+      if (sortKey === "date") cmp = a.date.localeCompare(b.date);
       else if (sortKey === "amount")
-        cmp = parseFloat(a.amount) - parseFloat(b.amount)
-      else cmp = (a.payee ?? "").localeCompare(b.payee ?? "")
-      return sortDir === "asc" ? cmp : -cmp
-    })
-    return result
-  }, [transactions, query, filterCatId, sortKey, sortDir])
+        cmp = parseFloat(a.amount) - parseFloat(b.amount);
+      else cmp = (a.payee ?? "").localeCompare(b.payee ?? "");
+      return sortDir === "asc" ? cmp : -cmp;
+    });
+    return result;
+  }, [transactions, query, filterCatId, sortKey, sortDir]);
 
   const totalSpend = useMemo(
     () =>
@@ -113,40 +115,40 @@ export default function TransactionsPage() {
         .filter((tx) => parseFloat(tx.amount) > 0)
         .reduce((s, tx) => s + parseFloat(tx.amount), 0),
     [filtered]
-  )
+  );
 
   function toggleSort(key: SortKey) {
-    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"))
+    if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else {
-      setSortKey(key)
-      setSortDir("desc")
+      setSortKey(key);
+      setSortDir("desc");
     }
   }
 
   async function handleCategoryChange(txId: number, newCatId: number | null) {
-    if (!token) return
-    setUpdatingId(txId)
+    if (!token) return;
+    setUpdatingId(txId);
     try {
-      await updateTransactionCategory(token, txId, newCatId)
+      await updateTransactionCategory(token, txId, newCatId);
       setTransactions((prev) =>
         prev.map((tx) =>
           tx.id === txId ? { ...tx, category_id: newCatId } : tx
         )
-      )
+      );
     } finally {
-      setUpdatingId(null)
-      setEditingCatId(null)
+      setUpdatingId(null);
+      setEditingCatId(null);
     }
   }
 
-  if (!token) return <NoTokenPrompt />
+  if (!token) return <NoTokenPrompt />;
 
   const SortIcon = ({ k }: { k: SortKey }) =>
     sortKey === k ? (
       <span className="ml-0.5 text-[10px]">
         {sortDir === "asc" ? "↑" : "↓"}
       </span>
-    ) : null
+    ) : null;
 
   return (
     <div className="mx-auto max-w-5xl px-6 pt-6 pb-10">
@@ -159,9 +161,9 @@ export default function TransactionsPage() {
             variant="ghost"
             size="icon-sm"
             onClick={() => {
-              const p = prevMonthOf(selectedYear, selectedMonth)
-              setSelectedYear(p.year)
-              setSelectedMonth(p.month)
+              const p = prevMonthOf(selectedYear, selectedMonth);
+              setSelectedYear(p.year);
+              setSelectedMonth(p.month);
             }}
           >
             <ChevronLeft className="size-4" />
@@ -174,9 +176,9 @@ export default function TransactionsPage() {
             size="icon-sm"
             disabled={isCurrentOrFutureMonth(selectedYear, selectedMonth)}
             onClick={() => {
-              const n = nextMonthOf(selectedYear, selectedMonth)
-              setSelectedYear(n.year)
-              setSelectedMonth(n.month)
+              const n = nextMonthOf(selectedYear, selectedMonth);
+              setSelectedYear(n.year);
+              setSelectedMonth(n.month);
             }}
           >
             <ChevronRight className="size-4" />
@@ -263,12 +265,12 @@ export default function TransactionsPage() {
             const category =
               tx.category_id != null
                 ? (categoryMap.get(tx.category_id) ?? UNCATEGORIZED)
-                : UNCATEGORIZED
-            const Icon = getCategoryIcon(category.name)
-            const isCredit = parseFloat(tx.amount) < 0
-            const isUncategorized = tx.category_id == null
-            const isEditing = editingCatId === tx.id
-            const isUpdating = updatingId === tx.id
+                : UNCATEGORIZED;
+            const Icon = getCategoryIcon(category.name);
+            const isCredit = parseFloat(tx.amount) < 0;
+            const isUncategorized = tx.category_id == null;
+            const isEditing = editingCatId === tx.id;
+            const isUpdating = updatingId === tx.id;
 
             return (
               <div
@@ -300,11 +302,11 @@ export default function TransactionsPage() {
                       defaultValue={tx.category_id ?? ""}
                       onBlur={() => setEditingCatId(null)}
                       onChange={(e) => {
-                        const val = e.target.value
+                        const val = e.target.value;
                         handleCategoryChange(
                           tx.id,
                           val === "" ? null : Number(val)
-                        )
+                        );
                       }}
                     >
                       <option value="">Uncategorized</option>
@@ -345,7 +347,7 @@ export default function TransactionsPage() {
                   {formatAmount(Math.abs(parseFloat(tx.amount)), true)}
                 </span>
               </div>
-            )
+            );
           })}
         </div>
       )}
@@ -363,5 +365,5 @@ export default function TransactionsPage() {
         </div>
       )}
     </div>
-  )
+  );
 }

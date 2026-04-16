@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
+import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
   Card,
   CardContent,
@@ -10,69 +10,69 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Kbd } from "@/components/ui/kbd"
-import { useToken } from "@/hooks/use-token"
-import { getMe, type UserInfo } from "@/lib/lunchmoney/client"
+} from "@/components/ui/card";
+import { Kbd } from "@/components/ui/kbd";
+import { useToken } from "@/hooks/use-token";
+import { getMe, type UserInfo } from "@/lib/lunchmoney/client";
 
 export default function SettingsPage() {
-  const { token, setToken, clearToken } = useToken()
-  const [input, setInput] = useState("")
-  const [user, setUser] = useState<UserInfo | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [floorMonths, setFloorMonths] = useState<number>(3)
-  const [floorMonthsInput, setFloorMonthsInput] = useState<string>("3")
+  const { token, setToken, clearToken } = useToken();
+  const [input, setInput] = useState("");
+  const [user, setUser] = useState<UserInfo | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [floorMonths, setFloorMonths] = useState<number>(3);
+  const [floorMonthsInput, setFloorMonthsInput] = useState<string>("3");
 
   useEffect(() => {
-    if (token) fetchUser(token)
-    const raw = localStorage.getItem("investable_months")
-    const parsed = raw !== null ? parseInt(raw, 10) : NaN
-    const val = Number.isFinite(parsed) && parsed > 0 ? parsed : 3
-    setFloorMonths(val)
-    setFloorMonthsInput(String(val))
-  }, [token])
+    if (token) fetchUser(token);
+    const raw = localStorage.getItem("investable_months");
+    const parsed = raw !== null ? parseInt(raw, 10) : NaN;
+    const val = Number.isFinite(parsed) && parsed > 0 ? parsed : 3;
+    setFloorMonths(val);
+    setFloorMonthsInput(String(val));
+  }, [token]);
 
   function handleFloorMonthsChange(raw: string) {
-    setFloorMonthsInput(raw)
-    const n = parseInt(raw, 10)
+    setFloorMonthsInput(raw);
+    const n = parseInt(raw, 10);
     if (Number.isFinite(n) && n > 0) {
-      localStorage.setItem("investable_months", String(n))
-      setFloorMonths(n)
+      localStorage.setItem("investable_months", String(n));
+      setFloorMonths(n);
     }
   }
 
   async function fetchUser(apiToken: string) {
-    setLoading(true)
-    setError(null)
+    setLoading(true);
+    setError(null);
     try {
-      setUser(await getMe(apiToken))
+      setUser(await getMe(apiToken));
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Something went wrong")
-      setUser(null)
+      setError(err instanceof Error ? err.message : "Something went wrong");
+      setUser(null);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
 
   function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    if (!input.trim()) return
-    setToken(input.trim())
-    setInput("")
+    e.preventDefault();
+    if (!input.trim()) return;
+    setToken(input.trim());
+    setInput("");
   }
 
   function handleReset() {
-    clearToken()
-    setUser(null)
-    setError(null)
+    clearToken();
+    setUser(null);
+    setError(null);
   }
 
   const hint = (
     <p className="font-mono text-sm text-muted-foreground">
       Press <Kbd>d</Kbd> to toggle dark mode
     </p>
-  )
+  );
 
   if (user) {
     return (
@@ -142,7 +142,7 @@ export default function SettingsPage() {
         </Card>
         {hint}
       </div>
-    )
+    );
   }
 
   return (
@@ -175,5 +175,5 @@ export default function SettingsPage() {
       </Card>
       {hint}
     </div>
-  )
+  );
 }

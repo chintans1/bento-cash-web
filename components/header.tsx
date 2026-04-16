@@ -1,8 +1,8 @@
-"use client"
+"use client";
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
-import { cn } from "@/lib/utils"
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -10,10 +10,10 @@ const NAV_LINKS = [
   { href: "/accounts", label: "Accounts" },
   { href: "/investments", label: "Investments" },
   { href: "/settings", label: "Settings" },
-]
+];
 
 export function Header() {
-  const pathname = usePathname()
+  const pathname = usePathname();
 
   return (
     <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur-sm">
@@ -40,5 +40,5 @@ export function Header() {
         </nav>
       </div>
     </header>
-  )
+  );
 }

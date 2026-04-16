@@ -40,7 +40,7 @@ import {
   Zap,
   Ticket,
   CircleQuestionMark,
-} from "lucide-react"
+} from "lucide-react";
 
 // Maps lowercased category name keywords to a Lucide icon.
 // Add or update entries here as needed.
@@ -194,19 +194,19 @@ const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
 
   // Uncategorized
   uncategorized: CircleQuestionMark,
-}
+};
 
 export function getCategoryIcon(categoryName: string | null): LucideIcon {
-  if (!categoryName) return Receipt
+  if (!categoryName) return Receipt;
 
-  const lower = categoryName.toLowerCase()
+  const lower = categoryName.toLowerCase();
 
-  if (CATEGORY_ICON_MAP[lower]) return CATEGORY_ICON_MAP[lower]
+  if (CATEGORY_ICON_MAP[lower]) return CATEGORY_ICON_MAP[lower];
 
   // Partial match — check if the category name contains a known keyword
   for (const [key, icon] of Object.entries(CATEGORY_ICON_MAP)) {
-    if (lower.includes(key)) return icon
+    if (lower.includes(key)) return icon;
   }
 
-  return Receipt
+  return Receipt;
 }

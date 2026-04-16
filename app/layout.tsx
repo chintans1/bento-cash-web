@@ -1,26 +1,26 @@
-import { Geist_Mono, Public_Sans, Playfair_Display } from "next/font/google"
+import { Geist_Mono, Public_Sans, Playfair_Display } from "next/font/google";
 
-import "./globals.css"
-import { ThemeProvider } from "@/components/theme-provider"
-import { Header } from "@/components/header"
-import { cn } from "@/lib/utils"
+import "./globals.css";
+import { ThemeProvider } from "@/components/theme-provider";
+import { Header } from "@/components/header";
+import { cn } from "@/lib/utils";
 
 const playfairDisplayHeading = Playfair_Display({
   subsets: ["latin"],
   variable: "--font-heading",
-})
+});
 
-const publicSans = Public_Sans({ subsets: ["latin"], variable: "--font-sans" })
+const publicSans = Public_Sans({ subsets: ["latin"], variable: "--font-sans" });
 
 const fontMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
-})
+});
 
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
+  children: React.ReactNode;
 }>) {
   return (
     <html
@@ -41,5 +41,5 @@ export default function RootLayout({
         </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }

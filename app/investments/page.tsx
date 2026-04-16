@@ -1,13 +1,13 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from "react"
-import { Pencil, X, Check } from "lucide-react"
-import { useToken } from "@/hooks/use-token"
+import { useEffect, useState } from "react";
+import { Pencil, X, Check } from "lucide-react";
+import { useToken } from "@/hooks/use-token";
 import {
   getAccounts,
   getMe,
   updateManualAccount,
-} from "@/lib/lunchmoney/client"
+} from "@/lib/lunchmoney/client";
 import {
   type NormalizedAccount,
   normalizeManual,
@@ -15,21 +15,21 @@ import {
   formatSubtype,
   formatUpdated,
   groupByInstitution,
-} from "@/lib/account-utils"
-import { NoTokenPrompt } from "@/components/no-token-prompt"
-import { formatCurrency } from "@/lib/format"
+} from "@/lib/account-utils";
+import { NoTokenPrompt } from "@/components/no-token-prompt";
+import { formatCurrency } from "@/lib/format";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-} from "@/components/ui/card"
+} from "@/components/ui/card";
 import {
   HoverCard,
   HoverCardContent,
   HoverCardTrigger,
-} from "@/components/ui/hover-card"
+} from "@/components/ui/hover-card";
 import {
   Select,
   SelectContent,
@@ -39,14 +39,14 @@ import {
   SelectSeparator,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
-import { cn } from "@/lib/utils"
+} from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
 // Investment classification
 // ---------------------------------------------------------------------------
 
-const INVESTMENT_TYPES = new Set(["investment", "brokerage"])
+const INVESTMENT_TYPES = new Set(["investment", "brokerage"]);
 
 const INVESTMENT_SUBTYPES = new Set([
   "401k",
@@ -67,13 +67,13 @@ const INVESTMENT_SUBTYPES = new Set([
   "etf",
   "pension",
   "stock plan",
-])
+]);
 
 function isInvestment(a: NormalizedAccount): boolean {
   return (
     INVESTMENT_TYPES.has(a.type.toLowerCase()) ||
     (a.subtype !== null && INVESTMENT_SUBTYPES.has(a.subtype.toLowerCase()))
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -81,10 +81,10 @@ function isInvestment(a: NormalizedAccount): boolean {
 // ---------------------------------------------------------------------------
 
 type Bucket = {
-  label: string
-  color: string
-  subtypes: Set<string>
-}
+  label: string;
+  color: string;
+  subtypes: Set<string>;
+};
 
 const BUCKETS: Bucket[] = [
   {
@@ -129,7 +129,7 @@ const BUCKETS: Bucket[] = [
     color: "bg-rose-500",
     subtypes: new Set(["crypto"]),
   },
-]
+];
 
 // ---------------------------------------------------------------------------
 // Edit options
@@ -143,7 +143,7 @@ const ACCOUNT_TYPES = [
   "loan",
   "other asset",
   "other liability",
-]
+];
 
 const INVESTMENT_SUBTYPE_OPTIONS = [
   "401k",
@@ -164,7 +164,7 @@ const INVESTMENT_SUBTYPE_OPTIONS = [
   "etf",
   "pension",
   "stock plan",
-]
+];
 
 const OTHER_SUBTYPE_OPTIONS = [
   "checking",
@@ -176,7 +176,7 @@ const OTHER_SUBTYPE_OPTIONS = [
   "home equity",
   "prepaid",
   "other",
-]
+];
 
 // ---------------------------------------------------------------------------
 // AccountRow
@@ -188,41 +188,41 @@ function AccountRow({
   token,
   onSaved,
 }: {
-  account: NormalizedAccount
-  primaryCurrency: string
-  token: string
-  onSaved: (id: string, type: string, subtype: string) => void
+  account: NormalizedAccount;
+  primaryCurrency: string;
+  token: string;
+  onSaved: (id: string, type: string, subtype: string) => void;
 }) {
-  const [editing, setEditing] = useState(false)
-  const [editType, setEditType] = useState(account.type)
-  const [editSubtype, setEditSubtype] = useState(account.subtype ?? "")
-  const [saving, setSaving] = useState(false)
+  const [editing, setEditing] = useState(false);
+  const [editType, setEditType] = useState(account.type);
+  const [editSubtype, setEditSubtype] = useState(account.subtype ?? "");
+  const [saving, setSaving] = useState(false);
 
   const showNative =
-    account.currency.toLowerCase() !== primaryCurrency.toLowerCase()
-  const isInactive = account.status !== "active"
+    account.currency.toLowerCase() !== primaryCurrency.toLowerCase();
+  const isInactive = account.status !== "active";
 
   function startEdit() {
-    setEditType(account.type)
-    setEditSubtype(account.subtype ?? "")
-    setEditing(true)
+    setEditType(account.type);
+    setEditSubtype(account.subtype ?? "");
+    setEditing(true);
   }
 
   function cancelEdit() {
-    setEditing(false)
+    setEditing(false);
   }
 
   async function saveEdit() {
-    setSaving(true)
+    setSaving(true);
     try {
       await updateManualAccount(token, account.rawId, {
         type: editType,
         subtype: editSubtype || undefined,
-      })
-      onSaved(account.id, editType, editSubtype)
-      setEditing(false)
+      });
+      onSaved(account.id, editType, editSubtype);
+      setEditing(false);
     } finally {
-      setSaving(false)
+      setSaving(false);
     }
   }
 
@@ -364,7 +364,7 @@ function AccountRow({
         </div>
       )}
     </li>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -375,37 +375,37 @@ function AllocationBreakdown({
   accounts,
   primaryCurrency,
 }: {
-  accounts: NormalizedAccount[]
-  primaryCurrency: string
+  accounts: NormalizedAccount[];
+  primaryCurrency: string;
 }) {
   const total = accounts.reduce(
     (sum, a) => sum + (a.balanceValid ? a.toBase : 0),
     0
-  )
+  );
 
-  if (total === 0) return null
+  if (total === 0) return null;
 
   // Group accounts into named buckets
   const bucketRows = BUCKETS.map((bucket) => {
     const bucketAccounts = accounts.filter((a) =>
       bucket.subtypes.has((a.subtype ?? "").toLowerCase())
-    )
+    );
     const amount = bucketAccounts.reduce(
       (sum, a) => sum + (a.balanceValid ? a.toBase : 0),
       0
-    )
-    return { bucket, bucketAccounts, amount }
-  }).filter((r) => r.amount > 0)
+    );
+    return { bucket, bucketAccounts, amount };
+  }).filter((r) => r.amount > 0);
 
   // "Other" = investment accounts not matched by any named bucket
   const matchedIds = new Set(
     bucketRows.flatMap((r) => r.bucketAccounts.map((a) => a.id))
-  )
-  const otherAccounts = accounts.filter((a) => !matchedIds.has(a.id))
+  );
+  const otherAccounts = accounts.filter((a) => !matchedIds.has(a.id));
   const otherAmount = otherAccounts.reduce(
     (sum, a) => sum + (a.balanceValid ? a.toBase : 0),
     0
-  )
+  );
 
   const rows = [
     ...bucketRows,
@@ -422,7 +422,7 @@ function AllocationBreakdown({
           },
         ]
       : []),
-  ]
+  ];
 
   return (
     <Card className="mb-6">
@@ -432,7 +432,7 @@ function AllocationBreakdown({
       </CardHeader>
       <CardContent className="space-y-3">
         {rows.map(({ bucket, bucketAccounts, amount }) => {
-          const pct = total > 0 ? (amount / total) * 100 : 0
+          const pct = total > 0 ? (amount / total) * 100 : 0;
           return (
             <HoverCard key={bucket.label}>
               <HoverCardTrigger
@@ -487,11 +487,11 @@ function AllocationBreakdown({
                 )}
               </HoverCardContent>
             </HoverCard>
-          )
+          );
         })}
       </CardContent>
     </Card>
-  )
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -499,54 +499,54 @@ function AllocationBreakdown({
 // ---------------------------------------------------------------------------
 
 export default function InvestmentsPage() {
-  const { token } = useToken()
-  const [accounts, setAccounts] = useState<NormalizedAccount[]>([])
-  const [primaryCurrency, setPrimaryCurrency] = useState("usd")
+  const { token } = useToken();
+  const [accounts, setAccounts] = useState<NormalizedAccount[]>([]);
+  const [primaryCurrency, setPrimaryCurrency] = useState("usd");
   const [{ loading, error }, setFetchStatus] = useState<{
-    loading: boolean
-    error: string | null
-  }>({ loading: false, error: null })
+    loading: boolean;
+    error: string | null;
+  }>({ loading: false, error: null });
 
   useEffect(() => {
-    if (!token) return
+    if (!token) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFetchStatus({ loading: true, error: null })
+    setFetchStatus({ loading: true, error: null });
 
     Promise.all([getMe(token), getAccounts(token)])
       .then(([user, { manual, plaid }]) => {
-        setPrimaryCurrency(user.primary_currency)
+        setPrimaryCurrency(user.primary_currency);
         const all = [
           ...manual.map(normalizeManual),
           ...plaid.map(normalizePlaid),
-        ].filter((a) => a.status !== "closed")
-        setAccounts(all)
-        setFetchStatus({ loading: false, error: null })
+        ].filter((a) => a.status !== "closed");
+        setAccounts(all);
+        setFetchStatus({ loading: false, error: null });
       })
       .catch((err) => {
         setFetchStatus({
           loading: false,
           error: err instanceof Error ? err.message : "Something went wrong",
-        })
-      })
-  }, [token])
+        });
+      });
+  }, [token]);
 
   function handleSaved(id: string, type: string, subtype: string) {
     setAccounts((prev) =>
       prev.map((a) =>
         a.id === id ? { ...a, type, subtype: subtype || null } : a
       )
-    )
+    );
   }
 
-  if (!token) return <NoTokenPrompt />
+  if (!token) return <NoTokenPrompt />;
 
-  const investmentAccounts = accounts.filter(isInvestment)
-  const otherAccounts = accounts.filter((a) => !isInvestment(a))
+  const investmentAccounts = accounts.filter(isInvestment);
+  const otherAccounts = accounts.filter((a) => !isInvestment(a));
 
   const totalPortfolio = investmentAccounts.reduce(
     (sum, a) => sum + (a.balanceValid ? a.toBase : 0),
     0
-  )
+  );
 
   return (
     <div className="mx-auto max-w-6xl px-6 pt-6 pb-10">
@@ -625,7 +625,7 @@ export default function InvestmentsPage() {
                         const groupTotal = group.reduce(
                           (sum, a) => sum + (a.balanceValid ? a.toBase : 0),
                           0
-                        )
+                        );
                         return (
                           <div
                             key={institution}
@@ -655,7 +655,7 @@ export default function InvestmentsPage() {
                               ))}
                             </ul>
                           </div>
-                        )
+                        );
                       }
                     )}
                   </CardContent>
@@ -707,5 +707,5 @@ export default function InvestmentsPage() {
         </>
       )}
     </div>
-  )
+  );
 }
