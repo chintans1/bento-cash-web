@@ -375,7 +375,10 @@ function groupByInstitution(
     group.push(a)
     map.set(key, group)
   }
-  return Array.from(map.entries())
+  return Array.from(map.entries()).map(([institution, accs]) => [
+    institution,
+    accs.slice().sort((a, b) => a.name.localeCompare(b.name)),
+  ] as [string, NormalizedAccount[]])
 }
 
 function AccountSection({

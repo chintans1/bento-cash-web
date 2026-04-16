@@ -42,6 +42,7 @@ import {
   ChevronRight,
   ChevronDown,
   AlertTriangle,
+  X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -528,6 +529,8 @@ export default function HomePage() {
     error: string | null
   }>({ loading: false, error: null })
   const uncategorizedDismissed = false
+  type StatPanel = "income" | "spend" | "peak"
+  const [openPanel, setOpenPanel] = useState<StatPanel | null>(null)
 
   useEffect(() => {
     if (!token) return
@@ -642,6 +645,37 @@ export default function HomePage() {
     return { totalSpend, totalIncome, avgSpendPerDay, peakDay, peakAmount }
   }, [transactions, categoryMap, selectedYear, selectedMonth, now])
 
+  // Reset drill-down panel when month changes
+  useEffect(() => {
+    setOpenPanel(null)
+  }, [selectedYear, selectedMonth])
+
+  const incomePanelTxs = useMemo(
+    () =>
+      transactions
+        .filter((tx) => parseFloat(tx.amount) < 0)
+        .sort((a, b) => parseFloat(a.amount) - parseFloat(b.amount)),
+    [transactions]
+  )
+
+  const spendPanelTxs = useMemo(
+    () =>
+      filterSpendTransactions(transactions, categoryMap).sort(
+        (a, b) => parseFloat(b.amount) - parseFloat(a.amount)
+      ),
+    [transactions, categoryMap]
+  )
+
+  const peakDayPanelTxs = useMemo(
+    () =>
+      quickStats?.peakDay
+        ? filterSpendTransactions(transactions, categoryMap)
+            .filter((tx) => tx.date === quickStats.peakDay)
+            .sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount))
+        : [],
+    [transactions, categoryMap, quickStats]
+  )
+
   const maxCatSpend = categoryTotals[0]?.spend ?? 0
 
   function handleCategoryUpdated(txId: number, newCatId: number | null) {
@@ -730,7 +764,15 @@ export default function HomePage() {
           ))
         ) : quickStats ? (
           <>
-            <Card>
+            <Card
+              className={cn(
+                "cursor-pointer transition-shadow hover:shadow-md",
+                openPanel === "income" && "ring-2 ring-green-500/50"
+              )}
+              onClick={() =>
+                setOpenPanel((p) => (p === "income" ? null : "income"))
+              }
+            >
               <CardHeader>
                 <CardTitle className="text-4xl text-green-500">
                   {formatCurrency(
@@ -744,17 +786,20 @@ export default function HomePage() {
                 <p className="text-sm font-medium tracking-wide text-muted-foreground">
                   Income{" "}
                   <span className="font-mono text-[11px] text-muted-foreground/50">
-                    (
-                    {
-                      transactions.filter((tx) => parseFloat(tx.amount) < 0)
-                        .length
-                    }{" "}
-                    deposits)
+                    ({incomePanelTxs.length} deposits)
                   </span>
                 </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card
+              className={cn(
+                "cursor-pointer transition-shadow hover:shadow-md",
+                openPanel === "spend" && "ring-2 ring-rose-500/50"
+              )}
+              onClick={() =>
+                setOpenPanel((p) => (p === "spend" ? null : "spend"))
+              }
+            >
               <CardHeader>
                 <CardTitle className="text-4xl text-rose-500">
                   {formatCurrency(
@@ -768,9 +813,7 @@ export default function HomePage() {
                 <p className="text-sm font-medium tracking-wide text-muted-foreground">
                   Spend{" "}
                   <span className="font-mono text-[11px] text-muted-foreground/50">
-                    (
-                    {filterSpendTransactions(transactions, categoryMap).length}{" "}
-                    transactions)
+                    ({spendPanelTxs.length} transactions)
                   </span>
                 </p>
               </CardContent>
@@ -794,7 +837,15 @@ export default function HomePage() {
                 </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card
+              className={cn(
+                "cursor-pointer transition-shadow hover:shadow-md",
+                openPanel === "peak" && "ring-2 ring-amber-500/50"
+              )}
+              onClick={() =>
+                setOpenPanel((p) => (p === "peak" ? null : "peak"))
+              }
+            >
               <CardHeader>
                 <CardTitle className="text-4xl text-amber-500">
                   {formatCurrency(
@@ -820,6 +871,70 @@ export default function HomePage() {
           </>
         ) : null}
       </div>
+
+      {/* Stat drill-down panel */}
+      {!loading && openPanel && quickStats && (
+        <div className="mb-4 rounded-xl border border-border bg-card">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <span className="text-sm font-semibold">
+              {openPanel === "income" && "Income Transactions"}
+              {openPanel === "spend" && "Spend Transactions"}
+              {openPanel === "peak" &&
+                `Peak Day — ${formatShortDate(quickStats.peakDay)}`}
+            </span>
+            <button
+              onClick={() => setOpenPanel(null)}
+              className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+            >
+              <X className="size-3.5" />
+            </button>
+          </div>
+          <ul className="divide-y divide-border">
+            {(openPanel === "income"
+              ? incomePanelTxs
+              : openPanel === "spend"
+                ? spendPanelTxs
+                : peakDayPanelTxs
+            ).map((tx) => {
+              const catName =
+                tx.category_id != null
+                  ? (categoryMap.get(tx.category_id)?.name ?? "—")
+                  : "—"
+              const amt = parseFloat(tx.amount)
+              const isIncome = amt < 0
+              return (
+                <li
+                  key={tx.id}
+                  className="flex items-center gap-4 px-4 py-2.5 text-xs"
+                >
+                  <span className="w-14 shrink-0 font-mono text-muted-foreground">
+                    {formatShortDate(tx.date)}
+                  </span>
+                  <span className="min-w-0 flex-1 truncate font-medium">
+                    {tx.payee}
+                  </span>
+                  {!isIncome && (
+                    <span className="shrink-0 text-muted-foreground">
+                      {catName}
+                    </span>
+                  )}
+                  <span
+                    className={cn(
+                      "shrink-0 font-mono tabular-nums",
+                      isIncome
+                        ? "text-green-600 dark:text-green-400"
+                        : "text-foreground"
+                    )}
+                  >
+                    {isIncome ? "+" : ""}
+                    {formatCurrency(Math.abs(amt), primaryCurrency, true)}
+                  </span>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
 
       {/* Net Cash Flow + Daily Chart row */}
       {!loading && quickStats && (
