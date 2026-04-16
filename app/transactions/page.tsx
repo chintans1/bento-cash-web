@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { useToken } from "@/hooks/use-token"
 import {
@@ -13,45 +12,17 @@ import { buildCategoryMap } from "@/lib/lunchmoney/analytics"
 import { getCategoryIcon } from "@/lib/lunchmoney/category-icons"
 import { type CategoryInfo, UNCATEGORIZED } from "@/lib/lunchmoney/categories"
 import { formatAmount, formatShortDate } from "@/lib/format"
+import {
+  MONTH_NAMES,
+  isCurrentOrFutureMonth,
+  prevMonthOf,
+  nextMonthOf,
+} from "@/lib/date-utils"
+import { NoTokenPrompt } from "@/components/no-token-prompt"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ChevronLeft, ChevronRight, Search, X } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-]
-
-function isCurrentOrFutureMonth(year: number, month: number) {
-  const now = new Date()
-  return (
-    year > now.getFullYear() ||
-    (year === now.getFullYear() && month >= now.getMonth() + 1)
-  )
-}
-
-function prevMonth(year: number, month: number) {
-  return month === 1
-    ? { year: year - 1, month: 12 }
-    : { year, month: month - 1 }
-}
-
-function nextMonth(year: number, month: number) {
-  return month === 12
-    ? { year: year + 1, month: 1 }
-    : { year, month: month + 1 }
-}
 
 type SortKey = "date" | "amount" | "payee"
 type SortDir = "asc" | "desc"
@@ -79,7 +50,6 @@ export default function TransactionsPage() {
 
   useEffect(() => {
     if (!token) return
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFetchStatus({ loading: true, error: null })
     Promise.all([
       getTransactionsForMonth(token, selectedYear, selectedMonth),
@@ -169,22 +139,7 @@ export default function TransactionsPage() {
     }
   }
 
-  if (!token) {
-    return (
-      <div className="flex flex-col items-center gap-5 p-6 pt-12">
-        <p className="text-base text-muted-foreground">
-          Connect your Lunch Money account in{" "}
-          <Link
-            href="/settings"
-            className="font-medium text-foreground underline-offset-4 hover:underline"
-          >
-            Settings
-          </Link>{" "}
-          to get started.
-        </p>
-      </div>
-    )
-  }
+  if (!token) return <NoTokenPrompt />
 
   const SortIcon = ({ k }: { k: SortKey }) =>
     sortKey === k ? (
@@ -204,7 +159,7 @@ export default function TransactionsPage() {
             variant="ghost"
             size="icon-sm"
             onClick={() => {
-              const p = prevMonth(selectedYear, selectedMonth)
+              const p = prevMonthOf(selectedYear, selectedMonth)
               setSelectedYear(p.year)
               setSelectedMonth(p.month)
             }}
@@ -219,7 +174,7 @@ export default function TransactionsPage() {
             size="icon-sm"
             disabled={isCurrentOrFutureMonth(selectedYear, selectedMonth)}
             onClick={() => {
-              const n = nextMonth(selectedYear, selectedMonth)
+              const n = nextMonthOf(selectedYear, selectedMonth)
               setSelectedYear(n.year)
               setSelectedMonth(n.month)
             }}

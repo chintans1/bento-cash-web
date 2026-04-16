@@ -1,6 +1,5 @@
 "use client"
 
-import Link from "next/link"
 import { useEffect, useState } from "react"
 import { Pencil, X, Check } from "lucide-react"
 import { useToken } from "@/hooks/use-token"
@@ -8,9 +7,16 @@ import {
   getAccounts,
   getMe,
   updateManualAccount,
-  type ManualAccount,
-  type PlaidAccount,
 } from "@/lib/lunchmoney/client"
+import {
+  type NormalizedAccount,
+  normalizeManual,
+  normalizePlaid,
+  formatSubtype,
+  formatUpdated,
+  groupByInstitution,
+} from "@/lib/account-utils"
+import { NoTokenPrompt } from "@/components/no-token-prompt"
 import { formatCurrency } from "@/lib/format"
 import {
   Card,
@@ -35,63 +41,6 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
-
-// ---------------------------------------------------------------------------
-// Types
-// ---------------------------------------------------------------------------
-
-type NormalizedAccount = {
-  id: string
-  rawId: number
-  name: string
-  institution: string | null
-  type: string
-  subtype: string | null
-  balance: number
-  currency: string
-  toBase: number
-  balanceValid: boolean
-  lastUpdated: string | null
-  source: "plaid" | "manual"
-  status: string
-}
-
-function normalizeManual(a: ManualAccount): NormalizedAccount {
-  return {
-    id: `manual-${a.id}`,
-    rawId: a.id,
-    name: a.display_name ?? a.name,
-    institution: a.institution_name,
-    type: a.type,
-    subtype: a.subtype,
-    balance: parseFloat(a.balance),
-    currency: a.currency,
-    toBase: a.to_base,
-    balanceValid: true,
-    lastUpdated: a.balance_as_of,
-    source: "manual",
-    status: a.status,
-  }
-}
-
-function normalizePlaid(a: PlaidAccount): NormalizedAccount {
-  const revoked = a.status === "revoked"
-  return {
-    id: `plaid-${a.id}`,
-    rawId: a.id,
-    name: a.display_name ?? a.name,
-    institution: a.institution_name,
-    type: a.type,
-    subtype: a.subtype ?? null,
-    balance: parseFloat(a.balance),
-    currency: a.currency,
-    toBase: a.to_base,
-    balanceValid: !revoked,
-    lastUpdated: a.balance_last_update,
-    source: "plaid",
-    status: a.status,
-  }
-}
 
 // ---------------------------------------------------------------------------
 // Investment classification
@@ -141,7 +90,14 @@ const BUCKETS: Bucket[] = [
   {
     label: "Retirement — Tax Deferred",
     color: "bg-blue-500",
-    subtypes: new Set(["401k", "403b", "457b", "sep ira", "simple ira", "pension"]),
+    subtypes: new Set([
+      "401k",
+      "403b",
+      "457b",
+      "sep ira",
+      "simple ira",
+      "pension",
+    ]),
   },
   {
     label: "Retirement — Tax Free",
@@ -221,42 +177,6 @@ const OTHER_SUBTYPE_OPTIONS = [
   "prepaid",
   "other",
 ]
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
-const ALL_CAPS_SUBTYPES = new Set(["ira", "tfsa", "hsa", "401k", "403b", "457b", "529", "etf"])
-
-function formatSubtype(subtype: string): string {
-  const lower = subtype.toLowerCase()
-  if (ALL_CAPS_SUBTYPES.has(lower)) return subtype.toUpperCase()
-  return subtype.charAt(0).toUpperCase() + subtype.slice(1)
-}
-
-function formatUpdated(dateStr: string | null): string {
-  if (!dateStr) return "—"
-  const d = new Date(dateStr)
-  const now = new Date()
-  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86_400_000)
-  if (diffDays === 0) return "today"
-  if (diffDays === 1) return "yesterday"
-  if (diffDays < 7) return `${diffDays}d ago`
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-}
-
-function groupByInstitution(
-  accounts: NormalizedAccount[]
-): [string, NormalizedAccount[]][] {
-  const map = new Map<string, NormalizedAccount[]>()
-  for (const a of accounts) {
-    const key = a.institution ?? "Other"
-    const group = map.get(key) ?? []
-    group.push(a)
-    map.set(key, group)
-  }
-  return Array.from(map.entries())
-}
 
 // ---------------------------------------------------------------------------
 // AccountRow
@@ -589,6 +509,7 @@ export default function InvestmentsPage() {
 
   useEffect(() => {
     if (!token) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFetchStatus({ loading: true, error: null })
 
     Promise.all([getMe(token), getAccounts(token)])
@@ -617,22 +538,7 @@ export default function InvestmentsPage() {
     )
   }
 
-  if (!token) {
-    return (
-      <div className="flex flex-col items-center gap-5 p-6 pt-12">
-        <p className="text-base text-muted-foreground">
-          Connect your Lunch Money account in{" "}
-          <Link
-            href="/settings"
-            className="font-medium text-foreground underline-offset-4 hover:underline"
-          >
-            Settings
-          </Link>{" "}
-          to get started.
-        </p>
-      </div>
-    )
-  }
+  if (!token) return <NoTokenPrompt />
 
   const investmentAccounts = accounts.filter(isInvestment)
   const otherAccounts = accounts.filter((a) => !isInvestment(a))
@@ -730,7 +636,11 @@ export default function InvestmentsPage() {
                                 {institution}
                               </span>
                               <span className="font-mono text-xs font-medium tabular-nums">
-                                {formatCurrency(groupTotal, primaryCurrency, true)}
+                                {formatCurrency(
+                                  groupTotal,
+                                  primaryCurrency,
+                                  true
+                                )}
                               </span>
                             </div>
                             <ul className="flex flex-col px-6">
@@ -768,26 +678,28 @@ export default function InvestmentsPage() {
               </CardHeader>
               <CardContent className="p-0">
                 <div className="grid grid-cols-2 divide-x divide-border">
-                  {groupByInstitution(otherAccounts).map(([institution, group]) => (
-                    <div key={institution}>
-                      <div className="flex items-baseline justify-between bg-muted/90 px-6 py-2">
-                        <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
-                          {institution}
-                        </span>
+                  {groupByInstitution(otherAccounts).map(
+                    ([institution, group]) => (
+                      <div key={institution}>
+                        <div className="flex items-baseline justify-between bg-muted/90 px-6 py-2">
+                          <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                            {institution}
+                          </span>
+                        </div>
+                        <ul className="flex flex-col px-6">
+                          {group.map((a) => (
+                            <AccountRow
+                              key={a.id}
+                              account={a}
+                              primaryCurrency={primaryCurrency}
+                              token={token}
+                              onSaved={handleSaved}
+                            />
+                          ))}
+                        </ul>
                       </div>
-                      <ul className="flex flex-col px-6">
-                        {group.map((a) => (
-                          <AccountRow
-                            key={a.id}
-                            account={a}
-                            primaryCurrency={primaryCurrency}
-                            token={token}
-                            onSaved={handleSaved}
-                          />
-                        ))}
-                      </ul>
-                    </div>
-                  ))}
+                    )
+                  )}
                 </div>
               </CardContent>
             </Card>

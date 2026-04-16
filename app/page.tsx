@@ -30,6 +30,13 @@ import { getCategoryIcon } from "@/lib/lunchmoney/category-icons"
 import { type CategoryInfo, UNCATEGORIZED } from "@/lib/lunchmoney/categories"
 import { formatAmount, formatShortDate, formatCurrency } from "@/lib/format"
 import {
+  MONTH_NAMES,
+  isCurrentOrFutureMonth,
+  prevMonthOf,
+  nextMonthOf,
+} from "@/lib/date-utils"
+import { NoTokenPrompt } from "@/components/no-token-prompt"
+import {
   Card,
   CardContent,
   CardFooter,
@@ -46,40 +53,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const MONTH_NAMES = [
-  "January",
-  "February",
-  "March",
-  "April",
-  "May",
-  "June",
-  "July",
-  "August",
-  "September",
-  "October",
-  "November",
-  "December",
-]
-
-function isCurrentOrFutureMonth(year: number, month: number) {
-  const now = new Date()
-  return (
-    year > now.getFullYear() ||
-    (year === now.getFullYear() && month >= now.getMonth() + 1)
-  )
-}
-
-function prevMonthOf(year: number, month: number) {
-  return month === 1
-    ? { year: year - 1, month: 12 }
-    : { year, month: month - 1 }
-}
-
-function nextMonthOf(year: number, month: number) {
-  return month === 12
-    ? { year: year + 1, month: 1 }
-    : { year, month: month + 1 }
-}
+type StatPanel = "income" | "spend" | "peak"
 
 const CAT_COLORS = [
   "#e85d4a",
@@ -512,7 +486,7 @@ function SubscriptionsCard({
 
 export default function HomePage() {
   const { token } = useToken()
-  const now = new Date()
+  const now = useMemo(() => new Date(), [])
   const [selectedYear, setSelectedYear] = useState(now.getFullYear())
   const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1)
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -528,18 +502,19 @@ export default function HomePage() {
     loading: boolean
     error: string | null
   }>({ loading: false, error: null })
-  const uncategorizedDismissed = false
-  type StatPanel = "income" | "spend" | "peak"
   const [openPanel, setOpenPanel] = useState<StatPanel | null>(null)
+
+  useEffect(() => {
+    if (!token) return
+    getMe(token)
+      .then((user) => setPrimaryCurrency(user.primary_currency))
+      .catch(() => {})
+  }, [token])
 
   useEffect(() => {
     if (!token) return
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFetchStatus({ loading: true, error: null })
-
-    getMe(token)
-      .then((user) => setPrimaryCurrency(user.primary_currency))
-      .catch(() => {})
 
     const prev = prevMonthOf(selectedYear, selectedMonth)
 
@@ -594,7 +569,8 @@ export default function HomePage() {
   )
 
   const dailySpend = useMemo(
-    () => computeDailySpend(transactions, categoryMap, selectedYear, selectedMonth),
+    () =>
+      computeDailySpend(transactions, categoryMap, selectedYear, selectedMonth),
     [transactions, categoryMap, selectedYear, selectedMonth]
   )
 
@@ -607,18 +583,13 @@ export default function HomePage() {
     if (transactions.length === 0) return null
 
     const expenses = filterSpendTransactions(transactions, categoryMap)
-    const incomeTransactions = transactions.filter(
-      (tx) => parseFloat(tx.amount) < 0
-    )
-
     const totalSpend = expenses.reduce(
       (sum, tx) => sum + parseFloat(tx.amount),
       0
     )
-    const totalIncome = incomeTransactions.reduce(
-      (sum, tx) => sum + Math.abs(parseFloat(tx.amount)),
-      0
-    )
+    const totalIncome = transactions
+      .filter((tx) => parseFloat(tx.amount) < 0)
+      .reduce((sum, tx) => sum + Math.abs(parseFloat(tx.amount)), 0)
 
     const daysInMonth = new Date(selectedYear, selectedMonth, 0).getDate()
     const isCurrentMonth =
@@ -626,29 +597,20 @@ export default function HomePage() {
     const daysElapsed = isCurrentMonth ? now.getDate() : daysInMonth
     const avgSpendPerDay = daysElapsed > 0 ? totalSpend / daysElapsed : 0
 
-    const spendByDay = new Map<string, number>()
-    for (const tx of expenses) {
-      spendByDay.set(
-        tx.date,
-        (spendByDay.get(tx.date) ?? 0) + parseFloat(tx.amount)
-      )
-    }
-    let peakDay = ""
-    let peakAmount = 0
-    for (const [date, amount] of spendByDay.entries()) {
-      if (amount > peakAmount) {
-        peakAmount = amount
-        peakDay = date
-      }
-    }
+    // Derive peak day from the already-computed dailySpend array
+    const peak = dailySpend.reduce(
+      (max, d) => (d.amount > max.amount ? d : max),
+      { date: "", amount: 0 }
+    )
 
-    return { totalSpend, totalIncome, avgSpendPerDay, peakDay, peakAmount }
-  }, [transactions, categoryMap, selectedYear, selectedMonth, now])
-
-  // Reset drill-down panel when month changes
-  useEffect(() => {
-    setOpenPanel(null)
-  }, [selectedYear, selectedMonth])
+    return {
+      totalSpend,
+      totalIncome,
+      avgSpendPerDay,
+      peakDay: peak.date,
+      peakAmount: peak.amount,
+    }
+  }, [transactions, categoryMap, selectedYear, selectedMonth, now, dailySpend])
 
   const incomePanelTxs = useMemo(
     () =>
@@ -658,7 +620,8 @@ export default function HomePage() {
     [transactions]
   )
 
-  const spendPanelTxs = useMemo(
+  // Sorted spend transactions — shared by the spend panel and peak-day panel
+  const sortedSpendTxs = useMemo(
     () =>
       filterSpendTransactions(transactions, categoryMap).sort(
         (a, b) => parseFloat(b.amount) - parseFloat(a.amount)
@@ -669,11 +632,9 @@ export default function HomePage() {
   const peakDayPanelTxs = useMemo(
     () =>
       quickStats?.peakDay
-        ? filterSpendTransactions(transactions, categoryMap)
-            .filter((tx) => tx.date === quickStats.peakDay)
-            .sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount))
+        ? sortedSpendTxs.filter((tx) => tx.date === quickStats.peakDay)
         : [],
-    [transactions, categoryMap, quickStats]
+    [sortedSpendTxs, quickStats]
   )
 
   const maxCatSpend = categoryTotals[0]?.spend ?? 0
@@ -686,22 +647,7 @@ export default function HomePage() {
 
   // ── No-token state ────────────────────────────────────────────────────────
 
-  if (!token) {
-    return (
-      <div className="flex flex-col items-center gap-5 p-6 pt-12">
-        <p className="text-base text-muted-foreground">
-          Connect your Lunch Money account in{" "}
-          <Link
-            href="/settings"
-            className="font-medium text-foreground underline-offset-4 hover:underline"
-          >
-            Settings
-          </Link>{" "}
-          to get started.
-        </p>
-      </div>
-    )
-  }
+  if (!token) return <NoTokenPrompt />
 
   return (
     <div className="mx-auto max-w-6xl pt-6 pb-10">
@@ -715,6 +661,7 @@ export default function HomePage() {
             const p = prevMonthOf(selectedYear, selectedMonth)
             setSelectedYear(p.year)
             setSelectedMonth(p.month)
+            setOpenPanel(null)
           }}
         >
           <ChevronLeft className="size-4" />
@@ -730,6 +677,7 @@ export default function HomePage() {
             const n = nextMonthOf(selectedYear, selectedMonth)
             setSelectedYear(n.year)
             setSelectedMonth(n.month)
+            setOpenPanel(null)
           }}
         >
           <ChevronRight className="size-4" />
@@ -737,7 +685,7 @@ export default function HomePage() {
       </div>
 
       {/* Uncategorized Banner */}
-      {!loading && uncategorizedCount > 0 && !uncategorizedDismissed && (
+      {!loading && uncategorizedCount > 0 && (
         <div className="mb-4 flex items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-700 dark:bg-amber-950/30">
           <AlertTriangle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
           <p className="flex-1 text-sm text-amber-800 dark:text-amber-300">
@@ -813,7 +761,7 @@ export default function HomePage() {
                 <p className="text-sm font-medium tracking-wide text-muted-foreground">
                   Spend{" "}
                   <span className="font-mono text-[11px] text-muted-foreground/50">
-                    ({spendPanelTxs.length} transactions)
+                    ({sortedSpendTxs.length} transactions)
                   </span>
                 </p>
               </CardContent>
@@ -893,7 +841,7 @@ export default function HomePage() {
             {(openPanel === "income"
               ? incomePanelTxs
               : openPanel === "spend"
-                ? spendPanelTxs
+                ? sortedSpendTxs
                 : peakDayPanelTxs
             ).map((tx) => {
               const catName =

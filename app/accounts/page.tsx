@@ -8,78 +8,23 @@ import {
   getCategories,
   getMe,
   getTransactionsForMonth,
-  type ManualAccount,
-  type PlaidAccount,
 } from "@/lib/lunchmoney/client"
 import {
   buildCategoryMap,
   computeAverageMonthlySpend,
 } from "@/lib/lunchmoney/analytics"
-import { formatCurrency } from "@/lib/format"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+  type NormalizedAccount,
+  normalizeManual,
+  normalizePlaid,
+  formatSubtype,
+  formatUpdated,
+  groupByInstitution,
+} from "@/lib/account-utils"
+import { NoTokenPrompt } from "@/components/no-token-prompt"
+import { formatCurrency } from "@/lib/format"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
-
-// Account types that represent debt (balance = what you owe)
-const LIABILITY_TYPES = new Set(["credit", "loan", "other liability"])
-
-type NormalizedAccount = {
-  id: string
-  name: string
-  institution: string | null
-  type: string
-  subtype: string | null
-  balance: number
-  currency: string
-  toBase: number
-  balanceValid: boolean // false when balance is stale/unreliable (e.g. revoked)
-  isLiability: boolean
-  lastUpdated: string | null
-  source: "plaid" | "manual"
-  status: string
-}
-
-function normalizeManual(a: ManualAccount): NormalizedAccount {
-  return {
-    id: `manual-${a.id}`,
-    name: a.display_name ?? a.name,
-    institution: a.institution_name,
-    type: a.type,
-    subtype: a.subtype,
-    balance: parseFloat(a.balance),
-    currency: a.currency,
-    toBase: a.to_base,
-    balanceValid: true,
-    isLiability: LIABILITY_TYPES.has(a.type),
-    lastUpdated: a.balance_as_of,
-    source: "manual",
-    status: a.status,
-  }
-}
-
-function normalizePlaid(a: PlaidAccount): NormalizedAccount {
-  const revoked = a.status === "revoked"
-  return {
-    id: `plaid-${a.id}`,
-    name: a.display_name ?? a.name,
-    institution: a.institution_name,
-    type: a.type,
-    subtype: a.subtype ?? null,
-    balance: parseFloat(a.balance),
-    currency: a.currency,
-    toBase: a.to_base,
-    balanceValid: !revoked,
-    isLiability: LIABILITY_TYPES.has(a.type),
-    lastUpdated: a.balance_last_update,
-    source: "plaid",
-    status: a.status,
-  }
-}
 
 function getLastThreeFullMonths(
   now: Date
@@ -286,25 +231,6 @@ function InvestableCashCard({
   )
 }
 
-const ALL_CAPS_SUBTYPES = new Set(["ira", "tfsa", "hsa", "401k", "403b", "529"])
-
-function formatSubtype(subtype: string): string {
-  const lower = subtype.toLowerCase()
-  if (ALL_CAPS_SUBTYPES.has(lower)) return subtype.toUpperCase()
-  return subtype.charAt(0).toUpperCase() + subtype.slice(1)
-}
-
-function formatUpdated(dateStr: string | null): string {
-  if (!dateStr) return "—"
-  const d = new Date(dateStr)
-  const now = new Date()
-  const diffDays = Math.floor((now.getTime() - d.getTime()) / 86_400_000)
-  if (diffDays === 0) return "today"
-  if (diffDays === 1) return "yesterday"
-  if (diffDays < 7) return `${diffDays}d ago`
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" })
-}
-
 function AccountRow({
   account,
   primaryCurrency,
@@ -363,22 +289,6 @@ function AccountRow({
       </div>
     </li>
   )
-}
-
-function groupByInstitution(
-  accounts: NormalizedAccount[]
-): [string, NormalizedAccount[]][] {
-  const map = new Map<string, NormalizedAccount[]>()
-  for (const a of accounts) {
-    const key = a.institution ?? "Other"
-    const group = map.get(key) ?? []
-    group.push(a)
-    map.set(key, group)
-  }
-  return Array.from(map.entries()).map(([institution, accs]) => [
-    institution,
-    accs.slice().sort((a, b) => a.name.localeCompare(b.name)),
-  ] as [string, NormalizedAccount[]])
 }
 
 function AccountSection({
@@ -459,35 +369,28 @@ export default function AccountsPage() {
   useEffect(() => {
     const raw = localStorage.getItem("investable_months")
     const parsed = raw !== null ? parseInt(raw, 10) : NaN
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFloorMonths(Number.isFinite(parsed) && parsed > 0 ? parsed : 3)
   }, [])
 
   // Non-blocking secondary fetch: triggers after accounts load
   useEffect(() => {
     if (!token || accounts.length === 0) return
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setInvestable({ status: "loading" })
 
     const months = getLastThreeFullMonths(new Date())
-    Promise.all([
-      ...months.map(({ year, month }) =>
-        getTransactionsForMonth(token, year, month).then((r) => r.transactions)
-      ),
-      getCategories(token).then((r) => buildCategoryMap(r)),
-    ] as const)
-      .then((results) => {
-        const catMap = results[results.length - 1] as ReturnType<
-          typeof buildCategoryMap
-        >
-        const monthlyTxArrays = results.slice(0, -1) as Awaited<
-          ReturnType<typeof getTransactionsForMonth>
-        >["transactions"][]
+    const catMapPromise = getCategories(token).then((r) => buildCategoryMap(r))
+    const txPromises = months.map(({ year, month }) =>
+      getTransactionsForMonth(token, year, month).then((r) => r.transactions)
+    )
+
+    Promise.all([catMapPromise, Promise.all(txPromises)])
+      .then(([catMap, monthlyTxArrays]) => {
         const avgMonthlySpend = computeAverageMonthlySpend(
           monthlyTxArrays,
           catMap
         )
-        const raw = localStorage.getItem("investable_months")
-        const parsed = raw !== null ? parseInt(raw, 10) : NaN
-        const n = Number.isFinite(parsed) && parsed > 0 ? parsed : floorMonths
 
         const totalCheckingBalance = accounts
           .filter(isCheckingAccount)
@@ -500,7 +403,7 @@ export default function AccountsPage() {
         // Checking must always hold 1 month of expenses for cash flow
         const checkingFloor = avgMonthlySpend
         // Savings must hold N months as the emergency fund
-        const savingsTarget = avgMonthlySpend * n
+        const savingsTarget = avgMonthlySpend * floorMonths
         const savingsFunded = totalSavingsBalance >= savingsTarget
         const savingsShortfall = Math.max(
           0,
@@ -524,7 +427,7 @@ export default function AccountsPage() {
           savingsFunded,
           savingsShortfall,
           avgMonthlySpend,
-          savingsMonths: n,
+          savingsMonths: floorMonths,
         })
       })
       .catch((err) => {
@@ -562,22 +465,7 @@ export default function AccountsPage() {
       })
   }, [token])
 
-  if (!token) {
-    return (
-      <div className="flex flex-col items-center gap-5 p-6 pt-12">
-        <p className="text-base text-muted-foreground">
-          Connect your Lunch Money account in{" "}
-          <Link
-            href="/settings"
-            className="font-medium text-foreground underline-offset-4 hover:underline"
-          >
-            Settings
-          </Link>{" "}
-          to get started.
-        </p>
-      </div>
-    )
-  }
+  if (!token) return <NoTokenPrompt />
 
   const assets = accounts.filter((a) => !a.isLiability && a.status !== "closed")
   const liabilities = accounts.filter(
