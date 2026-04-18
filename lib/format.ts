@@ -1,3 +1,5 @@
+// TODO: should this be used if currency matters? I think everything should be exact
+// 1234.5 => $1,234.50 or $1,235
 export function formatAmount(n: number, exact = false): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -7,6 +9,7 @@ export function formatAmount(n: number, exact = false): string {
   }).format(n);
 }
 
+// Handles the currency formatting, similar return like above
 export function formatCurrency(
   n: number,
   currency: string,
@@ -25,6 +28,7 @@ export function formatCurrency(
   }
 }
 
+// Given a date string, will output something like "Jan 1"
 export function formatShortDate(dateStr: string): string {
   return new Date(`${dateStr}T12:00:00`).toLocaleDateString("en-US", {
     month: "short",

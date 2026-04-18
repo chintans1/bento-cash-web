@@ -8,6 +8,7 @@ import {
   getMe,
   updateManualAccount,
 } from "@/lib/lunchmoney/client";
+import type { AccountType } from "@lunch-money/lunch-money-js-v2";
 import {
   type NormalizedAccount,
   normalizeManual,
@@ -191,7 +192,7 @@ function AccountRow({
   account: NormalizedAccount;
   primaryCurrency: string;
   token: string;
-  onSaved: (id: string, type: string, subtype: string) => void;
+  onSaved: (id: string, type: AccountType, subtype: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [editType, setEditType] = useState(account.type);
@@ -237,7 +238,7 @@ function AccountRow({
               <label className="text-xs text-muted-foreground">Type</label>
               <Select
                 value={editType}
-                onValueChange={(v) => setEditType(v ?? "")}
+                onValueChange={(v) => setEditType(v as AccountType)}
               >
                 <SelectTrigger size="sm" className="w-36">
                   <SelectValue />
@@ -530,7 +531,7 @@ export default function InvestmentsPage() {
       });
   }, [token]);
 
-  function handleSaved(id: string, type: string, subtype: string) {
+  function handleSaved(id: string, type: AccountType, subtype: string) {
     setAccounts((prev) =>
       prev.map((a) =>
         a.id === id ? { ...a, type, subtype: subtype || null } : a

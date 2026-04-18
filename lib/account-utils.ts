@@ -1,5 +1,10 @@
-import type { ManualAccount, PlaidAccount } from "@/lib/lunchmoney/client";
+import type {
+  ManualAccount,
+  PlaidAccount,
+} from "@/lib/lunchmoney/client";
+import type { AccountType } from "@lunch-money/lunch-money-js-v2";
 
+// TODO: should vehicle, real estate be considered liabilities?
 const LIABILITY_TYPES = new Set(["credit", "loan", "other liability"]);
 
 const ALL_CAPS_SUBTYPES = new Set([
@@ -18,8 +23,8 @@ export type NormalizedAccount = {
   rawId: number;
   name: string;
   institution: string | null;
-  type: string;
-  subtype: string | null;
+  type: AccountType;
+  subtype: string | null; // TODO: I can make this strongly typed
   balance: number;
   currency: string;
   toBase: number;
@@ -56,7 +61,7 @@ export function normalizePlaid(a: PlaidAccount): NormalizedAccount {
     rawId: a.id,
     name: a.display_name ?? a.name,
     institution: a.institution_name,
-    type: a.type,
+    type: a.type as AccountType,
     subtype: a.subtype ?? null,
     balance: parseFloat(a.balance),
     currency: a.currency,
@@ -71,18 +76,29 @@ export function normalizePlaid(a: PlaidAccount): NormalizedAccount {
 
 export function formatSubtype(subtype: string): string {
   const lower = subtype.toLowerCase();
-  if (ALL_CAPS_SUBTYPES.has(lower)) return subtype.toUpperCase();
+  if (ALL_CAPS_SUBTYPES.has(lower)) {
+    return subtype.toUpperCase();
+  }
+
   return subtype.charAt(0).toUpperCase() + subtype.slice(1);
 }
 
+// Turning a date string to "today", "yesterday" or "Jan 1"
+// TODO: it should return year if its not the current year
 export function formatUpdated(dateStr: string | null): string {
   if (!dateStr) return "—";
   const d = new Date(dateStr);
   const now = new Date();
   const diffDays = Math.floor((now.getTime() - d.getTime()) / 86_400_000);
-  if (diffDays === 0) return "today";
-  if (diffDays === 1) return "yesterday";
-  if (diffDays < 7) return `${diffDays}d ago`;
+
+  if (diffDays === 0) {
+    return "today";
+  } else if (diffDays === 1) {
+    return "yesterday";
+  } else if (diffDays < 7) {
+    return `${diffDays}d ago`;
+  }
+
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
@@ -90,12 +106,15 @@ export function groupByInstitution(
   accounts: NormalizedAccount[]
 ): [string, NormalizedAccount[]][] {
   const map = new Map<string, NormalizedAccount[]>();
+
   for (const a of accounts) {
     const key = a.institution ?? "Other";
     const group = map.get(key) ?? [];
     group.push(a);
     map.set(key, group);
   }
+
+  // Return a grouping by institution, ordered alphabetically on name
   return Array.from(map.entries()).map(
     ([institution, accs]) =>
       [

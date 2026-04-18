@@ -1,6 +1,58 @@
 import type { CategoriesResponse, Transaction } from "./client";
 import type { CategoryInfo } from "./categories";
 
+export type CategoryGroupEntry = {
+  /** null = ungrouped standalone categories */
+  groupId: number | null;
+  groupName: string | null;
+  items: { id: number; name: string }[];
+};
+
+/**
+ * Builds both the flat category map and the grouped Select structure in a
+ * single pass over the categories response. Groups with children come first;
+ * standalone categories (no children) are appended at the end.
+ */
+export function buildCategoryData(res: CategoriesResponse): {
+  categoryMap: Map<number, CategoryInfo>;
+  catGroups: CategoryGroupEntry[];
+} {
+  const categoryMap = new Map<number, CategoryInfo>();
+  const groups: CategoryGroupEntry[] = [];
+  const standalone: { id: number; name: string }[] = [];
+
+  for (const cat of res.categories) {
+    categoryMap.set(cat.id, {
+      name: cat.name,
+      is_income: cat.is_income,
+      exclude_from_totals: cat.exclude_from_totals,
+    });
+
+    if (cat.children && cat.children.length > 0) {
+      groups.push({
+        groupId: cat.id,
+        groupName: cat.name,
+        items: cat.children.map((c) => ({ id: c.id, name: c.name })),
+      });
+      for (const child of cat.children) {
+        categoryMap.set(child.id, {
+          name: child.name,
+          is_income: child.is_income,
+          exclude_from_totals: child.exclude_from_totals,
+        });
+      }
+    } else {
+      standalone.push({ id: cat.id, name: cat.name });
+    }
+  }
+
+  if (standalone.length > 0) {
+    groups.push({ groupId: null, groupName: null, items: standalone });
+  }
+
+  return { categoryMap, catGroups: groups };
+}
+
 export type CategoryTotal = {
   id: number;
   name: string;
@@ -31,12 +83,14 @@ export function buildCategoryMap(
   res: CategoriesResponse
 ): Map<number, CategoryInfo> {
   const map = new Map<number, CategoryInfo>();
+
   for (const cat of res.categories) {
     map.set(cat.id, {
       name: cat.name,
       is_income: cat.is_income,
       exclude_from_totals: cat.exclude_from_totals,
     });
+
     for (const child of cat.children ?? []) {
       map.set(child.id, {
         name: child.name,
@@ -45,6 +99,7 @@ export function buildCategoryMap(
       });
     }
   }
+
   return map;
 }
 
@@ -61,10 +116,15 @@ export function filterSpendTransactions(
   catMap: Map<number, CategoryInfo>
 ): Transaction[] {
   return transactions.filter((tx) => {
-    if (parseFloat(tx.amount) <= 0) return false;
+    if (parseFloat(tx.amount) <= 0) {
+      return false;
+    }
+
     if (tx.category_id != null) {
       const cat = catMap.get(tx.category_id);
-      if (cat?.exclude_from_totals) return false;
+      if (cat?.exclude_from_totals) {
+        return false;
+      }
     }
     return true;
   });
@@ -175,7 +235,10 @@ export function computeAverageMonthlySpend(
   monthlyTxArrays: Transaction[][],
   catMap: Map<number, CategoryInfo>
 ): number {
-  if (monthlyTxArrays.length === 0) return 0;
+  if (monthlyTxArrays.length === 0) {
+    return 0;
+  }
+
   const totals = monthlyTxArrays.map((txs) =>
     filterSpendTransactions(txs, catMap).reduce(
       (sum, tx) => sum + parseFloat(tx.amount),
@@ -185,7 +248,8 @@ export function computeAverageMonthlySpend(
   return totals.reduce((a, b) => a + b, 0) / totals.length;
 }
 
-/** Returns transactions belonging to a given category id (-1 = uncategorized). */
+// Returns transactions belonging to a given category id (-1 = uncategorized)
+// Will sort the transactions by amount (highest first) and return top 5
 export function getTransactionsForCategory(
   transactions: Transaction[],
   categoryId: number

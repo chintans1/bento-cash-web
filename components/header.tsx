@@ -18,7 +18,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur-sm">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
-        <span className="font-heading text-2xl font-semibold">
+        <span className="font-heading text-2xl font-bold">
           Bento Cash{" "}
           <span className="font-mono text-xs text-muted-foreground">web</span>
         </span>

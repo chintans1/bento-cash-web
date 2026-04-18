@@ -8,24 +8,53 @@ import {
   updateTransactionCategory,
   type Transaction,
 } from "@/lib/lunchmoney/client";
-import { buildCategoryMap } from "@/lib/lunchmoney/analytics";
+import {
+  buildCategoryData,
+  filterSpendTransactions,
+  type CategoryGroupEntry,
+} from "@/lib/lunchmoney/analytics";
 import { getCategoryIcon } from "@/lib/lunchmoney/category-icons";
 import { type CategoryInfo, UNCATEGORIZED } from "@/lib/lunchmoney/categories";
 import { formatAmount, formatShortDate } from "@/lib/format";
-import {
-  MONTH_NAMES,
-  isCurrentOrFutureMonth,
-  prevMonthOf,
-  nextMonthOf,
-} from "@/lib/date-utils";
+import { prevMonthOf, nextMonthOf } from "@/lib/date-utils";
 import { NoTokenPrompt } from "@/components/no-token-prompt";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ChevronLeft, ChevronRight, Search, X } from "lucide-react";
+import { Search, X } from "lucide-react";
+import { MonthSelector } from "@/components/dashboard/month-selector";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { ButtonGroup } from "@/components/ui/button-group";
 
 type SortKey = "date" | "amount" | "payee";
 type SortDir = "asc" | "desc";
+
+function CategorySelectItems({ catGroups }: { catGroups: CategoryGroupEntry[] }) {
+  return (
+    <>
+      {catGroups.map((group, i) => (
+        <SelectGroup key={group.groupId ?? "standalone"}>
+          {group.groupName && <SelectLabel>{group.groupName}</SelectLabel>}
+          {group.items.map(({ id, name }) => (
+            <SelectItem key={id} value={id.toString()}>
+              {name}
+            </SelectItem>
+          ))}
+          {i < catGroups.length - 1 && <SelectSeparator />}
+        </SelectGroup>
+      ))}
+    </>
+  );
+}
 
 export default function TransactionsPage() {
   const { token } = useToken();
@@ -36,6 +65,7 @@ export default function TransactionsPage() {
   const [categoryMap, setCategoryMap] = useState<Map<number, CategoryInfo>>(
     new Map()
   );
+  const [catGroups, setCatGroups] = useState<CategoryGroupEntry[]>([]);
   const [{ loading, error }, setFetchStatus] = useState<{
     loading: boolean;
     error: string | null;
@@ -44,7 +74,6 @@ export default function TransactionsPage() {
   const [filterCatId, setFilterCatId] = useState<number | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  // category_id being updated -> optimistic state
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [editingCatId, setEditingCatId] = useState<number | null>(null);
 
@@ -56,8 +85,10 @@ export default function TransactionsPage() {
       getCategories(token),
     ])
       .then(([txRes, catRes]) => {
+        const { categoryMap, catGroups } = buildCategoryData(catRes);
         setTransactions(txRes.transactions);
-        setCategoryMap(buildCategoryMap(catRes));
+        setCategoryMap(categoryMap);
+        setCatGroups(catGroups);
         setFetchStatus({ loading: false, error: null });
       })
       .catch((err) => {
@@ -67,19 +98,6 @@ export default function TransactionsPage() {
         });
       });
   }, [token, selectedYear, selectedMonth]);
-
-  const categories = useMemo(() => {
-    const seen = new Map<number, string>();
-    for (const tx of transactions) {
-      if (tx.category_id != null) {
-        const info = categoryMap.get(tx.category_id);
-        if (info) seen.set(tx.category_id, info.name);
-      }
-    }
-    return Array.from(seen.entries()).sort(([, a], [, b]) =>
-      a.localeCompare(b)
-    );
-  }, [transactions, categoryMap]);
 
   const filtered = useMemo(() => {
     let result = [...transactions];
@@ -111,10 +129,11 @@ export default function TransactionsPage() {
 
   const totalSpend = useMemo(
     () =>
-      filtered
-        .filter((tx) => parseFloat(tx.amount) > 0)
-        .reduce((s, tx) => s + parseFloat(tx.amount), 0),
-    [filtered]
+      filterSpendTransactions(filtered, categoryMap).reduce(
+        (s, tx) => s + parseFloat(tx.amount),
+        0
+      ),
+    [filtered, categoryMap]
   );
 
   function toggleSort(key: SortKey) {
@@ -151,81 +170,73 @@ export default function TransactionsPage() {
     ) : null;
 
   return (
-    <div className="mx-auto max-w-5xl px-6 pt-6 pb-10">
-      {/* Month selector + title */}
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="font-heading text-2xl font-bold">Transactions</h1>
-        <div className="flex items-center gap-1">
-          <span className="text-sm text-muted-foreground">viewing for</span>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            onClick={() => {
-              const p = prevMonthOf(selectedYear, selectedMonth);
-              setSelectedYear(p.year);
-              setSelectedMonth(p.month);
-            }}
-          >
-            <ChevronLeft className="size-4" />
-          </Button>
-          <span className="text-sm font-medium">
-            {MONTH_NAMES[selectedMonth - 1]} {selectedYear}
-          </span>
-          <Button
-            variant="ghost"
-            size="icon-sm"
-            disabled={isCurrentOrFutureMonth(selectedYear, selectedMonth)}
-            onClick={() => {
-              const n = nextMonthOf(selectedYear, selectedMonth);
-              setSelectedYear(n.year);
-              setSelectedMonth(n.month);
-            }}
-          >
-            <ChevronRight className="size-4" />
-          </Button>
-        </div>
-      </div>
+    <div className="mx-auto max-w-6xl pt-6 pb-10">
+      <MonthSelector
+        year={selectedYear}
+        month={selectedMonth}
+        onPrev={() => {
+          const p = prevMonthOf(selectedYear, selectedMonth);
+          setSelectedYear(p.year);
+          setSelectedMonth(p.month);
+        }}
+        onNext={() => {
+          const n = nextMonthOf(selectedYear, selectedMonth);
+          setSelectedYear(n.year);
+          setSelectedMonth(n.month);
+        }}
+      />
 
       {/* Filters */}
       <div className="mb-4 flex flex-wrap gap-2">
-        <div className="relative min-w-48 flex-1">
-          <Search className="absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
+        <ButtonGroup className="relative min-w-48 flex-1">
+          <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-3.5 -translate-y-1/2 text-muted-foreground" />
           <Input
             className="h-8 pl-8 text-sm"
-            placeholder="Search payee or notes…"
+            placeholder="Search payee or notes..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
           {query && (
-            <button
-              className="absolute top-1/2 right-2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            <Button
+              variant="outline"
+              size="icon-sm"
+              className="h-8"
+              disabled={!query}
               onClick={() => setQuery("")}
             >
               <X className="size-3.5" />
-            </button>
+            </Button>
           )}
-        </div>
-        <select
-          className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground"
-          value={filterCatId ?? ""}
-          onChange={(e) =>
-            setFilterCatId(
-              e.target.value === "" ? null : Number(e.target.value)
-            )
+        </ButtonGroup>
+
+        <Select
+          value={filterCatId === null ? "" : filterCatId.toString()}
+          onValueChange={(val) =>
+            setFilterCatId(val === "" ? null : Number(val))
           }
         >
-          <option value="">All categories</option>
-          <option value="-1">Uncategorized</option>
-          {categories.map(([id, name]) => (
-            <option key={id} value={id}>
-              {name}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger size="sm" className="w-44">
+            <SelectValue className="!block truncate">
+              {filterCatId === null
+                ? "All categories"
+                : filterCatId === -1
+                  ? "Uncategorized"
+                  : (categoryMap.get(filterCatId)?.name ?? "All categories")}
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent className="min-w-max">
+            <SelectGroup>
+              <SelectItem value="">All categories</SelectItem>
+              <SelectItem value="-1">Uncategorized</SelectItem>
+            </SelectGroup>
+            <SelectSeparator />
+            <CategorySelectItems catGroups={catGroups} />
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Table header */}
-      <div className="mb-1 grid grid-cols-[1fr_auto_auto_auto] gap-4 px-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+      <div className="mb-1 grid grid-cols-[1fr_160px_72px_96px] gap-4 px-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
         <button
           className="text-left hover:text-foreground"
           onClick={() => toggleSort("payee")}
@@ -234,7 +245,7 @@ export default function TransactionsPage() {
         </button>
         <button className="text-left hover:text-foreground">Category</button>
         <button
-          className="text-left hover:text-foreground"
+          className="text-center hover:text-foreground"
           onClick={() => toggleSort("date")}
         >
           Date <SortIcon k="date" />
@@ -275,7 +286,7 @@ export default function TransactionsPage() {
             return (
               <div
                 key={tx.id}
-                className="grid grid-cols-[1fr_auto_auto_auto] items-center gap-4 bg-background px-4 py-3 transition-colors hover:bg-muted/30"
+                className="grid grid-cols-[1fr_160px_72px_96px] items-center gap-4 bg-background px-4 py-3 transition-colors hover:bg-muted/30"
               >
                 {/* Payee */}
                 <div className="flex min-w-0 items-center gap-3">
@@ -293,33 +304,41 @@ export default function TransactionsPage() {
                 </div>
 
                 {/* Category */}
-                <div className="shrink-0">
+                <div className="min-w-0">
                   {isEditing ? (
-                    <select
-                      autoFocus
-                      disabled={isUpdating}
-                      className="h-7 rounded border border-input bg-background px-1.5 text-xs text-foreground"
-                      defaultValue={tx.category_id ?? ""}
-                      onBlur={() => setEditingCatId(null)}
-                      onChange={(e) => {
-                        const val = e.target.value;
+                    <Select
+                      value={tx.category_id?.toString() ?? ""}
+                      onValueChange={(val) =>
                         handleCategoryChange(
                           tx.id,
                           val === "" ? null : Number(val)
-                        );
+                        )
+                      }
+                      onOpenChange={(open) => {
+                        if (!open) setEditingCatId(null);
                       }}
+                      disabled={isUpdating}
                     >
-                      <option value="">Uncategorized</option>
-                      {Array.from(categoryMap.entries()).map(([id, info]) => (
-                        <option key={id} value={id}>
-                          {info.name}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger size="sm" className="h-7 w-full text-xs">
+                        <SelectValue>
+                          {tx.category_id == null
+                            ? "Uncategorized"
+                            : (categoryMap.get(tx.category_id)?.name ??
+                              "Uncategorized")}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent className="min-w-max">
+                        <SelectGroup>
+                          <SelectItem value="">Uncategorized</SelectItem>
+                        </SelectGroup>
+                        <SelectSeparator />
+                        <CategorySelectItems catGroups={catGroups} />
+                      </SelectContent>
+                    </Select>
                   ) : (
                     <button
                       className={cn(
-                        "rounded px-1.5 py-0.5 text-xs transition-colors hover:bg-muted",
+                        "w-full truncate rounded px-1.5 py-0.5 text-left text-xs transition-colors hover:bg-muted",
                         isUncategorized
                           ? "text-amber-600 dark:text-amber-400"
                           : "text-muted-foreground"
@@ -332,14 +351,14 @@ export default function TransactionsPage() {
                 </div>
 
                 {/* Date */}
-                <span className="shrink-0 text-xs text-muted-foreground tabular-nums">
+                <span className="text-center text-xs text-muted-foreground tabular-nums">
                   {formatShortDate(tx.date)}
                 </span>
 
                 {/* Amount */}
                 <span
                   className={cn(
-                    "shrink-0 font-mono text-sm font-medium tabular-nums",
+                    "text-right font-mono text-sm font-medium tabular-nums",
                     isCredit && "text-green-600 dark:text-green-400"
                   )}
                 >

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 const STORAGE_KEY = "lm_token";
 
+// TODO: We'll figure out this part later, need to use context correctly
 export function useToken() {
   const [token, setTokenState] = useState<string | null>(null);
 

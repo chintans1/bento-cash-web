@@ -6,6 +6,6 @@ export interface CategoryInfo {
 
 export const UNCATEGORIZED: CategoryInfo = {
   name: "Uncategorized",
-  is_income: false,
+  is_income: false, // Could be income if its positive?
   exclude_from_totals: false,
 };
