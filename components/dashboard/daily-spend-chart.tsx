@@ -1,16 +1,14 @@
 "use client";
 
-import { useState } from "react";
-import { cn } from "@/lib/utils";
+import { Bar, BarChart, XAxis, YAxis } from "recharts";
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { formatCurrency, formatShortDate } from "@/lib/format";
 import type { DailySpend } from "@/lib/lunchmoney/analytics";
 
-/**
- * Bar chart showing one bar per day in the selected month.
- *
- * "use client" is needed here because this component uses useState to track
- * which bar the user is hovering over. State only works in client components.
- */
+const chartConfig = {
+  amount: { label: "Spend", color: "var(--chart-1)" },
+};
+
 export function DailySpendChart({
   data,
   primaryCurrency,
@@ -18,48 +16,56 @@ export function DailySpendChart({
   data: DailySpend[];
   primaryCurrency: string;
 }) {
-  const max = Math.max(...data.map((d) => d.amount), 1);
-  const [hovered, setHovered] = useState<DailySpend | null>(null);
+  if (data.length === 0) return null;
+
+  const midDay = data[Math.floor((data.length - 1) / 2)]?.date ?? "";
 
   return (
-    <div className="relative">
-      {hovered && (
-        <div className="pointer-events-none absolute -top-8 left-1/2 z-10 -translate-x-1/2 rounded bg-foreground px-2 py-0.5 text-xs whitespace-nowrap text-background">
-          {formatShortDate(hovered.date)}:{" "}
-          {formatCurrency(hovered.amount, primaryCurrency, false)}
-        </div>
-      )}
-      <div className="flex items-end gap-px" style={{ height: 80 }}>
-        {data.map((d) => {
-          const heightPct = max > 0 ? (d.amount / max) * 100 : 0;
-          const isHov = hovered?.date === d.date;
-          return (
-            <div
-              key={d.date}
-              className="relative flex-1 cursor-pointer"
-              style={{ height: "100%" }}
-              onMouseEnter={() => setHovered(d)}
-              onMouseLeave={() => setHovered(null)}
-            >
-              <div
-                className={cn(
-                  "absolute bottom-0 w-full rounded-t-sm transition-colors",
-                  isHov ? "bg-chart-1" : "bg-chart-1/30"
-                )}
-                style={{
-                  height: `${heightPct}%`,
-                  minHeight: d.amount > 0 ? 2 : 0,
-                }}
-              />
-            </div>
-          );
-        })}
-      </div>
-      <div className="mt-1 flex justify-between text-[10px] text-muted-foreground">
-        <span>1</span>
-        <span>{Math.ceil(data.length / 2)}</span>
-        <span>{data.length}</span>
-      </div>
-    </div>
+    <ChartContainer config={chartConfig} className="h-[96px] w-full">
+      <BarChart
+        data={data}
+        margin={{ top: 4, right: 0, bottom: 0, left: 0 }}
+        barCategoryGap="15%"
+      >
+        <XAxis
+          dataKey="date"
+          tickLine={false}
+          axisLine={false}
+          fontSize={9}
+          ticks={[data[0]?.date, midDay, data[data.length - 1]?.date]}
+          tickFormatter={(v) => {
+            const d = new Date(`${v}T12:00:00`);
+            return String(d.getDate());
+          }}
+          height={18}
+        />
+        <YAxis hide />
+        <ChartTooltip
+          cursor={{ fill: "var(--muted)", opacity: 0.5 }}
+          content={({ active, payload }) => {
+            if (!active || !payload?.length) return null;
+            const d = payload[0].payload as DailySpend;
+            return (
+              <div className="rounded-lg border bg-background px-2.5 py-1.5 text-xs shadow-xl">
+                <p className="mb-0.5 font-medium">{formatShortDate(d.date)}</p>
+                <p
+                  className="font-mono tabular-nums"
+                  style={{ color: "var(--color-amount)" }}
+                >
+                  {formatCurrency(d.amount, primaryCurrency, false)}
+                </p>
+              </div>
+            );
+          }}
+        />
+        <Bar
+          dataKey="amount"
+          fill="var(--color-amount)"
+          opacity={0.4}
+          radius={[2, 2, 0, 0]}
+          activeBar={{ opacity: 1 }}
+        />
+      </BarChart>
+    </ChartContainer>
   );
 }

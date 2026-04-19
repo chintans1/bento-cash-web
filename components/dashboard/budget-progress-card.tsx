@@ -24,7 +24,12 @@ export function BudgetProgressCard({
       const spent = c.totals.other_activity + c.totals.recurring_activity;
       const budget = c.totals.budgeted!;
       const catInfo = categoryMap.get(c.category_id);
-      return { id: c.category_id, name: catInfo?.name ?? "Unknown", spent, budget };
+      return {
+        id: c.category_id,
+        name: catInfo?.name ?? "Unknown",
+        spent,
+        budget,
+      };
     })
     .sort((a, b) => b.spent / b.budget - a.spent / a.budget);
 

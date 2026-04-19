@@ -14,6 +14,11 @@ import {
   computeAverageMonthlySpend,
 } from "@/lib/lunchmoney/analytics";
 import {
+  getBalanceHistory,
+  computeNetWorthTimeSeries,
+  type NetWorthPoint,
+} from "@/lib/lunchmoney/balance-history";
+import {
   type NormalizedAccount,
   normalizeManual,
   normalizePlaid,
@@ -24,6 +29,7 @@ import {
 import { NoTokenPrompt } from "@/components/no-token-prompt";
 import { formatCurrency } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { NetWorthChart } from "@/components/accounts/net-worth-chart";
 import { cn } from "@/lib/utils";
 
 function getLastThreeFullMonths(
@@ -352,6 +358,8 @@ function AccountSection({
   );
 }
 
+type HistoryStatus = "idle" | "loading" | "ready" | "error";
+
 export default function AccountsPage() {
   const { token } = useToken();
   const [accounts, setAccounts] = useState<NormalizedAccount[]>([]);
@@ -365,6 +373,14 @@ export default function AccountsPage() {
   });
   const [floorMonths, setFloorMonths] = useState<number>(3);
 
+  // Tab state
+  const [view, setView] = useState<"accounts" | "history">("accounts");
+
+  // Balance history — fetched lazily when the History tab is first opened
+  const [historyData, setHistoryData] = useState<NetWorthPoint[]>([]);
+  const [historyStatus, setHistoryStatus] = useState<HistoryStatus>("idle");
+  const [historyError, setHistoryError] = useState<string | null>(null);
+
   // SSR-safe: read localStorage preference for floor months
   useEffect(() => {
     const raw = localStorage.getItem("investable_months");
@@ -372,6 +388,24 @@ export default function AccountsPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setFloorMonths(Number.isFinite(parsed) && parsed > 0 ? parsed : 3);
   }, []);
+
+  // Lazy-fetch balance history on first visit to the History tab
+  useEffect(() => {
+    if (!token || view !== "history" || historyStatus !== "idle") return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setHistoryStatus("loading");
+    getBalanceHistory(token)
+      .then((res) => {
+        setHistoryData(computeNetWorthTimeSeries(res));
+        setHistoryStatus("ready");
+      })
+      .catch((err) => {
+        setHistoryError(
+          err instanceof Error ? err.message : "Could not load balance history"
+        );
+        setHistoryStatus("error");
+      });
+  }, [token, view, historyStatus]);
 
   // Non-blocking secondary fetch: triggers after accounts load
   useEffect(() => {
@@ -523,42 +557,87 @@ export default function AccountsPage() {
         )}
       </div>
 
-      {loading ? (
-        <div className="flex flex-col gap-4">
-          {[1, 2].map((i) => (
-            <div key={i} className="h-40 animate-pulse rounded-xl bg-muted" />
-          ))}
-        </div>
-      ) : error ? (
-        <p className="text-sm text-destructive">{error}</p>
-      ) : (
-        <>
-          {accounts.length > 0 && (
-            <InvestableCashCard
-              state={investable}
-              primaryCurrency={primaryCurrency}
-            />
-          )}
-          <div className="grid grid-cols-2 items-start gap-6">
-            <AccountSection
-              title="Assets"
-              accounts={assets}
-              total={totalAssets}
-              primaryCurrency={primaryCurrency}
-            />
-            <AccountSection
-              title="Liabilities"
-              accounts={liabilities}
-              total={totalLiabilities}
-              primaryCurrency={primaryCurrency}
-            />
-            {accounts.length === 0 && (
-              <p className="text-center text-sm text-muted-foreground">
-                No accounts found.
-              </p>
+      {/* Tab bar */}
+      <div className="mb-6 flex border-b border-border">
+        {(["accounts", "history"] as const).map((tab) => (
+          <button
+            key={tab}
+            onClick={() => setView(tab)}
+            className={cn(
+              "-mb-px px-4 py-2 text-sm font-medium transition-colors",
+              view === tab
+                ? "border-b-2 border-foreground text-foreground"
+                : "text-muted-foreground hover:text-foreground"
             )}
+          >
+            {tab === "accounts" ? "Accounts" : "Net Worth History"}
+          </button>
+        ))}
+      </div>
+
+      {/* Accounts tab */}
+      {view === "accounts" &&
+        (loading ? (
+          <div className="flex flex-col gap-4">
+            {[1, 2].map((i) => (
+              <div key={i} className="h-40 animate-pulse rounded-xl bg-muted" />
+            ))}
           </div>
-        </>
+        ) : error ? (
+          <p className="text-sm text-destructive">{error}</p>
+        ) : (
+          <>
+            {accounts.length > 0 && (
+              <InvestableCashCard
+                state={investable}
+                primaryCurrency={primaryCurrency}
+              />
+            )}
+            <div className="grid grid-cols-2 items-start gap-6">
+              <AccountSection
+                title="Assets"
+                accounts={assets}
+                total={totalAssets}
+                primaryCurrency={primaryCurrency}
+              />
+              <AccountSection
+                title="Liabilities"
+                accounts={liabilities}
+                total={totalLiabilities}
+                primaryCurrency={primaryCurrency}
+              />
+              {accounts.length === 0 && (
+                <p className="text-center text-sm text-muted-foreground">
+                  No accounts found.
+                </p>
+              )}
+            </div>
+          </>
+        ))}
+
+      {/* Net Worth History tab */}
+      {view === "history" && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg">Net Worth History</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {historyStatus === "loading" || historyStatus === "idle" ? (
+              <div className="h-52 animate-pulse rounded-lg bg-muted" />
+            ) : historyStatus === "error" ? (
+              <p className="text-sm text-destructive">{historyError}</p>
+            ) : historyData.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No history available.
+              </p>
+            ) : (
+              <NetWorthChart
+                data={historyData}
+                primaryCurrency={primaryCurrency}
+              />
+            )}
+          </CardContent>
+        </Card>
       )}
     </div>
   );

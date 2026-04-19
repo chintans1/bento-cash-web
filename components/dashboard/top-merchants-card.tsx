@@ -1,6 +1,12 @@
 import Link from "next/link";
 import { formatCurrency } from "@/lib/format";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import type { MerchantTotal } from "@/lib/lunchmoney/analytics";
 
 export function TopMerchantsCard({
@@ -21,7 +27,9 @@ export function TopMerchantsCard({
         {loading ? (
           <p className="text-sm text-muted-foreground">Loading…</p>
         ) : merchantTotals.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No spending data found.</p>
+          <p className="text-sm text-muted-foreground">
+            No spending data found.
+          </p>
         ) : (
           <ul className="flex flex-col gap-3">
             {merchantTotals.map((m, i) => {

@@ -104,6 +104,7 @@ export function useDashboardData(
   // Re-fetch all transaction data whenever the token or selected month changes
   useEffect(() => {
     if (!token) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setFetchStatus({ loading: true, error: null });
 
     const prev = prevMonthOf(year, month);
@@ -128,8 +129,12 @@ export function useDashboardData(
       });
 
     // These are non-critical — load after the main render, silently ignore errors
-    getRecurringItems(token).then(setRecurringItems).catch(() => {});
-    getBudgetSummary(token, year, month).then(setBudgetSummary).catch(() => {});
+    getRecurringItems(token)
+      .then(setRecurringItems)
+      .catch(() => {});
+    getBudgetSummary(token, year, month)
+      .then(setBudgetSummary)
+      .catch(() => {});
   }, [token, year, month]);
 
   // ── Derived data ────────────────────────────────────────────────────────────

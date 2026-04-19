@@ -35,3 +35,14 @@ export function formatShortDate(dateStr: string): string {
     day: "numeric",
   });
 }
+
+// Compact y-axis label: "$120K", "$1.2M", "EUR 500"
+export function fmtAxis(value: number, currency: string): string {
+  const pfx =
+    currency.toLowerCase() === "usd" ? "$" : currency.toUpperCase() + " ";
+  const abs = Math.abs(value);
+  const sign = value < 0 ? "-" : "";
+  if (abs >= 1_000_000) return `${sign}${pfx}${(abs / 1_000_000).toFixed(1)}M`;
+  if (abs >= 1_000) return `${sign}${pfx}${Math.round(abs / 1_000)}K`;
+  return `${sign}${pfx}${Math.round(abs)}`;
+}

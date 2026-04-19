@@ -79,6 +79,28 @@ Pure functions that operate on already-fetched transaction arrays. No API calls 
 | `countUncategorized(txs, catMap)`            | Count of expense transactions with no category_id                                                     |
 | `getTransactionsForCategory(txs, catId)`     | Top 5 transactions for a category by amount (used for category drill-down)                            |
 
+### `lib/lunchmoney/balance-history.ts`
+
+Types, fetching, and analytics for the **balance history** endpoint, which lives on a separate testing API (`https://lm-v2-api-next-a7fabcab8e9a.herokuapp.com/v2`). This endpoint is not part of the standard LM SDK.
+
+| Export                            | Purpose                                                             |
+| --------------------------------- | ------------------------------------------------------------------- |
+| `getBalanceHistory(token)`        | `GET /balance_history` — returns per-source balance snapshots       |
+| `computeNetWorthTimeSeries(data)` | Sums all `to_base` values per date → `NetWorthPoint[]`              |
+| `BalanceHistoryResponse`          | Full shape of the API response (source types + balance entries)     |
+| `NetWorthPoint`                   | `{ date: string, total: number }` — one aggregate snapshot per date |
+
+### `lib/lunchmoney/wealth-analytics.ts`
+
+Pure functions for wealth projections and financial health metrics. No API calls.
+
+| Export                              | Purpose                                                                                  |
+| ----------------------------------- | ---------------------------------------------------------------------------------------- |
+| `projectNetWorth(nw, contrib, yrs)` | Compound growth at 4/7/10% → `ProjectionPoint[]` with `conservative/moderate/aggressive` |
+| `computeAllocation(accounts)`       | Buckets assets into cash/investments/crypto/property/other → `AllocationSlice[]`         |
+| `computeMonthlySummary(txs, ...)`   | Income + expense totals for one month → `MonthlySummary`                                 |
+| `computeFIREMetrics(nw, summaries)` | FIRE number, years to FIRE (at 7%), savings rate → `FIREMetrics`                         |
+
 ### `lib/lunchmoney/categories.ts`
 
 Defines `CategoryInfo` interface and the `UNCATEGORIZED` sentinel object.
@@ -94,6 +116,7 @@ Maps lowercase category name keywords → Lucide icon components. `getCategoryIc
 | `formatAmount(n, exact?)`             | Always USD; `exact=true` shows cents                                                                        |
 | `formatCurrency(n, currency, exact?)` | Uses `Intl.NumberFormat` with the given ISO currency code; falls back to `"N.NN CUR"` for unsupported codes |
 | `formatShortDate(dateStr)`            | `"Apr 3"` format; uses noon UTC to avoid timezone-off-by-one                                                |
+| `fmtAxis(value, currency)`            | Compact y-axis label: `"$120K"`, `"$1.2M"`, `"EUR 500"` — used as Recharts `tickFormatter`                  |
 
 ---
 
@@ -101,19 +124,20 @@ Maps lowercase category name keywords → Lucide icon components. `getCategoryIc
 
 ### `/` — Dashboard (`app/page.tsx`)
 
-The main analytics view. Fetches current month + previous month transactions in parallel (for MoM deltas), plus categories, recurring items, and budget summary (last two are non-blocking — loaded after the main render).
+The main analytics view. Fetches current month + previous month transactions in parallel (for MoM deltas), plus categories, recurring items, and budget summary (last two are non-blocking).
 
 **Sections, top to bottom:**
 
 1. **Month selector** — prev/next chevrons; future months disabled
-2. **Uncategorized banner** — amber alert shown when any expense transaction has no `category_id`; links to `/transactions`
+2. **Uncategorized banner** — amber alert when any expense has no `category_id`; links to `/transactions`
 3. **Quick Stats** — 4 cards: Total Income, Total Spend, Avg Spend/Day, Peak Day
-4. **Net Cash Flow bar** — green/red split bar showing income vs. spend proportion; surplus/deficit label
+4. **Net Cash Flow bar** — green/red split bar showing income vs. spend; surplus/deficit label
 5. **Daily Spend chart** — bar-per-day for the selected month; hover tooltip
-6. **Spend by Category** — ranked list with colored progress bars; each row is expandable (click → shows top 5 transactions inline, with clickable category labels that open an inline `<select>` to reassign category, writing back to LM); MoM delta badge on each category
-7. **Top Merchants** — ranked by spend with progress bars and transaction count
-8. **Budget Progress** — only rendered when the user has budgets configured in LM; shows spend vs. budget per category with red bar when over budget
-9. **Subscriptions & Recurring** — sourced from LM's recurring items API (not computed locally); only `status="reviewed"` items shown; amounts normalized to monthly equivalent; total shown in header
+6. **Spending Trends** — side-by-side lists of the fastest-growing and fastest-shrinking expense categories MoM (hidden when no delta data)
+7. **Spend by Category** — ranked list with progress bars; expandable rows show top 5 transactions with inline category reassignment
+8. **Top Merchants** — ranked by spend with progress bars and transaction count
+9. **Budget Progress** — shown only when LM budgets are configured
+10. **Subscriptions & Recurring** — LM recurring items; only `status="reviewed"` shown; normalized to monthly
 
 **LM sign convention:** positive `amount` = expense, negative `amount` = income/credit.
 
@@ -122,18 +146,33 @@ The main analytics view. Fetches current month + previous month transactions in 
 Full searchable, filterable, sortable transaction list for a given month.
 
 - **Search** — filters by payee or notes (case-insensitive substring)
-- **Category filter** — dropdown of categories present in that month's data; "Uncategorized" option filters to `category_id == null`
+- **Category filter** — dropdown; "Uncategorized" option filters to `category_id == null`
 - **Sort** — payee, date, amount; toggle asc/desc
-- **Inline category edit** — click a category label → `<select>` dropdown → `onChange` immediately calls `updateTransactionCategory` and updates local state optimistically
-- **Footer** — shows transaction count and total spend for the current filtered view
+- **Inline category edit** — click a label → `<select>` → `onChange` calls `updateTransactionCategory` and patches local state
+- **Footer** — transaction count and total spend for the filtered view
 
 ### `/accounts` — Accounts (`app/accounts/page.tsx`)
 
-Shows net worth hero (assets − liabilities), grouped by institution within Asset/Liability sections. Handles Plaid (live-synced) and manual accounts. Revoked Plaid accounts show `—` for balance. Displays `last_update` as relative time.
+Net worth hero (assets − liabilities) with two tabs:
+
+- **Accounts tab** — accounts grouped by institution within Asset/Liability sections. Includes an Investable Cash card (checking surplus above 1-month buffer, once savings emergency fund is met).
+- **Net Worth History tab** — line chart from the balance history API. Data is fetched lazily on first visit to the tab and cached for the session.
+
+### `/wealth` — Wealth (`app/wealth/page.tsx`)
+
+Long-form wealth management view. Fetches accounts, categories, and the last 6 months of transactions in a single `Promise.all`.
+
+**Sections:**
+
+1. **Net Worth hero** — current assets − liabilities
+2. **Growth Projection** — 3-scenario SVG line chart (conservative 4% / moderate 7% / aggressive 10%). User controls monthly contribution amount and time horizon (10 / 20 / 30 yr). Hover shows per-scenario values at any year.
+3. **Portfolio Allocation** — horizontal segmented bar + legend showing how assets break down into cash, investments, crypto, property, and other.
+4. **Financial Health (FIRE card)** — FIRE number (25× annual expenses), years to FIRE at moderate growth, savings rate, monthly surplus.
+5. **Monthly Cash Flow** — dual-line SVG chart (income vs. expenses) over the last 6 months. Hover shows income, expenses, and net for any month.
 
 ### `/settings` — Settings (`app/settings/page.tsx`)
 
-Token entry form. On submit, calls `getMe()` to verify the token, then stores it via `useToken`. Shows user name, budget name, primary currency, and API key label when connected.
+Token entry form. On submit, calls `getMe()` to verify the token, then stores it via `useToken`.
 
 ---
 
@@ -145,10 +184,47 @@ Current installed components in `components/ui/`:
 
 - `button` — includes `icon-sm` size variant
 - `card` — `Card`, `CardHeader`, `CardTitle`, `CardContent`, `CardFooter`, `CardDescription`
+- `chart` — `ChartContainer`, `ChartTooltip`, `ChartLegend`, `ChartLegendContent`, `ChartConfig` (wraps Recharts)
 - `input`
 - `kbd`
 
 Theme is defined in `app/globals.css` using CSS custom properties (oklch color space). Dark mode via `next-themes` with class strategy. Toggle: press `d` key.
+
+Chart CSS variables used across all charts:
+
+| Variable    | Use                       |
+| ----------- | ------------------------- |
+| `--chart-1` | Primary line / aggressive |
+| `--chart-2` | Secondary / moderate      |
+| `--chart-3` | Tertiary / conservative   |
+| `--chart-4` | Quaternary (property)     |
+| `--chart-5` | Quinary (other)           |
+
+---
+
+## Charts (Recharts via shadcn)
+
+All charts use [Recharts](https://recharts.org) via the `components/ui/chart` wrapper. The wrapper provides:
+
+- `ChartContainer` — wraps `ResponsiveContainer`, injects `--color-{key}` CSS variables from a `ChartConfig`, and applies global Recharts style overrides
+- `ChartTooltip` — re-export of `recharts.Tooltip`; each chart provides a custom `content` renderer that closes over `primaryCurrency`
+- `ChartLegend` / `ChartLegendContent` — re-export + styled legend rows
+
+**ChartConfig pattern:**
+
+```ts
+const chartConfig = {
+  total: { label: "Net Worth", color: "var(--chart-1)" },
+} satisfies ChartConfig;
+// Inside the chart, use stroke="var(--color-total)" — ChartContainer injects this CSS var.
+```
+
+| Component                                       | Chart type | Data type           |
+| ----------------------------------------------- | ---------- | ------------------- |
+| `components/dashboard/daily-spend-chart.tsx`    | BarChart   | `DailySpend[]`      |
+| `components/accounts/net-worth-chart.tsx`       | AreaChart  | `NetWorthPoint[]`   |
+| `components/wealth/growth-projection-chart.tsx` | LineChart  | `ProjectionPoint[]` |
+| `components/wealth/cash-flow-chart.tsx`         | LineChart  | `MonthlySummary[]`  |
 
 ---
 
@@ -165,22 +241,26 @@ Promise.all([
   getCategories(token),
 ]).then(([txRes, prevTxRes, catRes]) => { ... })
 
-// Non-blocking, after main data loads:
+// Non-blocking:
 getRecurringItems(token).then(setRecurringItems).catch(() => {})
 getBudgetSummary(token, year, month).then(setBudgetSummary).catch(() => {})
 ```
 
+### Lazy tab data
+
+The Net Worth History chart on `/accounts` only fetches its data when the user first switches to that tab. A `status` field (`"idle" | "loading" | "ready" | "error"`) guards the fetch so it runs exactly once per session.
+
 ### Optimistic category updates
 
-When a user reassigns a category in the UI, the local `transactions` state is updated immediately after the API call resolves — no full re-fetch. The `updateTransactionCategory` call goes to LM, then `setTransactions(prev => prev.map(...))` patches the local array.
+When a user reassigns a category, local state is patched immediately after the API call resolves — no full re-fetch.
 
 ### Amount sign convention
 
-LM API returns `amount` as a string. **Positive = expense, negative = income.** All analytics functions call `filterExpenses` (which checks `parseFloat(tx.amount) > 0`) before processing spend data.
+LM API returns `amount` as a string. **Positive = expense, negative = income.** All analytics functions call `filterExpenses` / `filterSpendTransactions` before processing spend data.
 
 ---
 
 ## Planned / Future Work
 
-- **AI insights** — local LLM integration for natural language spending summaries, anomaly detection, and auto-categorization suggestions for uncategorized transactions
+- **AI insights** — natural language spending summaries, anomaly detection, auto-categorization
 - **Port to main branch** — current work is on a feature branch; needs review before merge

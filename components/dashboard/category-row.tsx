@@ -8,7 +8,10 @@ import { formatAmount, formatCurrency } from "@/lib/format";
 import { getCategoryIcon } from "@/lib/lunchmoney/category-icons";
 import { UNCATEGORIZED } from "@/lib/lunchmoney/categories";
 import { getTransactionsForCategory } from "@/lib/lunchmoney/analytics";
-import { updateTransactionCategory, type Transaction } from "@/lib/lunchmoney/client";
+import {
+  updateTransactionCategory,
+  type Transaction,
+} from "@/lib/lunchmoney/client";
 import type { CategoryTotal, MoMDelta } from "@/lib/lunchmoney/analytics";
 import type { CategoryInfo } from "@/lib/lunchmoney/categories";
 import { MoMBadge } from "./mom-badge";
