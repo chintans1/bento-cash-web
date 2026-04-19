@@ -167,7 +167,7 @@ export default function WealthPage() {
         ) : state.status === "error" ? (
           <p className="text-sm text-destructive">{state.message}</p>
         ) : (
-          <p className="font-heading text-5xl font-bold">
+          <p className="font-heading text-5xl font-bold tabular-nums">
             {formatCurrency(ready!.netWorth, ready!.primaryCurrency, true)}
           </p>
         )}

@@ -66,7 +66,7 @@ export function QuickStatsPanel({
               }
             >
               <CardHeader>
-                <CardTitle className="text-4xl text-green-500">
+                <CardTitle className="text-4xl text-green-500 tabular-nums">
                   {formatCurrency(
                     quickStats.totalIncome,
                     primaryCurrency,
@@ -94,7 +94,7 @@ export function QuickStatsPanel({
               }
             >
               <CardHeader>
-                <CardTitle className="text-4xl text-rose-500">
+                <CardTitle className="text-4xl text-rose-500 tabular-nums">
                   {formatCurrency(
                     quickStats.totalSpend,
                     primaryCurrency,
@@ -114,7 +114,7 @@ export function QuickStatsPanel({
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-4xl text-blue-500">
+                <CardTitle className="text-4xl text-blue-500 tabular-nums">
                   {formatCurrency(
                     quickStats.avgSpendPerDay,
                     primaryCurrency,
@@ -142,7 +142,7 @@ export function QuickStatsPanel({
               }
             >
               <CardHeader>
-                <CardTitle className="text-4xl text-amber-500">
+                <CardTitle className="text-4xl text-amber-500 tabular-nums">
                   {formatCurrency(
                     quickStats.peakAmount,
                     primaryCurrency,
@@ -179,7 +179,7 @@ export function QuickStatsPanel({
             </span>
             <button
               onClick={() => setOpenPanel(null)}
-              className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="flex size-8 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <X className="size-3.5" />
             </button>

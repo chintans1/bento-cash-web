@@ -528,7 +528,7 @@ export default function AccountsPage() {
         ) : (
           <p
             className={cn(
-              "font-heading text-5xl font-bold",
+              "font-heading text-5xl font-bold tabular-nums",
               netWorth < 0 && "text-destructive"
             )}
           >
