@@ -101,16 +101,6 @@ Pure functions for wealth projections and financial health metrics. No API calls
 | `computeMonthlySummary(txs, ...)`   | Income + expense totals for one month → `MonthlySummary`                                 |
 | `computeFIREMetrics(nw, summaries)` | FIRE number, years to FIRE (at 7%), savings rate → `FIREMetrics`                         |
 
-### `lib/chart-utils.ts`
-
-Shared helpers for all hand-rolled SVG chart components. Import here instead of duplicating.
-
-| Export     | Purpose                                                              |
-| ---------- | -------------------------------------------------------------------- |
-| `niceStep` | Returns a "nice" round step size for a given range and tick count    |
-| `niceAxis` | Expands `[lo, hi]` to round bounds and returns evenly-spaced ticks   |
-| `fmtAxis`  | Compact currency label for y-axis: `"$120K"`, `"$1.2M"`, `"EUR 500"` |
-
 ### `lib/lunchmoney/categories.ts`
 
 Defines `CategoryInfo` interface and the `UNCATEGORIZED` sentinel object.
@@ -126,6 +116,7 @@ Maps lowercase category name keywords → Lucide icon components. `getCategoryIc
 | `formatAmount(n, exact?)`             | Always USD; `exact=true` shows cents                                                                        |
 | `formatCurrency(n, currency, exact?)` | Uses `Intl.NumberFormat` with the given ISO currency code; falls back to `"N.NN CUR"` for unsupported codes |
 | `formatShortDate(dateStr)`            | `"Apr 3"` format; uses noon UTC to avoid timezone-off-by-one                                                |
+| `fmtAxis(value, currency)`            | Compact y-axis label: `"$120K"`, `"$1.2M"`, `"EUR 500"` — used as Recharts `tickFormatter`                  |
 
 ---
 
@@ -193,12 +184,13 @@ Current installed components in `components/ui/`:
 
 - `button` — includes `icon-sm` size variant
 - `card` — `Card`, `CardHeader`, `CardTitle`, `CardContent`, `CardFooter`, `CardDescription`
+- `chart` — `ChartContainer`, `ChartTooltip`, `ChartLegend`, `ChartLegendContent`, `ChartConfig` (wraps Recharts)
 - `input`
 - `kbd`
 
 Theme is defined in `app/globals.css` using CSS custom properties (oklch color space). Dark mode via `next-themes` with class strategy. Toggle: press `d` key.
 
-Chart CSS variables used across all SVG charts:
+Chart CSS variables used across all charts:
 
 | Variable    | Use                       |
 | ----------- | ------------------------- |
@@ -210,21 +202,29 @@ Chart CSS variables used across all SVG charts:
 
 ---
 
-## SVG Charts
+## Charts (Recharts via shadcn)
 
-All charts are hand-rolled SVG — no charting library dependency. They share a common pattern:
+All charts use [Recharts](https://recharts.org) via the `components/ui/chart` wrapper. The wrapper provides:
 
-1. `niceAxis(lo, hi)` from `lib/chart-utils.ts` computes axis bounds and tick values
-2. `xOf(i)` / `yOf(v)` map data → SVG coordinates inside a `<g transform="translate(PAD.left, PAD.top)">`
-3. Mouse interaction: `onMouseMove` converts client coordinates to data index via the SVG's `getBoundingClientRect()`
-4. All color references use CSS custom properties (`var(--chart-1)` etc.) so dark mode works automatically
+- `ChartContainer` — wraps `ResponsiveContainer`, injects `--color-{key}` CSS variables from a `ChartConfig`, and applies global Recharts style overrides
+- `ChartTooltip` — re-export of `recharts.Tooltip`; each chart provides a custom `content` renderer that closes over `primaryCurrency`
+- `ChartLegend` / `ChartLegendContent` — re-export + styled legend rows
 
-| Component                                       | Chart type       | Data type           |
-| ----------------------------------------------- | ---------------- | ------------------- |
-| `components/dashboard/daily-spend-chart.tsx`    | Bar (CSS flex)   | `DailySpend[]`      |
-| `components/accounts/net-worth-chart.tsx`       | Line + area fill | `NetWorthPoint[]`   |
-| `components/wealth/growth-projection-chart.tsx` | 3-line + areas   | `ProjectionPoint[]` |
-| `components/wealth/cash-flow-chart.tsx`         | 2-line + areas   | `MonthlySummary[]`  |
+**ChartConfig pattern:**
+
+```ts
+const chartConfig = {
+  total: { label: "Net Worth", color: "var(--chart-1)" },
+} satisfies ChartConfig;
+// Inside the chart, use stroke="var(--color-total)" — ChartContainer injects this CSS var.
+```
+
+| Component                                       | Chart type | Data type           |
+| ----------------------------------------------- | ---------- | ------------------- |
+| `components/dashboard/daily-spend-chart.tsx`    | BarChart   | `DailySpend[]`      |
+| `components/accounts/net-worth-chart.tsx`       | AreaChart  | `NetWorthPoint[]`   |
+| `components/wealth/growth-projection-chart.tsx` | LineChart  | `ProjectionPoint[]` |
+| `components/wealth/cash-flow-chart.tsx`         | LineChart  | `MonthlySummary[]`  |
 
 ---
 

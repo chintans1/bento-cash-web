@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useRef } from "react";
-import { formatCurrency, formatShortDate } from "@/lib/format";
-import { niceAxis, fmtAxis } from "@/lib/chart-utils";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
+import { formatCurrency, formatShortDate, fmtAxis } from "@/lib/format";
 import type { NetWorthPoint } from "@/lib/lunchmoney/balance-history";
 
-const W = 600;
-const H = 200;
-const PAD = { top: 16, right: 16, bottom: 28, left: 72 };
+const chartConfig = {
+  total: { label: "Net Worth", color: "var(--chart-1)" },
+};
 
 export function NetWorthChart({
   data,
@@ -16,163 +16,109 @@ export function NetWorthChart({
   data: NetWorthPoint[];
   primaryCurrency: string;
 }) {
-  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
-  const svgRef = useRef<SVGSVGElement>(null);
-
   if (data.length === 0) return null;
 
-  const plotW = W - PAD.left - PAD.right;
-  const plotH = H - PAD.top - PAD.bottom;
+  const chartData = data.map((d) => ({
+    date: formatShortDate(d.date),
+    total: d.total,
+  }));
 
-  const {
-    min: axisMin,
-    max: axisMax,
-    ticks,
-  } = niceAxis(
-    Math.min(...data.map((d) => d.total)),
-    Math.max(...data.map((d) => d.total))
-  );
-
-  const xOf = (i: number) =>
-    data.length === 1 ? plotW / 2 : (i / (data.length - 1)) * plotW;
-  const yOf = (v: number) => ((axisMax - v) / (axisMax - axisMin)) * plotH;
-
-  const linePath = data
-    .map(
-      (d, i) =>
-        `${i === 0 ? "M" : "L"} ${xOf(i).toFixed(1)} ${yOf(d.total).toFixed(1)}`
-    )
-    .join(" ");
-
-  const areaPath = [
-    `M ${xOf(0).toFixed(1)} ${plotH}`,
-    ...data.map((d, i) => `L ${xOf(i).toFixed(1)} ${yOf(d.total).toFixed(1)}`),
-    `L ${xOf(data.length - 1).toFixed(1)} ${plotH}`,
-    "Z",
-  ].join(" ");
-
-  const handleMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
-    if (!svgRef.current || data.length < 2) return;
-    const rect = svgRef.current.getBoundingClientRect();
-    const relX = ((e.clientX - rect.left) / rect.width) * W - PAD.left;
-    const idx = Math.round((relX / plotW) * (data.length - 1));
-    setHoveredIdx(Math.max(0, Math.min(data.length - 1, idx)));
-  };
-
-  // Show first, middle, and last labels; all labels when ≤ 6 points
-  const labelIndices =
+  // Show first/middle/last x-axis labels; all labels when ≤ 6 points
+  const labelSet =
     data.length <= 6
-      ? data.map((_, i) => i)
-      : [0, Math.floor((data.length - 1) / 2), data.length - 1];
-
-  const hovered = hoveredIdx !== null ? data[hoveredIdx] : null;
+      ? new Set(chartData.map((d) => d.date))
+      : new Set([
+          chartData[0].date,
+          chartData[Math.floor((chartData.length - 1) / 2)].date,
+          chartData[chartData.length - 1].date,
+        ]);
 
   return (
-    <div className="relative mt-2">
-      {hovered && (
-        <div className="pointer-events-none absolute -top-7 left-1/2 z-10 -translate-x-1/2 rounded bg-foreground px-2 py-0.5 text-xs whitespace-nowrap text-background">
-          {formatShortDate(hovered.date)}:{" "}
-          {formatCurrency(hovered.total, primaryCurrency, true)}
-        </div>
-      )}
-      <svg
-        ref={svgRef}
-        viewBox={`0 0 ${W} ${H}`}
-        className="w-full"
-        onMouseMove={handleMouseMove}
-        onMouseLeave={() => setHoveredIdx(null)}
-        style={{ cursor: "crosshair" }}
+    <ChartContainer config={chartConfig} className="mt-2 h-[200px] w-full">
+      <AreaChart
+        data={chartData}
+        margin={{ top: 8, right: 8, bottom: 0, left: 4 }}
       >
         <defs>
-          <linearGradient id="nw-area-fill" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id="nw-fill" x1="0" y1="0" x2="0" y2="1">
             <stop
-              offset="0%"
-              style={{ stopColor: "var(--chart-1)", stopOpacity: 0.25 }}
+              offset="5%"
+              stopColor="var(--color-total)"
+              stopOpacity={0.25}
             />
             <stop
-              offset="100%"
-              style={{ stopColor: "var(--chart-1)", stopOpacity: 0.02 }}
+              offset="95%"
+              stopColor="var(--color-total)"
+              stopOpacity={0.02}
             />
           </linearGradient>
         </defs>
-
-        <g transform={`translate(${PAD.left},${PAD.top})`}>
-          {ticks.map((tick) => {
-            const y = yOf(tick);
-            if (y < -1 || y > plotH + 1) return null;
+        <CartesianGrid vertical={false} strokeDasharray="3 3" />
+        <XAxis
+          dataKey="date"
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          fontSize={9}
+          tick={({ x, y, payload }) =>
+            labelSet.has(payload.value) ? (
+              <text
+                x={x}
+                y={(y as number) + 10}
+                textAnchor="middle"
+                fontSize={9}
+                fill="var(--muted-foreground)"
+              >
+                {payload.value}
+              </text>
+            ) : (
+              <g />
+            )
+          }
+        />
+        <YAxis
+          tickLine={false}
+          axisLine={false}
+          tickMargin={4}
+          fontSize={9}
+          width={68}
+          tickFormatter={(v) => fmtAxis(v, primaryCurrency)}
+        />
+        <ChartTooltip
+          cursor={{
+            stroke: "var(--foreground)",
+            strokeDasharray: "3 3",
+            opacity: 0.35,
+          }}
+          content={({ active, payload, label }) => {
+            if (!active || !payload?.length) return null;
             return (
-              <g key={tick}>
-                <line
-                  x1={0}
-                  y1={y}
-                  x2={plotW}
-                  y2={y}
-                  style={{ stroke: "var(--border)" }}
-                  strokeWidth={0.5}
-                  strokeDasharray="3 3"
-                />
-                <text
-                  x={-6}
-                  y={y}
-                  textAnchor="end"
-                  dominantBaseline="middle"
-                  fontSize={9}
-                  style={{ fill: "var(--muted-foreground)" }}
+              <div className="rounded-lg border bg-background px-2.5 py-1.5 text-xs shadow-xl">
+                <p className="mb-1 font-medium">{label}</p>
+                <p
+                  className="font-mono tabular-nums"
+                  style={{ color: "var(--color-total)" }}
                 >
-                  {fmtAxis(tick, primaryCurrency)}
-                </text>
-              </g>
+                  {formatCurrency(
+                    payload[0].value as number,
+                    primaryCurrency,
+                    true
+                  )}
+                </p>
+              </div>
             );
-          })}
-
-          <path d={areaPath} fill="url(#nw-area-fill)" />
-          <path
-            d={linePath}
-            fill="none"
-            style={{ stroke: "var(--chart-1)" }}
-            strokeWidth={2}
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
-
-          {hoveredIdx !== null && (
-            <>
-              <line
-                x1={xOf(hoveredIdx)}
-                y1={0}
-                x2={xOf(hoveredIdx)}
-                y2={plotH}
-                style={{ stroke: "var(--foreground)" }}
-                strokeWidth={1}
-                strokeDasharray="3 3"
-                opacity={0.35}
-              />
-              <circle
-                cx={xOf(hoveredIdx)}
-                cy={yOf(data[hoveredIdx].total)}
-                r={3.5}
-                style={{ fill: "var(--chart-1)", stroke: "var(--background)" }}
-                strokeWidth={1.5}
-              />
-            </>
-          )}
-
-          {labelIndices.map((i) => (
-            <text
-              key={i}
-              x={xOf(i)}
-              y={plotH + 18}
-              textAnchor={
-                i === 0 ? "start" : i === data.length - 1 ? "end" : "middle"
-              }
-              fontSize={9}
-              style={{ fill: "var(--muted-foreground)" }}
-            >
-              {formatShortDate(data[i].date)}
-            </text>
-          ))}
-        </g>
-      </svg>
-    </div>
+          }}
+        />
+        <Area
+          dataKey="total"
+          type="monotone"
+          fill="url(#nw-fill)"
+          stroke="var(--color-total)"
+          strokeWidth={2}
+          dot={false}
+          activeDot={{ r: 3.5, strokeWidth: 1.5, stroke: "var(--background)" }}
+        />
+      </AreaChart>
+    </ChartContainer>
   );
 }
