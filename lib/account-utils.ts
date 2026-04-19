@@ -1,7 +1,4 @@
-import type {
-  ManualAccount,
-  PlaidAccount,
-} from "@/lib/lunchmoney/client";
+import type { ManualAccount, PlaidAccount } from "@/lib/lunchmoney/client";
 import type { AccountType } from "@lunch-money/lunch-money-js-v2";
 
 // TODO: should vehicle, real estate be considered liabilities?

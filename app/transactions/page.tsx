@@ -38,7 +38,11 @@ import { ButtonGroup } from "@/components/ui/button-group";
 type SortKey = "date" | "amount" | "payee";
 type SortDir = "asc" | "desc";
 
-function CategorySelectItems({ catGroups }: { catGroups: CategoryGroupEntry[] }) {
+function CategorySelectItems({
+  catGroups,
+}: {
+  catGroups: CategoryGroupEntry[];
+}) {
   return (
     <>
       {catGroups.map((group, i) => (

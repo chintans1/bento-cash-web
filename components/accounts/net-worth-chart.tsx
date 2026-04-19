@@ -2,58 +2,12 @@
 
 import { useState, useRef } from "react";
 import { formatCurrency, formatShortDate } from "@/lib/format";
+import { niceAxis, fmtAxis } from "@/lib/chart-utils";
 import type { NetWorthPoint } from "@/lib/lunchmoney/balance-history";
 
-// SVG viewport dimensions and plot padding
 const W = 600;
 const H = 200;
 const PAD = { top: 16, right: 16, bottom: 28, left: 72 };
-
-// Returns a "nice" step size for the given data range and desired tick count.
-function niceStep(range: number, count: number): number {
-  const raw = range / count;
-  const magnitude = Math.pow(10, Math.floor(Math.log10(raw)));
-  const normalized = raw / magnitude;
-  if (normalized <= 1) return magnitude;
-  if (normalized <= 2) return 2 * magnitude;
-  if (normalized <= 5) return 5 * magnitude;
-  return 10 * magnitude;
-}
-
-// Expands the data min/max to nice round numbers and returns evenly-spaced ticks.
-function niceAxis(
-  dataMin: number,
-  dataMax: number,
-  count = 4
-): { min: number; max: number; ticks: number[] } {
-  if (dataMin === dataMax) {
-    const pad = dataMin === 0 ? 1 : Math.abs(dataMin) * 0.1;
-    return {
-      min: dataMin - pad,
-      max: dataMax + pad,
-      ticks: [dataMin - pad, dataMin, dataMax + pad],
-    };
-  }
-  const step = niceStep(dataMax - dataMin, count);
-  const min = Math.floor(dataMin / step) * step;
-  const max = Math.ceil(dataMax / step) * step;
-  const ticks: number[] = [];
-  for (let t = min; t <= max + step * 0.01; t += step) {
-    ticks.push(t);
-  }
-  return { min, max, ticks };
-}
-
-// Compact axis labels: "$120K", "$1.2M", "EUR 120K", etc.
-function formatAxisLabel(value: number, currency: string): string {
-  const prefix =
-    currency.toLowerCase() === "usd" ? "$" : currency.toUpperCase() + " ";
-  const abs = Math.abs(value);
-  const sign = value < 0 ? "-" : "";
-  if (abs >= 1_000_000) return `${sign}${prefix}${(abs / 1_000_000).toFixed(1)}M`;
-  if (abs >= 1_000) return `${sign}${prefix}${Math.round(abs / 1_000)}K`;
-  return `${sign}${prefix}${Math.round(abs)}`;
-}
 
 export function NetWorthChart({
   data,
@@ -70,18 +24,18 @@ export function NetWorthChart({
   const plotW = W - PAD.left - PAD.right;
   const plotH = H - PAD.top - PAD.bottom;
 
-  const { min: axisMin, max: axisMax, ticks } = niceAxis(
+  const {
+    min: axisMin,
+    max: axisMax,
+    ticks,
+  } = niceAxis(
     Math.min(...data.map((d) => d.total)),
     Math.max(...data.map((d) => d.total))
   );
 
-  // Map a data index to SVG x-coordinate within the plot area
-  const xOf = (i: number): number =>
+  const xOf = (i: number) =>
     data.length === 1 ? plotW / 2 : (i / (data.length - 1)) * plotW;
-
-  // Map a value to SVG y-coordinate within the plot area
-  const yOf = (v: number): number =>
-    ((axisMax - v) / (axisMax - axisMin)) * plotH;
+  const yOf = (v: number) => ((axisMax - v) / (axisMax - axisMin)) * plotH;
 
   const linePath = data
     .map(
@@ -92,9 +46,7 @@ export function NetWorthChart({
 
   const areaPath = [
     `M ${xOf(0).toFixed(1)} ${plotH}`,
-    ...data.map(
-      (d, i) => `L ${xOf(i).toFixed(1)} ${yOf(d.total).toFixed(1)}`
-    ),
+    ...data.map((d, i) => `L ${xOf(i).toFixed(1)} ${yOf(d.total).toFixed(1)}`),
     `L ${xOf(data.length - 1).toFixed(1)} ${plotH}`,
     "Z",
   ].join(" ");
@@ -107,8 +59,8 @@ export function NetWorthChart({
     setHoveredIdx(Math.max(0, Math.min(data.length - 1, idx)));
   };
 
-  // Show first, middle, and last date labels; show all if 6 or fewer points
-  const xLabelIndices =
+  // Show first, middle, and last labels; all labels when ≤ 6 points
+  const labelIndices =
     data.length <= 6
       ? data.map((_, i) => i)
       : [0, Math.floor((data.length - 1) / 2), data.length - 1];
@@ -145,7 +97,6 @@ export function NetWorthChart({
         </defs>
 
         <g transform={`translate(${PAD.left},${PAD.top})`}>
-          {/* Horizontal grid lines + y-axis labels */}
           {ticks.map((tick) => {
             const y = yOf(tick);
             if (y < -1 || y > plotH + 1) return null;
@@ -168,16 +119,13 @@ export function NetWorthChart({
                   fontSize={9}
                   style={{ fill: "var(--muted-foreground)" }}
                 >
-                  {formatAxisLabel(tick, primaryCurrency)}
+                  {fmtAxis(tick, primaryCurrency)}
                 </text>
               </g>
             );
           })}
 
-          {/* Area fill under the line */}
           <path d={areaPath} fill="url(#nw-area-fill)" />
-
-          {/* Main line */}
           <path
             d={linePath}
             fill="none"
@@ -187,36 +135,29 @@ export function NetWorthChart({
             strokeLinecap="round"
           />
 
-          {/* Hover: vertical crosshair */}
           {hoveredIdx !== null && (
-            <line
-              x1={xOf(hoveredIdx)}
-              y1={0}
-              x2={xOf(hoveredIdx)}
-              y2={plotH}
-              style={{ stroke: "var(--foreground)" }}
-              strokeWidth={1}
-              strokeDasharray="3 3"
-              opacity={0.35}
-            />
+            <>
+              <line
+                x1={xOf(hoveredIdx)}
+                y1={0}
+                x2={xOf(hoveredIdx)}
+                y2={plotH}
+                style={{ stroke: "var(--foreground)" }}
+                strokeWidth={1}
+                strokeDasharray="3 3"
+                opacity={0.35}
+              />
+              <circle
+                cx={xOf(hoveredIdx)}
+                cy={yOf(data[hoveredIdx].total)}
+                r={3.5}
+                style={{ fill: "var(--chart-1)", stroke: "var(--background)" }}
+                strokeWidth={1.5}
+              />
+            </>
           )}
 
-          {/* Hover: dot on the line */}
-          {hoveredIdx !== null && (
-            <circle
-              cx={xOf(hoveredIdx)}
-              cy={yOf(data[hoveredIdx].total)}
-              r={3.5}
-              style={{
-                fill: "var(--chart-1)",
-                stroke: "var(--background)",
-              }}
-              strokeWidth={1.5}
-            />
-          )}
-
-          {/* X-axis date labels */}
-          {xLabelIndices.map((i) => (
+          {labelIndices.map((i) => (
             <text
               key={i}
               x={xOf(i)}

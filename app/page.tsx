@@ -16,6 +16,7 @@ import { CategoryRow, CAT_COLORS } from "@/components/dashboard/category-row";
 import { TopMerchantsCard } from "@/components/dashboard/top-merchants-card";
 import { BudgetProgressCard } from "@/components/dashboard/budget-progress-card";
 import { SubscriptionsCard } from "@/components/dashboard/subscriptions-card";
+import { SpendingTrends } from "@/components/dashboard/spending-trends";
 import { MONTH_NAMES } from "@/lib/date-utils";
 
 export default function HomePage() {
@@ -126,6 +127,15 @@ export default function HomePage() {
             </CardContent>
           </Card>
         </div>
+      )}
+
+      {/* Spending Trends — MoM category movers */}
+      {!loading && momDeltas.size > 0 && (
+        <SpendingTrends
+          categoryTotals={categoryTotals}
+          momDeltas={momDeltas}
+          primaryCurrency={primaryCurrency}
+        />
       )}
 
       {/* Category drill-down + Top Merchants */}

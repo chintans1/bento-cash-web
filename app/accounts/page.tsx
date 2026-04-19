@@ -392,6 +392,7 @@ export default function AccountsPage() {
   // Lazy-fetch balance history on first visit to the History tab
   useEffect(() => {
     if (!token || view !== "history" || historyStatus !== "idle") return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setHistoryStatus("loading");
     getBalanceHistory(token)
       .then((res) => {

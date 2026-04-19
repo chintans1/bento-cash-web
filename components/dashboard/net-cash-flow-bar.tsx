@@ -29,9 +29,7 @@ export function NetCashFlowBar({
     <Card>
       <CardHeader>
         <div className="flex items-baseline justify-between">
-          <CardTitle className="text-lg">
-            Net Cash Flow
-          </CardTitle>
+          <CardTitle className="text-lg">Net Cash Flow</CardTitle>
           <span
             className={cn(
               "font-mono text-lg font-bold tabular-nums",
@@ -46,7 +44,9 @@ export function NetCashFlowBar({
         </div>
       </CardHeader>
       <CardContent>
-        <div className="flex h-3 overflow-hidden"> {/* TODO: Need to fix the centering */}
+        <div className="flex h-3 overflow-hidden">
+          {" "}
+          {/* TODO: Need to fix the centering */}
           <div
             className="h-full rounded-l-full bg-green-500"
             style={{ width: `${incomeWidth}%` }}
