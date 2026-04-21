@@ -13,6 +13,7 @@
 - [ ] Host on Vercel
 - [ ] Add tests
 - [ ] Add sentry
+- [ ] Mobile optimization
 
 - [ ] Top merchants, probably should avoid recurring transactions
 - [ ] Spend by category: maybe uncategorized should be last and not shown like that?

@@ -155,6 +155,14 @@ export default function SettingsPage() {
             Developers.
           </CardDescription>
         </CardHeader>
+        <CardContent className="pb-0">
+          <div className="rounded-md bg-muted px-4 py-3 text-sm text-muted-foreground">
+            Your token is stored only in your browser&apos;s{" "}
+            <span className="font-medium text-foreground">localStorage</span>.
+            There is no backend — all API calls go directly from your browser to
+            Lunch Money. Nothing is sent to any server.
+          </div>
+        </CardContent>
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <Input
