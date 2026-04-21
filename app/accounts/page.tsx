@@ -12,10 +12,7 @@ import {
   buildCategoryMap,
   computeAverageMonthlySpend,
 } from "@/lib/lunchmoney/analytics";
-import {
-  type NormalizedAccount,
-  normalizeAccounts,
-} from "@/lib/account-utils";
+import { type NormalizedAccount, normalizeAccounts } from "@/lib/account-utils";
 import { useFetchStatus } from "@/hooks/use-fetch-status";
 import {
   type InvestableState,
@@ -37,44 +34,45 @@ export default function AccountsPage() {
   const [investable, setInvestable] = useState<InvestableState>({
     status: "idle",
   });
-  const [floorMonths, setFloorMonths] = useState<number>(3);
-
-  // SSR-safe: read localStorage preference for floor months
-  useEffect(() => {
+  const [floorMonths] = useState<number>(() => {
+    if (typeof window === "undefined") return 3;
     const raw = localStorage.getItem("investable_months");
     const parsed = raw !== null ? parseInt(raw, 10) : NaN;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFloorMonths(Number.isFinite(parsed) && parsed > 0 ? parsed : 3);
-  }, []);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 3;
+  });
 
   // Non-blocking secondary fetch: triggers after accounts load
   useEffect(() => {
     if (!token || accounts.length === 0) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setInvestable({ status: "loading" });
+    const t = token;
 
-    const months = getLastThreeFullMonths(new Date());
-    const catMapPromise = getCategories(token).then((r) => buildCategoryMap(r));
-    const txPromises = months.map(({ year, month }) =>
-      getTransactionsForMonth(token, year, month).then((r) => r.transactions)
-    );
+    async function load() {
+      setInvestable({ status: "loading" });
 
-    Promise.all([catMapPromise, Promise.all(txPromises)])
-      .then(([catMap, monthlyTxArrays]) => {
+      const months = getLastThreeFullMonths(new Date());
+      try {
+        const [catMap, monthlyTxArrays] = await Promise.all([
+          getCategories(t).then((r) => buildCategoryMap(r)),
+          Promise.all(
+            months.map(({ year, month }) =>
+              getTransactionsForMonth(t, year, month).then(
+                (r) => r.transactions
+              )
+            )
+          ),
+        ]);
+
         const avgMonthlySpend = computeAverageMonthlySpend(
           monthlyTxArrays,
           catMap
         );
-
         const totalCheckingBalance = accounts
           .filter(isCheckingAccount)
           .reduce((sum, a) => sum + (a.balanceValid ? a.toBase : 0), 0);
-
         const totalSavingsBalance = accounts
           .filter(isSavingsAccount)
           .reduce((sum, a) => sum + (a.balanceValid ? a.toBase : 0), 0);
 
-        const checkingFloor = avgMonthlySpend;
         const savingsTarget = avgMonthlySpend * floorMonths;
         const savingsFunded = totalSavingsBalance >= savingsTarget;
         const savingsShortfall = Math.max(
@@ -83,15 +81,14 @@ export default function AccountsPage() {
         );
         const checkingSurplus = Math.max(
           0,
-          totalCheckingBalance - checkingFloor
+          totalCheckingBalance - avgMonthlySpend
         );
-        const investableAmount = savingsFunded ? checkingSurplus : 0;
 
         setInvestable({
           status: "ready",
-          investableAmount,
+          investableAmount: savingsFunded ? checkingSurplus : 0,
           totalCheckingBalance,
-          checkingFloor,
+          checkingFloor: avgMonthlySpend,
           totalSavingsBalance,
           savingsTarget,
           savingsFunded,
@@ -99,37 +96,41 @@ export default function AccountsPage() {
           avgMonthlySpend,
           savingsMonths: floorMonths,
         });
-      })
-      .catch((err) => {
+      } catch (err) {
         setInvestable({
           status: "error",
           message:
             err instanceof Error ? err.message : "Could not load transactions",
         });
-      });
+      }
+    }
+
+    load();
   }, [token, accounts, floorMonths]);
 
   useEffect(() => {
     if (!token) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFetchStatus({ loading: true, error: null });
+    const t = token;
 
-    getMe(token)
-      .then((user) => setPrimaryCurrency(user.primary_currency))
-      .catch(() => {}); // Non-fatal — fall back to usd
-
-    getAccounts(token)
-      .then(({ manual, plaid }) => {
+    async function load() {
+      setFetchStatus({ loading: true, error: null });
+      getMe(t)
+        .then((user) => setPrimaryCurrency(user.primary_currency))
+        .catch(() => {});
+      try {
+        const { manual, plaid } = await getAccounts(t);
         setAccounts(normalizeAccounts(manual, plaid));
         setFetchStatus({ loading: false, error: null });
-      })
-      .catch((err) => {
+      } catch (err) {
         setFetchStatus({
           loading: false,
           error: err instanceof Error ? err.message : "Something went wrong",
         });
-      });
-  }, [token]);
+      }
+    }
+
+    load();
+  }, [token, setFetchStatus]);
 
   if (!token) return <NoTokenPrompt />;
 

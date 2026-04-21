@@ -48,25 +48,26 @@ export async function getTransactionsForMonth(
   const start = `${year}-${String(month).padStart(2, "0")}-01`;
   const lastDay = new Date(year, month, 0).getDate();
   const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-  const { transactions, hasMore } = await getClient(token)
-    .transactions.getAll({
-      start_date: start,
-      end_date: end,
-      limit: 250,
-      offset: 0,
-    });
-  return ({
+  const { transactions, hasMore } = await getClient(token).transactions.getAll({
+    start_date: start,
+    end_date: end,
+    limit: 250,
+    offset: 0,
+  });
+  return {
     transactions: transactions.sort(
-      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
     ),
     has_more: hasMore,
-  });
+  };
 }
 
-export async function getCategories(token: string): Promise<CategoriesResponse> {
-  const categories = await getClient(token)
-    .categories.getAll();
-  return ({ categories });
+export async function getCategories(
+  token: string
+): Promise<CategoriesResponse> {
+  const categories = await getClient(token).categories.getAll();
+  return { categories };
 }
 
 export async function getAccounts(
@@ -77,7 +78,7 @@ export async function getAccounts(
     client.manualAccounts.getAll(),
     client.plaidAccounts.getAll(),
   ]);
-  return ({ manual, plaid });
+  return { manual, plaid };
 }
 
 export function getRecurringItems(token: string): Promise<RecurringItem[]> {
@@ -92,8 +93,10 @@ export async function getBudgetSummary(
   const start = `${year}-${String(month).padStart(2, "0")}-01`;
   const lastDay = new Date(year, month, 0).getDate();
   const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-  const res = await getClient(token)
-    .summary.get({ start_date: start, end_date: end });
+  const res = await getClient(token).summary.get({
+    start_date: start,
+    end_date: end,
+  });
   return res as AlignedSummaryResponse;
 }
 
@@ -112,7 +115,8 @@ export async function updateTransactionCategory(
   transactionId: number,
   categoryId: number | null
 ): Promise<void> {
-  await getClient(token)
-    .transactions.update(transactionId, { category_id: categoryId ?? null });
+  await getClient(token).transactions.update(transactionId, {
+    category_id: categoryId ?? null,
+  });
   return undefined;
 }

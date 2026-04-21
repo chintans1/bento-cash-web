@@ -3,7 +3,13 @@
 import { type NormalizedAccount } from "@/lib/account-utils";
 import { BUCKETS } from "@/lib/investment-utils";
 import { formatCurrency } from "@/lib/format";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import {
   HoverCard,
   HoverCardContent,

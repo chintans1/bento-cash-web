@@ -104,32 +104,38 @@ export function useDashboardData(
   // Re-fetch all transaction data whenever the token or selected month changes
   useEffect(() => {
     if (!token) return;
-    setFetchStatus({ loading: true, error: null });
-
+    const t = token;
     const prev = prevMonthOf(year, month);
 
-    // Fetch current month, previous month, and categories in parallel
-    Promise.all([
-      getTransactionsForMonth(token, year, month),
-      getTransactionsForMonth(token, prev.year, prev.month),
-      getCategories(token),
-    ])
-      .then(([txRes, prevTxRes, catRes]) => {
+    async function load() {
+      setFetchStatus({ loading: true, error: null });
+      try {
+        const [txRes, prevTxRes, catRes] = await Promise.all([
+          getTransactionsForMonth(t, year, month),
+          getTransactionsForMonth(t, prev.year, prev.month),
+          getCategories(t),
+        ]);
         setTransactions(txRes.transactions);
         setPrevTransactions(prevTxRes.transactions);
         setCategoryMap(buildCategoryMap(catRes));
         setFetchStatus({ loading: false, error: null });
-      })
-      .catch((err) => {
+      } catch (err) {
         setFetchStatus({
           loading: false,
           error: err instanceof Error ? err.message : "Something went wrong",
         });
-      });
+      }
+    }
+
+    load();
 
     // These are non-critical — load after the main render, silently ignore errors
-    getRecurringItems(token).then(setRecurringItems).catch(() => {});
-    getBudgetSummary(token, year, month).then(setBudgetSummary).catch(() => {});
+    getRecurringItems(t)
+      .then(setRecurringItems)
+      .catch(() => {});
+    getBudgetSummary(t, year, month)
+      .then(setBudgetSummary)
+      .catch(() => {});
   }, [token, year, month]);
 
   // ── Derived data ────────────────────────────────────────────────────────────

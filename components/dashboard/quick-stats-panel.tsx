@@ -67,7 +67,11 @@ export function QuickStatsPanel({
             >
               <CardHeader>
                 <CardTitle className="text-4xl text-green-500">
-                  {formatCurrency(quickStats.totalIncome, primaryCurrency, false)}
+                  {formatCurrency(
+                    quickStats.totalIncome,
+                    primaryCurrency,
+                    false
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -91,7 +95,11 @@ export function QuickStatsPanel({
             >
               <CardHeader>
                 <CardTitle className="text-4xl text-rose-500">
-                  {formatCurrency(quickStats.totalSpend, primaryCurrency, false)}
+                  {formatCurrency(
+                    quickStats.totalSpend,
+                    primaryCurrency,
+                    false
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent>

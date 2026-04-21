@@ -9,7 +9,7 @@
 
 - [x] Get most of the current code onto main branch
 - [x] Document what is left on the other yolo-branch
-- [ ] Clean up code, focus on read-mode being perfect, data is accurate
+- [x] Clean up code, focus on read-mode being perfect, data is accurate
 - [ ] Host on Vercel
 - [ ] Add tests
 - [ ] Add sentry

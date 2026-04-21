@@ -1,6 +1,10 @@
 "use client";
 
-import { type NormalizedAccount, formatSubtype, formatUpdated } from "@/lib/account-utils";
+import {
+  type NormalizedAccount,
+  formatSubtype,
+  formatUpdated,
+} from "@/lib/account-utils";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 

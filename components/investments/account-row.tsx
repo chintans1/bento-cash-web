@@ -3,7 +3,11 @@
 import { useState } from "react";
 import { Pencil, X, Check } from "lucide-react";
 import type { AccountType } from "@lunch-money/lunch-money-js-v2";
-import { type NormalizedAccount, formatSubtype, formatUpdated } from "@/lib/account-utils";
+import {
+  type NormalizedAccount,
+  formatSubtype,
+  formatUpdated,
+} from "@/lib/account-utils";
 import { updateManualAccount } from "@/lib/lunchmoney/client";
 import { formatCurrency } from "@/lib/format";
 import {

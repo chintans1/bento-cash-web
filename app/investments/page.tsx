@@ -32,25 +32,30 @@ export default function InvestmentsPage() {
 
   useEffect(() => {
     if (!token) return;
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setFetchStatus({ loading: true, error: null });
+    const t = token;
 
-    Promise.all([getMe(token), getAccounts(token)])
-      .then(([user, { manual, plaid }]) => {
+    async function load() {
+      setFetchStatus({ loading: true, error: null });
+      try {
+        const [user, { manual, plaid }] = await Promise.all([
+          getMe(t),
+          getAccounts(t),
+        ]);
         setPrimaryCurrency(user.primary_currency);
-        const all = normalizeAccounts(manual, plaid).filter(
-          (a) => a.status !== "closed"
+        setAccounts(
+          normalizeAccounts(manual, plaid).filter((a) => a.status !== "closed")
         );
-        setAccounts(all);
         setFetchStatus({ loading: false, error: null });
-      })
-      .catch((err) => {
+      } catch (err) {
         setFetchStatus({
           loading: false,
           error: err instanceof Error ? err.message : "Something went wrong",
         });
-      });
-  }, [token]);
+      }
+    }
+
+    load();
+  }, [token, setFetchStatus]);
 
   function handleSaved(id: string, type: AccountType, subtype: string) {
     setAccounts((prev) =>
@@ -155,7 +160,11 @@ export default function InvestmentsPage() {
                                 {institution}
                               </span>
                               <span className="font-mono text-xs font-medium tabular-nums">
-                                {formatCurrency(groupTotal, primaryCurrency, true)}
+                                {formatCurrency(
+                                  groupTotal,
+                                  primaryCurrency,
+                                  true
+                                )}
                               </span>
                             </div>
                             <ul className="flex flex-col px-6">

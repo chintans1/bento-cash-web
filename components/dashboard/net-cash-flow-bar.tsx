@@ -26,12 +26,10 @@ export function NetCashFlowBar({
   const spendWidth = total > 0 ? (spend / total) * 100 : 50;
 
   return (
-    <Card>
+    <Card className="flex flex-col">
       <CardHeader>
         <div className="flex items-baseline justify-between">
-          <CardTitle className="text-lg">
-            Net Cash Flow
-          </CardTitle>
+          <CardTitle className="text-lg">Net Cash Flow</CardTitle>
           <span
             className={cn(
               "font-mono text-lg font-bold tabular-nums",
@@ -45,8 +43,8 @@ export function NetCashFlowBar({
           </span>
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="flex h-3 overflow-hidden"> {/* TODO: Need to fix the centering */}
+      <CardContent className="flex flex-1 flex-col justify-center">
+        <div className="flex h-3 overflow-hidden">
           <div
             className="h-full rounded-l-full bg-green-500"
             style={{ width: `${incomeWidth}%` }}
@@ -56,11 +54,17 @@ export function NetCashFlowBar({
             style={{ width: `${spendWidth}%` }}
           />
         </div>
-        <div className="mt-1.5 flex justify-between text-sm">
-          <span className="font-medium text-green-600 dark:text-green-400">
+        <div className="mt-1.5 flex text-sm">
+          <span
+            className="font-medium text-green-600 dark:text-green-400"
+            style={{ width: `${incomeWidth}%` }}
+          >
             {formatCurrency(income, primaryCurrency, false)} in
           </span>
-          <span className="font-medium text-rose-500">
+          <span
+            className="text-right font-medium text-rose-500"
+            style={{ width: `${spendWidth}%` }}
+          >
             {formatCurrency(spend, primaryCurrency, false)} out
           </span>
         </div>

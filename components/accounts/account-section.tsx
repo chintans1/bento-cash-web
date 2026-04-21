@@ -1,6 +1,9 @@
 "use client";
 
-import { type NormalizedAccount, groupByInstitution } from "@/lib/account-utils";
+import {
+  type NormalizedAccount,
+  groupByInstitution,
+} from "@/lib/account-utils";
 import { formatCurrency } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";

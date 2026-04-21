@@ -40,7 +40,14 @@ export const BUCKETS: Bucket[] = [
   {
     label: "Retirement — Tax Deferred",
     color: "bg-blue-500",
-    subtypes: new Set(["401k", "403b", "457b", "sep ira", "simple ira", "pension"]),
+    subtypes: new Set([
+      "401k",
+      "403b",
+      "457b",
+      "sep ira",
+      "simple ira",
+      "pension",
+    ]),
   },
   {
     label: "Retirement — Tax Free",
