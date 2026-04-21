@@ -16,8 +16,9 @@ import {
 import { getCategoryIcon } from "@/lib/lunchmoney/category-icons";
 import { type CategoryInfo, UNCATEGORIZED } from "@/lib/lunchmoney/categories";
 import { formatAmount, formatShortDate } from "@/lib/format";
-import { prevMonthOf, nextMonthOf } from "@/lib/date-utils";
 import { NoTokenPrompt } from "@/components/no-token-prompt";
+import { useMonthNavigation } from "@/hooks/use-month-navigation";
+import { useFetchStatus } from "@/hooks/use-fetch-status";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
@@ -59,17 +60,18 @@ function CategorySelectItems({ catGroups }: { catGroups: CategoryGroupEntry[] })
 export default function TransactionsPage() {
   const { token } = useToken();
   const now = new Date();
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const {
+    year: selectedYear,
+    month: selectedMonth,
+    onPrev,
+    onNext,
+  } = useMonthNavigation(now.getFullYear(), now.getMonth() + 1);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categoryMap, setCategoryMap] = useState<Map<number, CategoryInfo>>(
     new Map()
   );
   const [catGroups, setCatGroups] = useState<CategoryGroupEntry[]>([]);
-  const [{ loading, error }, setFetchStatus] = useState<{
-    loading: boolean;
-    error: string | null;
-  }>({ loading: false, error: null });
+  const [{ loading, error }, setFetchStatus] = useFetchStatus();
   const [query, setQuery] = useState("");
   const [filterCatId, setFilterCatId] = useState<number | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("date");
@@ -174,16 +176,8 @@ export default function TransactionsPage() {
       <MonthSelector
         year={selectedYear}
         month={selectedMonth}
-        onPrev={() => {
-          const p = prevMonthOf(selectedYear, selectedMonth);
-          setSelectedYear(p.year);
-          setSelectedMonth(p.month);
-        }}
-        onNext={() => {
-          const n = nextMonthOf(selectedYear, selectedMonth);
-          setSelectedYear(n.year);
-          setSelectedMonth(n.month);
-        }}
+        onPrev={onPrev}
+        onNext={onNext}
       />
 
       {/* Filters */}

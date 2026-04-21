@@ -102,6 +102,13 @@ export function formatUpdated(dateStr: string | null): string {
   return d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+export function normalizeAccounts(
+  manual: ManualAccount[],
+  plaid: PlaidAccount[]
+): NormalizedAccount[] {
+  return [...manual.map(normalizeManual), ...plaid.map(normalizePlaid)];
+}
+
 export function groupByInstitution(
   accounts: NormalizedAccount[]
 ): [string, NormalizedAccount[]][] {

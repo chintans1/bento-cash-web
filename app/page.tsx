@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
 import { AlertTriangle } from "lucide-react";
 import { useToken } from "@/hooks/use-token";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
-import { prevMonthOf, nextMonthOf } from "@/lib/date-utils";
 import { NoTokenPrompt } from "@/components/no-token-prompt";
+import { useMonthNavigation } from "@/hooks/use-month-navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MonthSelector } from "@/components/dashboard/month-selector";
 import { QuickStatsPanel } from "@/components/dashboard/quick-stats-panel";
@@ -21,8 +20,12 @@ import { MONTH_NAMES } from "@/lib/date-utils";
 export default function HomePage() {
   const { token } = useToken();
   const now = new Date();
-  const [selectedYear, setSelectedYear] = useState(now.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(now.getMonth() + 1);
+  const {
+    year: selectedYear,
+    month: selectedMonth,
+    onPrev,
+    onNext,
+  } = useMonthNavigation(now.getFullYear(), now.getMonth() + 1);
 
   const {
     transactions,
@@ -54,16 +57,8 @@ export default function HomePage() {
       <MonthSelector
         year={selectedYear}
         month={selectedMonth}
-        onPrev={() => {
-          const p = prevMonthOf(selectedYear, selectedMonth);
-          setSelectedYear(p.year);
-          setSelectedMonth(p.month);
-        }}
-        onNext={() => {
-          const n = nextMonthOf(selectedYear, selectedMonth);
-          setSelectedYear(n.year);
-          setSelectedMonth(n.month);
-        }}
+        onPrev={onPrev}
+        onNext={onNext}
       />
 
       {/* Uncategorized Banner */}
