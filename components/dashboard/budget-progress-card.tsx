@@ -64,7 +64,7 @@ export function BudgetProgressCard({
                 <div className="h-2 overflow-hidden rounded-full bg-muted">
                   <div
                     className={cn(
-                      "h-full rounded-full transition-all",
+                      "h-full rounded-full transition-[width,background-color]",
                       over ? "bg-rose-500" : "bg-primary"
                     )}
                     style={{ width: `${pct}%` }}

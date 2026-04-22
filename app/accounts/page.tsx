@@ -152,7 +152,7 @@ export default function AccountsPage() {
   const netWorth = totalAssets - totalLiabilities;
 
   return (
-    <div className="mx-auto max-w-6xl px-6 pt-6 pb-10">
+    <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
       {/* Net worth hero */}
       <div className="mb-6 text-center">
         <p className="mb-1 text-sm text-muted-foreground">Net Worth</p>
@@ -170,17 +170,15 @@ export default function AccountsPage() {
         )}
 
         {!loading && !error && accounts.length > 0 && (
-          <div className="mt-4 grid grid-cols-3 items-center">
-            <div className="-mr-36 text-right">
+          <div className="mt-4 flex items-center justify-center gap-10 sm:gap-16">
+            <div className="text-right">
               <p className="text-xs text-muted-foreground">Assets</p>
               <p className="font-mono text-sm font-medium text-green-600 dark:text-green-400">
                 {formatCurrency(totalAssets, primaryCurrency, true)}
               </p>
             </div>
-            <div className="flex justify-center">
-              <div className="-px-36 h-10 w-px bg-gray-300 dark:bg-gray-600" />
-            </div>
-            <div className="-ml-36 text-left">
+            <div className="h-10 w-px bg-border" />
+            <div className="text-left">
               <p className="text-xs text-muted-foreground">Liabilities</p>
               <p className="font-mono text-sm font-medium text-destructive">
                 {formatCurrency(totalLiabilities, primaryCurrency, true)}
@@ -206,7 +204,7 @@ export default function AccountsPage() {
               primaryCurrency={primaryCurrency}
             />
           )}
-          <div className="grid grid-cols-2 items-start gap-6">
+          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-6">
             <AccountSection
               title="Assets"
               accounts={assets}

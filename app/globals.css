@@ -124,6 +124,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    text-wrap: pretty;
   }
   html {
     @apply font-sans;

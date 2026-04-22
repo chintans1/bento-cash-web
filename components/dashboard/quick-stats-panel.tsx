@@ -49,7 +49,7 @@ export function QuickStatsPanel({
   return (
     <>
       {/* 4-card grid */}
-      <div className="mb-4 grid grid-cols-4 gap-4">
+      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => (
             <div key={i} className="h-24 animate-pulse rounded-xl bg-muted" />
@@ -58,7 +58,7 @@ export function QuickStatsPanel({
           <>
             <Card
               className={cn(
-                "cursor-pointer transition-shadow hover:shadow-md",
+                "cursor-pointer transition-[transform,box-shadow] hover:shadow-md active:scale-[0.98]",
                 openPanel === "income" && "ring-2 ring-green-500/50"
               )}
               onClick={() =>
@@ -66,7 +66,7 @@ export function QuickStatsPanel({
               }
             >
               <CardHeader>
-                <CardTitle className="text-4xl text-green-500">
+                <CardTitle className="text-4xl text-green-500 tabular-nums">
                   {formatCurrency(
                     quickStats.totalIncome,
                     primaryCurrency,
@@ -86,7 +86,7 @@ export function QuickStatsPanel({
 
             <Card
               className={cn(
-                "cursor-pointer transition-shadow hover:shadow-md",
+                "cursor-pointer transition-[transform,box-shadow] hover:shadow-md active:scale-[0.98]",
                 openPanel === "spend" && "ring-2 ring-rose-500/50"
               )}
               onClick={() =>
@@ -94,7 +94,7 @@ export function QuickStatsPanel({
               }
             >
               <CardHeader>
-                <CardTitle className="text-4xl text-rose-500">
+                <CardTitle className="text-4xl text-rose-500 tabular-nums">
                   {formatCurrency(
                     quickStats.totalSpend,
                     primaryCurrency,
@@ -114,7 +114,7 @@ export function QuickStatsPanel({
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-4xl text-blue-500">
+                <CardTitle className="text-4xl text-blue-500 tabular-nums">
                   {formatCurrency(
                     quickStats.avgSpendPerDay,
                     primaryCurrency,
@@ -134,7 +134,7 @@ export function QuickStatsPanel({
 
             <Card
               className={cn(
-                "cursor-pointer transition-shadow hover:shadow-md",
+                "cursor-pointer transition-[transform,box-shadow] hover:shadow-md active:scale-[0.98]",
                 openPanel === "peak" && "ring-2 ring-amber-500/50"
               )}
               onClick={() =>
@@ -142,7 +142,7 @@ export function QuickStatsPanel({
               }
             >
               <CardHeader>
-                <CardTitle className="text-4xl text-amber-500">
+                <CardTitle className="text-4xl text-amber-500 tabular-nums">
                   {formatCurrency(
                     quickStats.peakAmount,
                     primaryCurrency,
@@ -179,7 +179,7 @@ export function QuickStatsPanel({
             </span>
             <button
               onClick={() => setOpenPanel(null)}
-              className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             >
               <X className="size-3.5" />
             </button>

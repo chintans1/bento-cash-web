@@ -176,7 +176,7 @@ export default function TransactionsPage() {
     ) : null;
 
   return (
-    <div className="mx-auto max-w-6xl pt-6 pb-10">
+    <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
       <MonthSelector
         year={selectedYear}
         month={selectedMonth}
@@ -234,16 +234,18 @@ export default function TransactionsPage() {
       </div>
 
       {/* Table header */}
-      <div className="mb-1 grid grid-cols-[1fr_160px_72px_96px] gap-4 px-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+      <div className="mb-1 grid grid-cols-[1fr_80px] gap-4 px-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase sm:grid-cols-[1fr_160px_72px_96px]">
         <button
           className="text-left hover:text-foreground"
           onClick={() => toggleSort("payee")}
         >
           Payee <SortIcon k="payee" />
         </button>
-        <button className="text-left hover:text-foreground">Category</button>
+        <button className="hidden text-left hover:text-foreground sm:block">
+          Category
+        </button>
         <button
-          className="text-center hover:text-foreground"
+          className="hidden text-center hover:text-foreground sm:block"
           onClick={() => toggleSort("date")}
         >
           Date <SortIcon k="date" />
@@ -284,7 +286,7 @@ export default function TransactionsPage() {
             return (
               <div
                 key={tx.id}
-                className="grid grid-cols-[1fr_160px_72px_96px] items-center gap-4 bg-background px-4 py-3 transition-colors hover:bg-muted/30"
+                className="grid grid-cols-[1fr_80px] items-center gap-4 bg-background px-4 py-3 transition-colors hover:bg-muted/30 sm:grid-cols-[1fr_160px_72px_96px]"
               >
                 {/* Payee */}
                 <div className="flex min-w-0 items-center gap-3">
@@ -298,11 +300,14 @@ export default function TransactionsPage() {
                         {tx.notes}
                       </p>
                     )}
+                    <span className="font-mono text-[10px] text-muted-foreground sm:hidden">
+                      {formatShortDate(tx.date)}
+                    </span>
                   </div>
                 </div>
 
                 {/* Category */}
-                <div className="min-w-0">
+                <div className="hidden min-w-0 sm:block">
                   {isEditing ? (
                     <Select
                       value={tx.category_id?.toString() ?? ""}
@@ -349,7 +354,7 @@ export default function TransactionsPage() {
                 </div>
 
                 {/* Date */}
-                <span className="text-center text-xs text-muted-foreground tabular-nums">
+                <span className="hidden text-center text-xs text-muted-foreground tabular-nums sm:block">
                   {formatShortDate(tx.date)}
                 </span>
 

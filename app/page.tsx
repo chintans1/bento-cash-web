@@ -53,7 +53,7 @@ export default function HomePage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl pt-6 pb-10">
+    <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
       <MonthSelector
         year={selectedYear}
         month={selectedMonth}
@@ -101,7 +101,7 @@ export default function HomePage() {
 
       {/* Net Cash Flow + Daily Chart row */}
       {!loading && quickStats && (
-        <div className="mb-4 grid grid-cols-2 gap-4">
+        <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <NetCashFlowBar
             income={quickStats.totalIncome}
             spend={quickStats.totalSpend}
@@ -124,7 +124,7 @@ export default function HomePage() {
       )}
 
       {/* Category drill-down + Top Merchants */}
-      <div className="mb-4 grid grid-cols-2 items-start gap-4">
+      <div className="mb-4 grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Spend by Category</CardTitle>

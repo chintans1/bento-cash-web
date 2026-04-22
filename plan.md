@@ -10,10 +10,11 @@
 - [x] Get most of the current code onto main branch
 - [x] Document what is left on the other yolo-branch
 - [x] Clean up code, focus on read-mode being perfect, data is accurate
-- [ ] Host on Vercel
+- [x] Host on Vercel
 - [ ] Add tests
 - [ ] Add sentry
 - [ ] Mobile optimization
+- [ ] Add ability to use multiple budget accounts
 
 - [ ] Top merchants, probably should avoid recurring transactions
 - [ ] Spend by category: maybe uncategorized should be last and not shown like that?
