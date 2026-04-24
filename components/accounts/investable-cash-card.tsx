@@ -20,7 +20,7 @@ export function InvestableCashCard({
           <CardTitle className="text-lg">Investable Cash</CardTitle>
           <Link
             href="/settings"
-            className="text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+            className="text-xs text-bento-subtle underline-offset-4 hover:text-bento-default hover:underline"
           >
             Adjust target
           </Link>
@@ -29,12 +29,12 @@ export function InvestableCashCard({
       <CardContent className="space-y-4">
         {state.status === "idle" || state.status === "loading" ? (
           <div className="space-y-3">
-            <div className="h-9 w-40 animate-pulse rounded-lg bg-muted" />
-            <div className="h-5 w-full animate-pulse rounded bg-muted" />
-            <div className="h-5 w-full animate-pulse rounded bg-muted" />
+            <div className="h-9 w-40 animate-pulse rounded-lg bg-bento-muted" />
+            <div className="h-5 w-full animate-pulse rounded bg-bento-muted" />
+            <div className="h-5 w-full animate-pulse rounded bg-bento-muted" />
           </div>
         ) : state.status === "error" ? (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-sm text-bento-subtle">
             Could not compute — {state.message}
           </p>
         ) : (
@@ -45,12 +45,12 @@ export function InvestableCashCard({
                   "font-mono text-3xl font-bold tabular-nums",
                   state.investableAmount > 0
                     ? "text-green-600 dark:text-green-400"
-                    : "text-muted-foreground"
+                    : "text-bento-subtle"
                 )}
               >
                 {formatCurrency(state.investableAmount, primaryCurrency, true)}
               </p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
+              <p className="mt-0.5 text-sm text-bento-subtle">
                 {state.investableAmount > 0
                   ? "ready to invest"
                   : state.savingsFunded
@@ -59,7 +59,7 @@ export function InvestableCashCard({
               </p>
             </div>
 
-            <div className="space-y-2 border-t border-border pt-3">
+            <div className="space-y-2 border-t border-bento-hairline pt-3">
               {(() => {
                 const surplus = Math.max(
                   0,
@@ -79,11 +79,11 @@ export function InvestableCashCard({
                       >
                         {ok ? "✓" : "✗"}
                       </span>
-                      <span className="truncate text-sm text-muted-foreground">
+                      <span className="truncate text-sm text-bento-subtle">
                         Checking buffer (1mo)
                       </span>
                     </div>
-                    <span className="shrink-0 font-mono text-sm text-muted-foreground tabular-nums">
+                    <span className="shrink-0 font-mono text-sm text-bento-subtle tabular-nums">
                       {formatCurrency(
                         state.totalCheckingBalance,
                         primaryCurrency,
@@ -100,7 +100,7 @@ export function InvestableCashCard({
                         className={cn(
                           "font-medium",
                           ok
-                            ? "text-foreground"
+                            ? "text-bento-default"
                             : "text-amber-600 dark:text-amber-400"
                         )}
                       >
@@ -123,11 +123,11 @@ export function InvestableCashCard({
                   >
                     {state.savingsFunded ? "✓" : "✗"}
                   </span>
-                  <span className="truncate text-sm text-muted-foreground">
+                  <span className="truncate text-sm text-bento-subtle">
                     Emergency fund ({state.savingsMonths}mo)
                   </span>
                 </div>
-                <span className="shrink-0 font-mono text-sm text-muted-foreground tabular-nums">
+                <span className="shrink-0 font-mono text-sm text-bento-subtle tabular-nums">
                   {formatCurrency(
                     state.totalSavingsBalance,
                     primaryCurrency,
@@ -138,7 +138,7 @@ export function InvestableCashCard({
                     className={cn(
                       "font-medium",
                       state.savingsFunded
-                        ? "text-foreground"
+                        ? "text-bento-default"
                         : "text-amber-600 dark:text-amber-400"
                     )}
                   >
@@ -159,7 +159,7 @@ export function InvestableCashCard({
               </div>
             </div>
 
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs text-bento-subtle">
               avg{" "}
               {formatCurrency(state.avgMonthlySpend, primaryCurrency, false)}/mo
               · last 3 months

@@ -155,14 +155,14 @@ export default function AccountsPage() {
     <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
       {/* Net worth hero */}
       <div className="mb-6 text-center">
-        <p className="mb-1 text-sm text-muted-foreground">Net Worth</p>
+        <p className="mb-1 text-sm text-bento-subtle">Net Worth</p>
         {loading ? (
-          <div className="h-12 animate-pulse rounded-lg bg-muted" />
+          <div className="h-12 animate-pulse rounded-lg bg-bento-muted" />
         ) : (
           <p
             className={cn(
               "font-heading text-5xl font-bold",
-              netWorth < 0 && "text-destructive"
+              netWorth < 0 && "text-bento-danger"
             )}
           >
             {formatCurrency(netWorth, primaryCurrency, true)}
@@ -172,15 +172,15 @@ export default function AccountsPage() {
         {!loading && !error && accounts.length > 0 && (
           <div className="mt-4 flex items-center justify-center gap-10 sm:gap-16">
             <div className="text-right">
-              <p className="text-xs text-muted-foreground">Assets</p>
+              <p className="text-xs text-bento-subtle">Assets</p>
               <p className="font-mono text-sm font-medium text-green-600 dark:text-green-400">
                 {formatCurrency(totalAssets, primaryCurrency, true)}
               </p>
             </div>
-            <div className="h-10 w-px bg-border" />
+            <div className="h-10 w-px bg-bento-hairline" />
             <div className="text-left">
-              <p className="text-xs text-muted-foreground">Liabilities</p>
-              <p className="font-mono text-sm font-medium text-destructive">
+              <p className="text-xs text-bento-subtle">Liabilities</p>
+              <p className="font-mono text-sm font-medium text-bento-danger">
                 {formatCurrency(totalLiabilities, primaryCurrency, true)}
               </p>
             </div>
@@ -191,11 +191,14 @@ export default function AccountsPage() {
       {loading ? (
         <div className="flex flex-col gap-4">
           {[1, 2].map((i) => (
-            <div key={i} className="h-40 animate-pulse rounded-xl bg-muted" />
+            <div
+              key={i}
+              className="h-40 animate-pulse rounded-xl bg-bento-muted"
+            />
           ))}
         </div>
       ) : error ? (
-        <p className="text-sm text-destructive">{error}</p>
+        <p className="text-sm text-bento-danger">{error}</p>
       ) : (
         <>
           {accounts.length > 0 && (
@@ -218,7 +221,7 @@ export default function AccountsPage() {
               primaryCurrency={primaryCurrency}
             />
             {accounts.length === 0 && (
-              <p className="text-center text-sm text-muted-foreground">
+              <p className="text-center text-sm text-bento-subtle">
                 No accounts found.
               </p>
             )}

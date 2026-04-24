@@ -83,11 +83,11 @@ export function AllocationBreakdown({
                 render={<div className="block w-full cursor-default" />}
               >
                 <div className="mb-1 flex items-baseline justify-between gap-2">
-                  <span className="min-w-0 truncate text-sm text-muted-foreground">
+                  <span className="min-w-0 truncate text-sm text-bento-subtle">
                     {bucket.label}
                   </span>
                   <div className="flex shrink-0 items-baseline gap-2">
-                    <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                    <span className="font-mono text-xs text-bento-subtle tabular-nums">
                       {pct.toFixed(1)}%
                     </span>
                     <span className="font-mono text-sm font-medium tabular-nums">
@@ -95,7 +95,7 @@ export function AllocationBreakdown({
                     </span>
                   </div>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-muted">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-bento-muted">
                   <div
                     className={cn("h-full rounded-full", bucket.color)}
                     style={{ width: `${pct}%` }}
@@ -103,7 +103,7 @@ export function AllocationBreakdown({
                 </div>
               </HoverCardTrigger>
               <HoverCardContent side="right" align="start" sideOffset={12}>
-                <p className="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                <p className="mb-2 text-xs font-semibold tracking-wide text-bento-subtle uppercase">
                   {bucket.label}
                 </p>
                 <ul className="space-y-1.5">
@@ -122,8 +122,8 @@ export function AllocationBreakdown({
                   ))}
                 </ul>
                 {bucketAccounts.length > 1 && (
-                  <div className="mt-2 flex justify-between border-t border-border pt-2">
-                    <span className="text-xs text-muted-foreground">Total</span>
+                  <div className="mt-2 flex justify-between border-t border-bento-hairline pt-2">
+                    <span className="text-xs text-bento-subtle">Total</span>
                     <span className="font-mono text-xs font-medium tabular-nums">
                       {formatCurrency(amount, primaryCurrency, true)}
                     </span>

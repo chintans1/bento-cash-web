@@ -25,18 +25,16 @@ export function TopMerchantsCard({
       </CardHeader>
       <CardContent>
         {loading ? (
-          <p className="text-sm text-muted-foreground">Loading…</p>
+          <p className="text-sm text-bento-subtle">Loading…</p>
         ) : merchantTotals.length === 0 ? (
-          <p className="text-sm text-muted-foreground">
-            No spending data found.
-          </p>
+          <p className="text-sm text-bento-subtle">No spending data found.</p>
         ) : (
           <ul className="flex flex-col gap-3">
             {merchantTotals.map((m, i) => {
               const maxMerchant = merchantTotals[0].spend;
               return (
                 <li key={m.payee} className="flex items-center gap-3">
-                  <span className="w-4 shrink-0 text-right font-mono text-xs text-muted-foreground/60 tabular-nums">
+                  <span className="w-4 shrink-0 text-right font-mono text-xs text-bento-subtle/60 tabular-nums">
                     {i + 1}
                   </span>
                   <div className="min-w-0 flex-1">
@@ -44,13 +42,13 @@ export function TopMerchantsCard({
                       <span className="truncate text-xs font-medium">
                         {m.payee}
                       </span>
-                      <span className="ml-3 shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
+                      <span className="ml-3 shrink-0 font-mono text-xs text-bento-subtle tabular-nums">
                         {formatCurrency(m.spend, primaryCurrency, false)}
                       </span>
                     </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-bento-muted">
                       <div
-                        className="h-full rounded-full bg-primary"
+                        className="h-full rounded-full bg-bento-brand"
                         style={{
                           width:
                             maxMerchant > 0
@@ -59,7 +57,7 @@ export function TopMerchantsCard({
                         }}
                       />
                     </div>
-                    <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    <p className="mt-0.5 text-[10px] text-bento-subtle">
                       {m.txCount} transaction{m.txCount !== 1 ? "s" : ""}
                     </p>
                   </div>
@@ -72,7 +70,7 @@ export function TopMerchantsCard({
       <CardFooter>
         <Link
           href="/transactions"
-          className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+          className="text-sm text-bento-subtle transition-colors hover:text-bento-default"
         >
           View all transactions →
         </Link>

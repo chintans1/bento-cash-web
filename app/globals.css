@@ -75,7 +75,33 @@
   --sidebar-ring: oklch(0.56 0.021 213.5);
 }
 
+/* Semantic tokens — use these in app code instead of raw shadcn variables */
+:root {
+  --bento-base: var(--background);
+  --bento-surface: var(--card);
+  --bento-default: var(--foreground);
+  --bento-subtle: var(--muted-foreground);
+  --bento-hairline: var(--border);
+  --bento-brand: var(--primary);
+  --bento-brand-fg: var(--primary-foreground);
+  --bento-control: var(--secondary);
+  --bento-control-fg: var(--secondary-foreground);
+  --bento-danger: var(--destructive);
+  --bento-muted: var(--muted);
+}
+
 @theme inline {
+  --color-bento-base: var(--bento-base);
+  --color-bento-surface: var(--bento-surface);
+  --color-bento-default: var(--bento-default);
+  --color-bento-subtle: var(--bento-subtle);
+  --color-bento-hairline: var(--bento-hairline);
+  --color-bento-brand: var(--bento-brand);
+  --color-bento-brand-fg: var(--bento-brand-fg);
+  --color-bento-control: var(--bento-control);
+  --color-bento-control-fg: var(--bento-control-fg);
+  --color-bento-danger: var(--bento-danger);
+  --color-bento-muted: var(--bento-muted);
   --font-sans: var(--font-sans);
   --font-heading: var(--font-heading);
   --color-sidebar-ring: var(--sidebar-ring);

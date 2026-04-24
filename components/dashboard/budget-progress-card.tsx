@@ -56,16 +56,16 @@ export function BudgetProgressCard({
                     )}
                   >
                     {formatCurrency(item.spent, primaryCurrency, false)}{" "}
-                    <span className="text-muted-foreground">
+                    <span className="text-bento-subtle">
                       / {formatCurrency(item.budget, primaryCurrency, false)}
                     </span>
                   </span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div className="h-2 overflow-hidden rounded-full bg-bento-muted">
                   <div
                     className={cn(
                       "h-full rounded-full transition-[width,background-color]",
-                      over ? "bg-rose-500" : "bg-primary"
+                      over ? "bg-rose-500" : "bg-bento-brand"
                     )}
                     style={{ width: `${pct}%` }}
                   />

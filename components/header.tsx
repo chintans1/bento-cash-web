@@ -19,11 +19,11 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-10 border-b border-border/60 bg-background/80 backdrop-blur-sm">
+    <header className="sticky top-0 z-10 border-b border-bento-hairline/60 bg-bento-base/80 backdrop-blur-sm">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
         <span className="font-heading text-2xl font-bold">
           Bento Cash{" "}
-          <span className="font-mono text-xs text-muted-foreground">web</span>
+          <span className="font-mono text-xs text-bento-subtle">web</span>
         </span>
 
         {/* Desktop nav */}
@@ -35,8 +35,8 @@ export function Header() {
               className={cn(
                 "rounded-4xl px-4 py-1.5 text-sm font-medium transition-colors",
                 pathname === href
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-bento-brand text-bento-brand-fg"
+                  : "text-bento-subtle hover:bg-bento-muted hover:text-bento-default"
               )}
             >
               {label}
@@ -46,7 +46,7 @@ export function Header() {
 
         {/* Mobile hamburger */}
         <button
-          className="flex size-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:hidden"
+          className="flex size-9 items-center justify-center rounded-lg text-bento-subtle transition-colors hover:bg-bento-muted hover:text-bento-default sm:hidden"
           onClick={() => setMenuOpen((o) => !o)}
           aria-label="Toggle menu"
         >
@@ -56,7 +56,7 @@ export function Header() {
 
       {/* Mobile dropdown menu */}
       {menuOpen && (
-        <nav className="border-t border-border/60 bg-background/95 px-4 pb-4 sm:hidden">
+        <nav className="border-t border-bento-hairline/60 bg-bento-base/95 px-4 pb-4 sm:hidden">
           {NAV_LINKS.map(({ href, label }) => (
             <Link
               key={href}
@@ -65,8 +65,8 @@ export function Header() {
               className={cn(
                 "mt-1 block rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
                 pathname === href
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  ? "bg-bento-brand text-bento-brand-fg"
+                  : "text-bento-subtle hover:bg-bento-muted hover:text-bento-default"
               )}
             >
               {label}

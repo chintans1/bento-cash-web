@@ -72,13 +72,13 @@ export function AccountRow({
   }
 
   return (
-    <li className="border-b border-border/50 py-3 last:border-0">
+    <li className="border-b border-bento-hairline/50 py-3 last:border-0">
       {editing ? (
         <div className="flex flex-col gap-3">
           <span className="text-sm font-medium">{account.name}</span>
           <div className="flex flex-wrap items-end gap-3">
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">Type</label>
+              <label className="text-xs text-bento-subtle">Type</label>
               <Select
                 value={editType}
                 onValueChange={(v) => setEditType(v as AccountType)}
@@ -96,7 +96,7 @@ export function AccountRow({
               </Select>
             </div>
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground">Subtype</label>
+              <label className="text-xs text-bento-subtle">Subtype</label>
               <Select
                 value={editSubtype}
                 onValueChange={(v) => setEditSubtype(v ?? "")}
@@ -131,7 +131,7 @@ export function AccountRow({
               <button
                 onClick={saveEdit}
                 disabled={saving}
-                className="flex items-center gap-1 rounded-md bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground disabled:opacity-50"
+                className="flex items-center gap-1 rounded-md bg-bento-brand px-3 py-1.5 text-xs font-medium text-bento-brand-fg disabled:opacity-50"
               >
                 <Check className="h-3 w-3" />
                 {saving ? "Saving…" : "Save"}
@@ -139,7 +139,7 @@ export function AccountRow({
               <button
                 onClick={cancelEdit}
                 disabled={saving}
-                className="flex items-center gap-1 rounded-md border border-border px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground disabled:opacity-50"
+                className="flex items-center gap-1 rounded-md border border-bento-hairline px-3 py-1.5 text-xs font-medium text-bento-subtle hover:text-bento-default disabled:opacity-50"
               >
                 <X className="h-3 w-3" />
                 Cancel
@@ -154,32 +154,32 @@ export function AccountRow({
               <span
                 className={cn(
                   "text-sm font-medium",
-                  isInactive && "text-muted-foreground"
+                  isInactive && "text-bento-subtle"
                 )}
               >
                 {account.name}
               </span>
               {account.subtype && (
-                <span className="rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                <span className="rounded-full bg-bento-muted px-1.5 py-0.5 text-xs text-bento-subtle">
                   {formatSubtype(account.subtype)}
                 </span>
               )}
               {isInactive && (
-                <span className="rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+                <span className="rounded-full bg-bento-muted px-1.5 py-0.5 text-xs text-bento-subtle">
                   {account.status}
                 </span>
               )}
               {account.source === "manual" && (
                 <button
                   onClick={startEdit}
-                  className="text-muted-foreground/60 transition-colors hover:text-foreground"
+                  className="text-bento-subtle/60 transition-colors hover:text-bento-default"
                   title="Edit type / subtype"
                 >
                   <Pencil className="h-3 w-3" />
                 </button>
               )}
             </div>
-            <p className="mt-0.5 text-xs text-muted-foreground capitalize">
+            <p className="mt-0.5 text-xs text-bento-subtle capitalize">
               {account.type}
             </p>
           </div>
@@ -192,15 +192,15 @@ export function AccountRow({
                     : formatCurrency(account.toBase, primaryCurrency, true)}
                 </span>
                 {showNative && (
-                  <span className="font-mono text-xs text-muted-foreground tabular-nums">
+                  <span className="font-mono text-xs text-bento-subtle tabular-nums">
                     ≈ {formatCurrency(account.toBase, primaryCurrency, true)}
                   </span>
                 )}
               </>
             ) : (
-              <span className="text-sm text-muted-foreground">—</span>
+              <span className="text-sm text-bento-subtle">—</span>
             )}
-            <span className="text-xs text-muted-foreground">
+            <span className="text-xs text-bento-subtle">
               {formatUpdated(account.lastUpdated)}
             </span>
           </div>

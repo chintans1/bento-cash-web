@@ -187,7 +187,7 @@ export default function TransactionsPage() {
       {/* Filters */}
       <div className="mb-4 flex flex-wrap gap-2">
         <ButtonGroup className="relative min-w-48 flex-1">
-          <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-3.5 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-3.5 -translate-y-1/2 text-bento-subtle" />
           <Input
             className="h-8 pl-8 text-sm"
             placeholder="Search payee or notes..."
@@ -234,24 +234,24 @@ export default function TransactionsPage() {
       </div>
 
       {/* Table header */}
-      <div className="mb-1 grid grid-cols-[1fr_80px] gap-4 px-3 text-xs font-semibold tracking-wide text-muted-foreground uppercase sm:grid-cols-[1fr_160px_72px_96px]">
+      <div className="mb-1 grid grid-cols-[1fr_80px] gap-4 px-3 text-xs font-semibold tracking-wide text-bento-subtle uppercase sm:grid-cols-[1fr_160px_72px_96px]">
         <button
-          className="text-left hover:text-foreground"
+          className="text-left hover:text-bento-default"
           onClick={() => toggleSort("payee")}
         >
           Payee <SortIcon k="payee" />
         </button>
-        <button className="hidden text-left hover:text-foreground sm:block">
+        <button className="hidden text-left hover:text-bento-default sm:block">
           Category
         </button>
         <button
-          className="hidden text-center hover:text-foreground sm:block"
+          className="hidden text-center hover:text-bento-default sm:block"
           onClick={() => toggleSort("date")}
         >
           Date <SortIcon k="date" />
         </button>
         <button
-          className="text-right hover:text-foreground"
+          className="text-right hover:text-bento-default"
           onClick={() => toggleSort("amount")}
         >
           Amount <SortIcon k="amount" />
@@ -261,17 +261,20 @@ export default function TransactionsPage() {
       {loading ? (
         <div className="flex flex-col gap-2">
           {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="h-12 animate-pulse rounded-lg bg-muted" />
+            <div
+              key={i}
+              className="h-12 animate-pulse rounded-lg bg-bento-muted"
+            />
           ))}
         </div>
       ) : error ? (
-        <p className="text-sm text-destructive">{error}</p>
+        <p className="text-sm text-bento-danger">{error}</p>
       ) : filtered.length === 0 ? (
-        <p className="py-12 text-center text-sm text-muted-foreground">
+        <p className="py-12 text-center text-sm text-bento-subtle">
           No transactions match.
         </p>
       ) : (
-        <div className="divide-y divide-border/50 overflow-hidden rounded-xl border border-border">
+        <div className="divide-y divide-bento-hairline/50 overflow-hidden rounded-xl border border-bento-hairline">
           {filtered.map((tx) => {
             const category =
               tx.category_id != null
@@ -286,21 +289,21 @@ export default function TransactionsPage() {
             return (
               <div
                 key={tx.id}
-                className="grid grid-cols-[1fr_80px] items-center gap-4 bg-background px-4 py-3 transition-colors hover:bg-muted/30 sm:grid-cols-[1fr_160px_72px_96px]"
+                className="grid grid-cols-[1fr_80px] items-center gap-4 bg-bento-base px-4 py-3 transition-colors hover:bg-bento-muted/30 sm:grid-cols-[1fr_160px_72px_96px]"
               >
                 {/* Payee */}
                 <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-bento-muted text-bento-subtle">
                     <Icon className="size-4" />
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{tx.payee}</p>
                     {tx.notes && (
-                      <p className="truncate text-xs text-muted-foreground">
+                      <p className="truncate text-xs text-bento-subtle">
                         {tx.notes}
                       </p>
                     )}
-                    <span className="font-mono text-[10px] text-muted-foreground sm:hidden">
+                    <span className="font-mono text-[10px] text-bento-subtle sm:hidden">
                       {formatShortDate(tx.date)}
                     </span>
                   </div>
@@ -341,10 +344,10 @@ export default function TransactionsPage() {
                   ) : (
                     <button
                       className={cn(
-                        "w-full truncate rounded px-1.5 py-0.5 text-left text-xs transition-colors hover:bg-muted",
+                        "w-full truncate rounded px-1.5 py-0.5 text-left text-xs transition-colors hover:bg-bento-muted",
                         isUncategorized
                           ? "text-amber-600 dark:text-amber-400"
-                          : "text-muted-foreground"
+                          : "text-bento-subtle"
                       )}
                       onClick={() => setEditingCatId(tx.id)}
                     >
@@ -354,7 +357,7 @@ export default function TransactionsPage() {
                 </div>
 
                 {/* Date */}
-                <span className="hidden text-center text-xs text-muted-foreground tabular-nums sm:block">
+                <span className="hidden text-center text-xs text-bento-subtle tabular-nums sm:block">
                   {formatShortDate(tx.date)}
                 </span>
 
@@ -376,11 +379,11 @@ export default function TransactionsPage() {
 
       {/* Footer summary */}
       {!loading && filtered.length > 0 && (
-        <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+        <div className="mt-3 flex items-center justify-between text-xs text-bento-subtle">
           <span>{filtered.length} transactions</span>
           <span className="font-mono tabular-nums">
             Total spend:{" "}
-            <span className="font-semibold text-foreground">
+            <span className="font-semibold text-bento-default">
               {formatAmount(totalSpend)}
             </span>
           </span>

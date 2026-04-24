@@ -85,7 +85,7 @@ export function CategoryRow({
   return (
     <li>
       <button
-        className="flex w-full items-center gap-3 rounded-lg px-1 py-1 transition-colors hover:bg-muted/50"
+        className="flex w-full items-center gap-3 rounded-lg px-1 py-1 transition-colors hover:bg-bento-muted/50"
         onClick={() => setExpanded((v) => !v)}
       >
         <div
@@ -100,11 +100,11 @@ export function CategoryRow({
               <span className="truncate text-xs font-medium">{cat.name}</span>
               <MoMBadge delta={delta} />
             </div>
-            <span className="ml-3 shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
+            <span className="ml-3 shrink-0 font-mono text-xs text-bento-subtle tabular-nums">
               {formatCurrency(cat.spend, primaryCurrency, false)}
             </span>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-muted">
+          <div className="h-1.5 overflow-hidden rounded-full bg-bento-muted">
             <div
               className="h-full rounded-full"
               style={{
@@ -116,14 +116,14 @@ export function CategoryRow({
         </div>
         <ChevronDown
           className={cn(
-            "size-3.5 shrink-0 text-muted-foreground transition-transform",
+            "size-3.5 shrink-0 text-bento-subtle transition-transform",
             expanded && "rotate-180"
           )}
         />
       </button>
 
       {expanded && topTxs.length > 0 && (
-        <ul className="mt-1 mb-2 ml-10 flex flex-col gap-0.5 border-l-2 border-border pl-3">
+        <ul className="mt-1 mb-2 ml-10 flex flex-col gap-0.5 border-l-2 border-bento-hairline pl-3">
           {topTxs.map((tx) => {
             const isEditing = editingId === tx.id;
             const isUpdating = updatingId === tx.id;
@@ -136,15 +136,13 @@ export function CategoryRow({
                 key={tx.id}
                 className="flex items-center justify-between gap-2 rounded py-1 text-xs"
               >
-                <span className="truncate text-muted-foreground">
-                  {tx.payee}
-                </span>
+                <span className="truncate text-bento-subtle">{tx.payee}</span>
                 <div className="flex shrink-0 items-center gap-2">
                   {isEditing ? (
                     <select
                       autoFocus
                       disabled={isUpdating}
-                      className="h-6 rounded border border-input bg-background px-1 text-[11px] text-foreground"
+                      className="h-6 rounded border border-bento-hairline bg-bento-base px-1 text-[11px] text-bento-default"
                       defaultValue={tx.category_id ?? ""}
                       onBlur={() => setEditingId(null)}
                       onChange={(e) => {
@@ -164,7 +162,7 @@ export function CategoryRow({
                     </select>
                   ) : (
                     <button
-                      className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+                      className="text-[11px] text-bento-subtle hover:text-bento-default hover:underline"
                       onClick={(e) => {
                         e.stopPropagation();
                         setEditingId(tx.id);
@@ -184,7 +182,7 @@ export function CategoryRow({
             <li className="pt-1">
               <Link
                 href="/transactions"
-                className="text-[11px] text-muted-foreground hover:text-foreground hover:underline"
+                className="text-[11px] text-bento-subtle hover:text-bento-default hover:underline"
                 onClick={(e) => e.stopPropagation()}
               >
                 +{cat.txCount - 5} more →

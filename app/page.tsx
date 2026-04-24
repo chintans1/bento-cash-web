@@ -131,11 +131,11 @@ export default function HomePage() {
           </CardHeader>
           <CardContent>
             {loading ? (
-              <p className="text-sm text-muted-foreground">Loading…</p>
+              <p className="text-sm text-bento-subtle">Loading…</p>
             ) : error ? (
-              <p className="text-sm text-destructive">{error}</p>
+              <p className="text-sm text-bento-danger">{error}</p>
             ) : categoryTotals.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm text-bento-subtle">
                 No spending data found.
               </p>
             ) : (

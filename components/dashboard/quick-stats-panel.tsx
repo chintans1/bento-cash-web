@@ -52,7 +52,10 @@ export function QuickStatsPanel({
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="h-24 animate-pulse rounded-xl bg-muted" />
+            <div
+              key={i}
+              className="h-24 animate-pulse rounded-xl bg-bento-muted"
+            />
           ))
         ) : quickStats ? (
           <>
@@ -75,9 +78,9 @@ export function QuickStatsPanel({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm font-medium tracking-wide text-muted-foreground">
+                <p className="text-sm font-medium tracking-wide text-bento-subtle">
                   Income{" "}
-                  <span className="font-mono text-[11px] text-muted-foreground/50">
+                  <span className="font-mono text-[11px] text-bento-subtle/50">
                     ({incomePanelTxs.length} deposits)
                   </span>
                 </p>
@@ -103,9 +106,9 @@ export function QuickStatsPanel({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm font-medium tracking-wide text-muted-foreground">
+                <p className="text-sm font-medium tracking-wide text-bento-subtle">
                   Spend{" "}
-                  <span className="font-mono text-[11px] text-muted-foreground/50">
+                  <span className="font-mono text-[11px] text-bento-subtle/50">
                     ({sortedSpendTxs.length} transactions)
                   </span>
                 </p>
@@ -123,9 +126,9 @@ export function QuickStatsPanel({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm font-medium tracking-wide text-muted-foreground">
+                <p className="text-sm font-medium tracking-wide text-bento-subtle">
                   Avg / Day{" "}
-                  <span className="font-mono text-[11px] text-muted-foreground/50">
+                  <span className="font-mono text-[11px] text-bento-subtle/50">
                     (this {MONTH_NAMES[selectedMonth - 1].toLowerCase()})
                   </span>
                 </p>
@@ -151,9 +154,9 @@ export function QuickStatsPanel({
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm font-medium tracking-wide text-muted-foreground">
+                <p className="text-sm font-medium tracking-wide text-bento-subtle">
                   Peak Day{" "}
-                  <span className="font-mono text-[11px] text-muted-foreground/50">
+                  <span className="font-mono text-[11px] text-bento-subtle/50">
                     (
                     {quickStats.peakDay
                       ? formatShortDate(quickStats.peakDay)
@@ -169,8 +172,8 @@ export function QuickStatsPanel({
 
       {/* Drill-down panel */}
       {!loading && openPanel && quickStats && (
-        <div className="mb-4 rounded-xl border border-border bg-card">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+        <div className="mb-4 rounded-xl border border-bento-hairline bg-bento-surface">
+          <div className="flex items-center justify-between border-b border-bento-hairline px-4 py-3">
             <span className="text-sm font-semibold">
               {openPanel === "income" && "Income Transactions"}
               {openPanel === "spend" && "Spend Transactions"}
@@ -179,12 +182,12 @@ export function QuickStatsPanel({
             </span>
             <button
               onClick={() => setOpenPanel(null)}
-              className="flex size-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              className="flex size-8 items-center justify-center rounded-lg text-bento-subtle transition-colors hover:bg-bento-muted hover:text-bento-default"
             >
               <X className="size-3.5" />
             </button>
           </div>
-          <ul className="divide-y divide-border">
+          <ul className="divide-y divide-bento-hairline">
             {(openPanel === "income"
               ? incomePanelTxs
               : openPanel === "spend"
@@ -202,14 +205,14 @@ export function QuickStatsPanel({
                   key={tx.id}
                   className="flex items-center gap-4 px-4 py-2.5 text-xs"
                 >
-                  <span className="w-14 shrink-0 font-mono text-muted-foreground">
+                  <span className="w-14 shrink-0 font-mono text-bento-subtle">
                     {formatShortDate(tx.date)}
                   </span>
                   <span className="min-w-0 flex-1 truncate font-medium">
                     {tx.payee}
                   </span>
                   {!isIncome && (
-                    <span className="shrink-0 text-muted-foreground">
+                    <span className="shrink-0 text-bento-subtle">
                       {catName}
                     </span>
                   )}
@@ -218,7 +221,7 @@ export function QuickStatsPanel({
                       "shrink-0 font-mono tabular-nums",
                       isIncome
                         ? "text-green-600 dark:text-green-400"
-                        : "text-foreground"
+                        : "text-bento-default"
                     )}
                   >
                     {isIncome ? "+" : ""}

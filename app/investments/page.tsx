@@ -79,16 +79,16 @@ export default function InvestmentsPage() {
     <div className="mx-auto max-w-6xl px-6 pt-6 pb-10">
       {/* Hero */}
       <div className="mb-6 text-center">
-        <p className="mb-1 text-sm text-muted-foreground">Portfolio Value</p>
+        <p className="mb-1 text-sm text-bento-subtle">Portfolio Value</p>
         {loading ? (
-          <div className="mx-auto h-12 w-56 animate-pulse rounded-lg bg-muted" />
+          <div className="mx-auto h-12 w-56 animate-pulse rounded-lg bg-bento-muted" />
         ) : (
           <p className="font-heading text-5xl font-bold">
             {formatCurrency(totalPortfolio, primaryCurrency, true)}
           </p>
         )}
         {!loading && !error && investmentAccounts.length > 0 && (
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mt-1 text-sm text-bento-subtle">
             across {investmentAccounts.length} account
             {investmentAccounts.length !== 1 ? "s" : ""}
           </p>
@@ -98,11 +98,14 @@ export default function InvestmentsPage() {
       {loading ? (
         <div className="grid grid-cols-2 gap-6">
           {[1, 2].map((i) => (
-            <div key={i} className="h-64 animate-pulse rounded-xl bg-muted" />
+            <div
+              key={i}
+              className="h-64 animate-pulse rounded-xl bg-bento-muted"
+            />
           ))}
         </div>
       ) : error ? (
-        <p className="text-sm text-destructive">{error}</p>
+        <p className="text-sm text-bento-danger">{error}</p>
       ) : (
         <>
           <div className="grid grid-cols-2 items-start gap-6">
@@ -115,10 +118,10 @@ export default function InvestmentsPage() {
               ) : (
                 <Card>
                   <CardContent className="py-8 text-center">
-                    <p className="text-sm text-muted-foreground">
+                    <p className="text-sm text-bento-subtle">
                       No investment accounts found.
                     </p>
-                    <p className="mt-1 text-xs text-muted-foreground">
+                    <p className="mt-1 text-xs text-bento-subtle">
                       Set an account&apos;s type to{" "}
                       <span className="font-medium">investment</span> or{" "}
                       <span className="font-medium">brokerage</span>, or set a
@@ -138,7 +141,7 @@ export default function InvestmentsPage() {
                       <CardTitle className="text-lg">
                         Investment Accounts
                       </CardTitle>
-                      <span className="font-mono text-sm text-muted-foreground tabular-nums">
+                      <span className="font-mono text-sm text-bento-subtle tabular-nums">
                         {formatCurrency(totalPortfolio, primaryCurrency, true)}
                       </span>
                     </div>
@@ -153,10 +156,12 @@ export default function InvestmentsPage() {
                         return (
                           <div
                             key={institution}
-                            className={cn(i > 0 && "border-t border-border")}
+                            className={cn(
+                              i > 0 && "border-t border-bento-hairline"
+                            )}
                           >
-                            <div className="flex items-baseline justify-between bg-muted/90 px-6 py-2">
-                              <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                            <div className="flex items-baseline justify-between bg-bento-muted/90 px-6 py-2">
+                              <span className="text-xs font-semibold tracking-wide text-bento-subtle uppercase">
                                 {institution}
                               </span>
                               <span className="font-mono text-xs font-medium tabular-nums">
@@ -191,7 +196,7 @@ export default function InvestmentsPage() {
           {otherAccounts.length > 0 && (
             <Card className="mt-6 pb-0">
               <CardHeader className="pb-2">
-                <CardTitle className="text-base text-muted-foreground">
+                <CardTitle className="text-base text-bento-subtle">
                   Other Accounts
                 </CardTitle>
                 <CardDescription>
@@ -200,12 +205,12 @@ export default function InvestmentsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="grid grid-cols-2 divide-x divide-border">
+                <div className="grid grid-cols-2 divide-x divide-bento-hairline">
                   {groupByInstitution(otherAccounts).map(
                     ([institution, group]) => (
                       <div key={institution}>
-                        <div className="flex items-baseline justify-between bg-muted/90 px-6 py-2">
-                          <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+                        <div className="flex items-baseline justify-between bg-bento-muted/90 px-6 py-2">
+                          <span className="text-xs font-semibold tracking-wide text-bento-subtle uppercase">
                             {institution}
                           </span>
                         </div>

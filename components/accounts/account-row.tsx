@@ -20,24 +20,24 @@ export function AccountRow({
   const isInactive = account.status !== "active";
 
   return (
-    <li className="flex items-center gap-3 border-b border-border/50 py-3 last:border-0">
+    <li className="flex items-center gap-3 border-b border-bento-hairline/50 py-3 last:border-0">
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
           <span
             className={cn(
               "text-sm font-medium",
-              isInactive && "text-muted-foreground"
+              isInactive && "text-bento-subtle"
             )}
           >
             {account.name}
           </span>
           {account.subtype && (
-            <span className="rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+            <span className="rounded-full bg-bento-muted px-1.5 py-0.5 text-xs text-bento-subtle">
               {formatSubtype(account.subtype)}
             </span>
           )}
           {isInactive && (
-            <span className="rounded-full bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
+            <span className="rounded-full bg-bento-muted px-1.5 py-0.5 text-xs text-bento-subtle">
               {account.status}
             </span>
           )}
@@ -52,15 +52,15 @@ export function AccountRow({
                 : formatCurrency(account.toBase, primaryCurrency, true)}
             </span>
             {showNative && (
-              <span className="font-mono text-xs text-muted-foreground tabular-nums">
+              <span className="font-mono text-xs text-bento-subtle tabular-nums">
                 ≈ {formatCurrency(account.toBase, primaryCurrency, true)}
               </span>
             )}
           </>
         ) : (
-          <span className="text-sm text-muted-foreground">—</span>
+          <span className="text-sm text-bento-subtle">—</span>
         )}
-        <span className="text-xs text-muted-foreground">
+        <span className="text-xs text-bento-subtle">
           {formatUpdated(account.lastUpdated)}
         </span>
       </div>

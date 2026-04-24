@@ -69,7 +69,7 @@ export default function SettingsPage() {
   }
 
   const hint = (
-    <p className="font-mono text-sm text-muted-foreground">
+    <p className="font-mono text-sm text-bento-subtle">
       Press <Kbd>d</Kbd> to toggle dark mode
     </p>
   );
@@ -87,18 +87,18 @@ export default function SettingsPage() {
           <CardContent>
             <dl className="flex flex-col gap-3 text-base">
               <div className="flex justify-between gap-4">
-                <dt className="text-muted-foreground">Email</dt>
+                <dt className="text-bento-subtle">Email</dt>
                 <dd className="font-medium">{user.email}</dd>
               </div>
               <div className="flex justify-between gap-4">
-                <dt className="text-muted-foreground">Currency</dt>
+                <dt className="text-bento-subtle">Currency</dt>
                 <dd className="font-medium uppercase">
                   {user.primary_currency}
                 </dd>
               </div>
               {user.api_key_label && (
                 <div className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">API key</dt>
+                  <dt className="text-bento-subtle">API key</dt>
                   <dd className="font-medium">{user.api_key_label}</dd>
                 </div>
               )}
@@ -129,13 +129,15 @@ export default function SettingsPage() {
                 onChange={(e) => handleFloorMonthsChange(e.target.value)}
                 className="h-11 w-24 text-center font-mono text-base"
               />
-              <span className="text-base text-muted-foreground">
+              <span className="text-base text-bento-subtle">
                 months savings target
               </span>
             </div>
-            <p className="mt-3 text-sm text-muted-foreground">
+            <p className="mt-3 text-sm text-bento-subtle">
               Savings target:{" "}
-              <span className="font-medium text-foreground">{floorMonths}</span>{" "}
+              <span className="font-medium text-bento-default">
+                {floorMonths}
+              </span>{" "}
               {floorMonths === 1 ? "month" : "months"} of expenses.
             </p>
           </CardContent>
@@ -156,11 +158,11 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="pb-0">
-          <div className="rounded-md bg-muted px-4 py-3 text-sm text-muted-foreground">
+          <div className="rounded-md bg-bento-muted px-4 py-3 text-sm text-bento-subtle">
             Your token is stored only in your browser&apos;s{" "}
-            <span className="font-medium text-foreground">localStorage</span>.
-            There is no backend — all API calls go directly from your browser to
-            Lunch Money. Nothing is sent to any server.
+            <span className="font-medium text-bento-default">localStorage</span>
+            . There is no backend — all API calls go directly from your browser
+            to Lunch Money. Nothing is sent to any server.
           </div>
         </CardContent>
         <CardContent>
@@ -174,7 +176,7 @@ export default function SettingsPage() {
               disabled={loading}
               className="h-11 text-base"
             />
-            {error && <p className="text-base text-destructive">{error}</p>}
+            {error && <p className="text-base text-bento-danger">{error}</p>}
             <Button type="submit" size="lg" disabled={loading || !input.trim()}>
               {loading ? "Connecting…" : "Connect"}
             </Button>

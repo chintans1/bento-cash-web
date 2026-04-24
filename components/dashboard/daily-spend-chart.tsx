@@ -39,7 +39,7 @@ export function DailySpendChart({
         />
         <YAxis hide />
         <ChartTooltip
-          cursor={{ fill: "var(--muted)", radius: 4 }}
+          cursor={{ fill: "var(--bento-muted)", radius: 4 }}
           content={
             <ChartTooltipContent
               labelFormatter={(v) => formatShortDate(String(v))}

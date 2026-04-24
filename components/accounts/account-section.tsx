@@ -29,7 +29,7 @@ export function AccountSection({
       <CardHeader className="pb-2">
         <div className="flex items-baseline justify-between">
           <CardTitle className="text-lg">{title}</CardTitle>
-          <span className="font-mono text-sm text-muted-foreground tabular-nums">
+          <span className="font-mono text-sm text-bento-subtle tabular-nums">
             {formatCurrency(total, primaryCurrency, true)}
           </span>
         </div>
@@ -43,10 +43,10 @@ export function AccountSection({
           return (
             <div
               key={institution}
-              className={cn(i > 0 && "border-t border-border")}
+              className={cn(i > 0 && "border-t border-bento-hairline")}
             >
-              <div className="flex items-baseline justify-between bg-muted/90 px-6 py-2">
-                <span className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
+              <div className="flex items-baseline justify-between bg-bento-muted/90 px-6 py-2">
+                <span className="text-xs font-semibold tracking-wide text-bento-subtle uppercase">
                   {institution}
                 </span>
                 <span className="font-mono text-xs font-medium tabular-nums">

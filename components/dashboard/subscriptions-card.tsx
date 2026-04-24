@@ -40,7 +40,7 @@ export function SubscriptionsCard({
       <CardHeader>
         <div className="flex items-baseline justify-between">
           <CardTitle className="text-lg">Subscriptions & Recurring</CardTitle>
-          <span className="font-mono text-sm text-muted-foreground tabular-nums">
+          <span className="font-mono text-sm text-bento-subtle tabular-nums">
             {formatCurrency(total, primaryCurrency, false)}/mo
           </span>
         </div>
@@ -50,10 +50,10 @@ export function SubscriptionsCard({
           {monthly.map((item) => (
             <li
               key={item.id}
-              className="flex items-center justify-between border-b border-border/50 py-2.5 first:pt-0 last:border-0 last:pb-0"
+              className="flex items-center justify-between border-b border-bento-hairline/50 py-2.5 first:pt-0 last:border-0 last:pb-0"
             >
               <span className="text-sm">{item.name}</span>
-              <span className="font-mono text-sm text-muted-foreground tabular-nums">
+              <span className="font-mono text-sm text-bento-subtle tabular-nums">
                 {formatCurrency(item.monthlyAmount, primaryCurrency, false)}/mo
               </span>
             </li>

@@ -8,16 +8,16 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/80",
+        default: "bg-bento-brand text-bento-brand-fg hover:bg-bento-brand/80",
         outline:
-          "border-border bg-background hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:bg-transparent dark:hover:bg-input/30",
+          "border-bento-hairline bg-bento-base hover:bg-bento-muted hover:text-bento-default aria-expanded:bg-bento-muted aria-expanded:text-bento-default dark:bg-transparent dark:hover:bg-input/30",
         secondary:
-          "bg-secondary text-secondary-foreground hover:bg-secondary/80 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground",
+          "bg-bento-control text-bento-control-fg hover:bg-bento-control/80 aria-expanded:bg-bento-control aria-expanded:text-bento-control-fg",
         ghost:
-          "hover:bg-muted hover:text-foreground aria-expanded:bg-muted aria-expanded:text-foreground dark:hover:bg-muted/50",
+          "hover:bg-bento-muted hover:text-bento-default aria-expanded:bg-bento-muted aria-expanded:text-bento-default dark:hover:bg-bento-muted/50",
         destructive:
-          "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-bento-danger/10 text-bento-danger hover:bg-bento-danger/20 focus-visible:border-bento-danger/40 focus-visible:ring-bento-danger/20 dark:bg-bento-danger/20 dark:hover:bg-bento-danger/30 dark:focus-visible:ring-bento-danger/40",
+        link: "text-bento-brand underline-offset-4 hover:underline",
       },
       size: {
         default:
