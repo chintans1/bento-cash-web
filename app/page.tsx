@@ -72,7 +72,7 @@ export default function HomePage() {
             </span>
             {" — "}
             <Link
-              href="/transactions"
+              href="/transactions?category=-1"
               className="underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200"
             >
               assign categories →

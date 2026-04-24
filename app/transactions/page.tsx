@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useToken } from "@/hooks/use-token";
 import {
   getCategories,
@@ -63,6 +64,8 @@ function CategorySelectItems({
 
 export default function TransactionsPage() {
   const { token } = useToken();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const now = new Date();
   const {
     year: selectedYear,
@@ -77,7 +80,10 @@ export default function TransactionsPage() {
   const [catGroups, setCatGroups] = useState<CategoryGroupEntry[]>([]);
   const [{ loading, error }, setFetchStatus] = useFetchStatus();
   const [query, setQuery] = useState("");
-  const [filterCatId, setFilterCatId] = useState<number | null>(null);
+  const [filterCatId, setFilterCatId] = useState<number | null>(() => {
+    const cat = searchParams.get("category");
+    return cat !== null ? Number(cat) : null;
+  });
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [updatingId, setUpdatingId] = useState<number | null>(null);
@@ -209,9 +215,17 @@ export default function TransactionsPage() {
 
         <Select
           value={filterCatId === null ? "" : filterCatId.toString()}
-          onValueChange={(val) =>
-            setFilterCatId(val === "" ? null : Number(val))
-          }
+          onValueChange={(val) => {
+            const newId = val === "" ? null : Number(val);
+            setFilterCatId(newId);
+            const params = new URLSearchParams(searchParams.toString());
+            if (newId === null) {
+              params.delete("category");
+            } else {
+              params.set("category", newId.toString());
+            }
+            router.replace(`/transactions?${params.toString()}`);
+          }}
         >
           <SelectTrigger size="sm" className="w-44">
             <SelectValue className="!block truncate">
