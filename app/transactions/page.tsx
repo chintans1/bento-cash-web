@@ -7,6 +7,7 @@ import {
   getCategories,
   getTransactionsForMonth,
   updateTransactionCategory,
+  updateTransactionNotes,
   type Transaction,
 } from "@/lib/lunchmoney/client";
 import {
@@ -23,6 +24,7 @@ import { useFetchStatus } from "@/hooks/use-fetch-status";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { MonthSelector } from "@/components/dashboard/month-selector";
 import { cn } from "@/lib/utils";
 import {
@@ -88,6 +90,9 @@ function TransactionsPage() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [editingCatId, setEditingCatId] = useState<number | null>(null);
+  const [expandedTxId, setExpandedTxId] = useState<number | null>(null);
+  const [notesDraft, setNotesDraft] = useState<Record<number, string>>({});
+  const [savingNoteId, setSavingNoteId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!token) return;
@@ -153,6 +158,32 @@ function TransactionsPage() {
     else {
       setSortKey(key);
       setSortDir("desc");
+    }
+  }
+
+  function handleRowClick(txId: number) {
+    setExpandedTxId((prev) => {
+      if (prev === txId) return null;
+      const tx = transactions.find((t) => t.id === txId);
+      setNotesDraft((d) => ({ ...d, [txId]: tx?.notes ?? "" }));
+      return txId;
+    });
+  }
+
+  async function handleNotesBlur(txId: number) {
+    if (!token) return;
+    const tx = transactions.find((t) => t.id === txId);
+    const draft = notesDraft[txId] ?? "";
+    const current = tx?.notes ?? "";
+    if (draft === current) return;
+    setSavingNoteId(txId);
+    try {
+      await updateTransactionNotes(token, txId, draft || null);
+      setTransactions((prev) =>
+        prev.map((t) => (t.id === txId ? { ...t, notes: draft || null } : t))
+      );
+    } finally {
+      setSavingNoteId(null);
     }
   }
 
@@ -298,92 +329,127 @@ function TransactionsPage() {
             const isUncategorized = tx.category_id == null;
             const isEditing = editingCatId === tx.id;
             const isUpdating = updatingId === tx.id;
+            const isExpanded = expandedTxId === tx.id;
+            const isSavingNote = savingNoteId === tx.id;
 
             return (
               <div
                 key={tx.id}
-                className="grid grid-cols-[1fr_80px] items-center gap-4 bg-bento-base px-4 py-3 transition-colors hover:bg-bento-muted/30 sm:grid-cols-[1fr_160px_72px_96px]"
+                className="bg-bento-base transition-colors hover:bg-bento-muted/30"
               >
-                {/* Payee */}
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-bento-muted text-bento-subtle">
-                    <CategoryIcon name={category.name} className="size-4" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate text-sm font-medium">{tx.payee}</p>
-                    {tx.notes && (
-                      <p className="truncate text-xs text-bento-subtle">
-                        {tx.notes}
-                      </p>
-                    )}
-                    <span className="font-mono text-[10px] text-bento-subtle sm:hidden">
-                      {formatShortDate(tx.date)}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Category */}
-                <div className="hidden min-w-0 sm:block">
-                  {isEditing ? (
-                    <Select
-                      value={tx.category_id?.toString() ?? ""}
-                      onValueChange={(val) =>
-                        handleCategoryChange(
-                          tx.id,
-                          val === "" ? null : Number(val)
-                        )
-                      }
-                      onOpenChange={(open) => {
-                        if (!open) setEditingCatId(null);
-                      }}
-                      disabled={isUpdating}
-                    >
-                      <SelectTrigger size="sm" className="h-7 w-full text-xs">
-                        <SelectValue>
-                          {tx.category_id == null
-                            ? "Uncategorized"
-                            : (categoryMap.get(tx.category_id)?.name ??
-                              "Uncategorized")}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent className="min-w-max">
-                        <SelectGroup>
-                          <SelectItem value="">Uncategorized</SelectItem>
-                        </SelectGroup>
-                        <SelectSeparator />
-                        <CategorySelectItems catGroups={catGroups} />
-                      </SelectContent>
-                    </Select>
-                  ) : (
-                    <button
-                      className={cn(
-                        "w-full truncate rounded px-1.5 py-0.5 text-left text-xs transition-colors hover:bg-bento-muted",
-                        isUncategorized
-                          ? "text-amber-600 dark:text-amber-400"
-                          : "text-bento-subtle"
-                      )}
-                      onClick={() => setEditingCatId(tx.id)}
-                    >
-                      {category.name}
-                    </button>
-                  )}
-                </div>
-
-                {/* Date */}
-                <span className="hidden text-center text-xs text-bento-subtle tabular-nums sm:block">
-                  {formatShortDate(tx.date)}
-                </span>
-
-                {/* Amount */}
-                <span
-                  className={cn(
-                    "text-right font-mono text-sm font-medium tabular-nums",
-                    isCredit && "text-green-600 dark:text-green-400"
-                  )}
+                {/* Row */}
+                <div
+                  className="grid cursor-pointer grid-cols-[1fr_80px] items-center gap-4 px-4 py-3 sm:grid-cols-[1fr_160px_72px_96px]"
+                  onClick={() => handleRowClick(tx.id)}
                 >
-                  {isCredit ? "+" : "−"}
-                  {formatAmount(Math.abs(parseFloat(tx.amount)), true)}
-                </span>
+                  {/* Payee */}
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-bento-muted text-bento-subtle">
+                      <CategoryIcon name={category.name} className="size-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">{tx.payee}</p>
+                      {!isExpanded && tx.notes && (
+                        <p className="truncate text-xs text-bento-subtle">
+                          {tx.notes}
+                        </p>
+                      )}
+                      <span className="font-mono text-[10px] text-bento-subtle sm:hidden">
+                        {formatShortDate(tx.date)}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Category */}
+                  <div
+                    className="hidden min-w-0 sm:block"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {isEditing ? (
+                      <Select
+                        value={tx.category_id?.toString() ?? ""}
+                        onValueChange={(val) =>
+                          handleCategoryChange(
+                            tx.id,
+                            val === "" ? null : Number(val)
+                          )
+                        }
+                        onOpenChange={(open) => {
+                          if (!open) setEditingCatId(null);
+                        }}
+                        disabled={isUpdating}
+                      >
+                        <SelectTrigger size="sm" className="h-7 w-full text-xs">
+                          <SelectValue>
+                            {tx.category_id == null
+                              ? "Uncategorized"
+                              : (categoryMap.get(tx.category_id)?.name ??
+                                "Uncategorized")}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent className="min-w-max">
+                          <SelectGroup>
+                            <SelectItem value="">Uncategorized</SelectItem>
+                          </SelectGroup>
+                          <SelectSeparator />
+                          <CategorySelectItems catGroups={catGroups} />
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <button
+                        className={cn(
+                          "w-full truncate rounded px-1.5 py-0.5 text-left text-xs transition-colors hover:bg-bento-muted",
+                          isUncategorized
+                            ? "text-amber-600 dark:text-amber-400"
+                            : "text-bento-subtle"
+                        )}
+                        onClick={() => setEditingCatId(tx.id)}
+                      >
+                        {category.name}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Date */}
+                  <span className="hidden text-center text-xs text-bento-subtle tabular-nums sm:block">
+                    {formatShortDate(tx.date)}
+                  </span>
+
+                  {/* Amount */}
+                  <span
+                    className={cn(
+                      "text-right font-mono text-sm font-medium tabular-nums",
+                      isCredit && "text-green-600 dark:text-green-400"
+                    )}
+                  >
+                    {isCredit ? "+" : "−"}
+                    {formatAmount(Math.abs(parseFloat(tx.amount)), true)}
+                  </span>
+                </div>
+
+                {/* Notes panel */}
+                {isExpanded && (
+                  <div className="border-t border-bento-hairline/50 px-4 pt-2 pb-3">
+                    <Textarea
+                      rows={2}
+                      placeholder="Add a note…"
+                      value={notesDraft[tx.id] ?? ""}
+                      onChange={(e) =>
+                        setNotesDraft((d) => ({
+                          ...d,
+                          [tx.id]: e.target.value,
+                        }))
+                      }
+                      onBlur={() => handleNotesBlur(tx.id)}
+                      disabled={isSavingNote}
+                      autoFocus
+                      className="resize-none text-sm"
+                    />
+                    {isSavingNote && (
+                      <p className="mt-1 text-xs text-bento-subtle">Saving…</p>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}

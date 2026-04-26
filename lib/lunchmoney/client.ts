@@ -120,3 +120,14 @@ export async function updateTransactionCategory(
   });
   return undefined;
 }
+
+export async function updateTransactionNotes(
+  token: string,
+  transactionId: number,
+  notes: string | null
+): Promise<void> {
+  await getClient(token).transactions.update(transactionId, {
+    notes: notes ?? null,
+  });
+  return undefined;
+}
