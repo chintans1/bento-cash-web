@@ -15,6 +15,7 @@
 - [ ] Add sentry
 - [ ] Mobile optimization
 - [ ] Add ability to use multiple budget accounts
+- [ ] Add a demo mode
 
 - [ ] Top merchants, probably should avoid recurring transactions
 - [ ] Spend by category: maybe uncategorized should be last and not shown like that?

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { AlertTriangle } from "lucide-react";
 import { useToken } from "@/hooks/use-token";
+import { Alert, AlertTitle } from "@/components/ui/alert";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { NoTokenPrompt } from "@/components/no-token-prompt";
 import { useMonthNavigation } from "@/hooks/use-month-navigation";
@@ -63,9 +64,9 @@ export default function HomePage() {
 
       {/* Uncategorized Banner */}
       {!loading && uncategorizedCount > 0 && (
-        <div className="mb-4 flex items-center gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 dark:border-amber-700 dark:bg-amber-950/30">
-          <AlertTriangle className="size-4 shrink-0 text-amber-600 dark:text-amber-400" />
-          <p className="flex-1 text-sm text-amber-800 dark:text-amber-300">
+        <Alert className="mb-4 border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30">
+          <AlertTriangle className="text-amber-600 dark:text-amber-400" />
+          <AlertTitle className="text-amber-800 dark:text-amber-300">
             <span className="font-semibold">
               {uncategorizedCount} uncategorized transaction
               {uncategorizedCount !== 1 ? "s" : ""}
@@ -77,8 +78,8 @@ export default function HomePage() {
             >
               assign categories →
             </Link>
-          </p>
-        </div>
+          </AlertTitle>
+        </Alert>
       )}
 
       {/*

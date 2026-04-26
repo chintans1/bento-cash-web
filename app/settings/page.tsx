@@ -11,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Kbd } from "@/components/ui/kbd";
 import { useToken } from "@/hooks/use-token";
 import { getMe, type UserInfo } from "@/lib/lunchmoney/client";
@@ -158,12 +159,16 @@ export default function SettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="pb-0">
-          <div className="rounded-md bg-bento-muted px-4 py-3 text-sm text-bento-subtle">
-            Your token is stored only in your browser&apos;s{" "}
-            <span className="font-medium text-bento-default">localStorage</span>
-            . There is no backend — all API calls go directly from your browser
-            to Lunch Money. Nothing is sent to any server.
-          </div>
+          <Alert>
+            <AlertDescription>
+              Your token is stored only in your browser&apos;s{" "}
+              <span className="font-medium text-bento-default">
+                localStorage
+              </span>
+              . There is no backend — all API calls go directly from your
+              browser to Lunch Money. Nothing is sent to any server.
+            </AlertDescription>
+          </Alert>
         </CardContent>
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">

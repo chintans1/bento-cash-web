@@ -7,6 +7,7 @@ import {
 } from "@/lib/account-utils";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 export function AccountRow({
   account,
@@ -32,15 +33,9 @@ export function AccountRow({
             {account.name}
           </span>
           {account.subtype && (
-            <span className="rounded-full bg-bento-muted px-1.5 py-0.5 text-xs text-bento-subtle">
-              {formatSubtype(account.subtype)}
-            </span>
+            <Badge variant="secondary">{formatSubtype(account.subtype)}</Badge>
           )}
-          {isInactive && (
-            <span className="rounded-full bg-bento-muted px-1.5 py-0.5 text-xs text-bento-subtle">
-              {account.status}
-            </span>
-          )}
+          {isInactive && <Badge variant="secondary">{account.status}</Badge>}
         </div>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-0.5">

@@ -104,7 +104,9 @@ export function buildCategoryMap(
 }
 
 export function filterExpenses(transactions: Transaction[]): Transaction[] {
-  return transactions.filter((tx) => parseFloat(tx.amount) > 0);
+  return transactions.filter(
+    (tx) => parseFloat(tx.amount) > 0 && !tx.is_pending
+  );
 }
 
 /**
@@ -217,14 +219,10 @@ export function computeMoMDeltas(
   return result;
 }
 
-/** Counts uncategorized expense transactions. */
-export function countUncategorized(
-  transactions: Transaction[],
-  catMap: Map<number, CategoryInfo>
-): number {
-  return filterExpenses(transactions).filter(
-    (tx) => tx.category_id == null || !catMap.has(tx.category_id)
-  ).length;
+/** Counts uncategorized transactions (matches the ?category=-1 filter on the transactions page). */
+export function countUncategorized(transactions: Transaction[]): number {
+  return transactions.filter((tx) => !tx.is_pending && tx.category_id == null)
+    .length;
 }
 
 /**

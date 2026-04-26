@@ -4,6 +4,13 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { formatAmount, formatCurrency } from "@/lib/format";
 import { getCategoryIcon } from "@/lib/lunchmoney/category-icons";
 import { UNCATEGORIZED } from "@/lib/lunchmoney/categories";
@@ -139,27 +146,34 @@ export function CategoryRow({
                 <span className="truncate text-bento-subtle">{tx.payee}</span>
                 <div className="flex shrink-0 items-center gap-2">
                   {isEditing ? (
-                    <select
-                      autoFocus
+                    <Select
+                      defaultOpen
                       disabled={isUpdating}
-                      className="h-6 rounded border border-bento-hairline bg-bento-base px-1 text-[11px] text-bento-default"
-                      defaultValue={tx.category_id ?? ""}
-                      onBlur={() => setEditingId(null)}
-                      onChange={(e) => {
-                        const val = e.target.value;
+                      defaultValue={
+                        tx.category_id != null ? String(tx.category_id) : ""
+                      }
+                      onValueChange={(val) =>
                         handleCategoryChange(
                           tx.id,
                           val === "" ? null : Number(val)
-                        );
+                        )
+                      }
+                      onOpenChange={(open) => {
+                        if (!open) setEditingId(null);
                       }}
                     >
-                      <option value="">Uncategorized</option>
-                      {Array.from(categoryMap.entries()).map(([id, info]) => (
-                        <option key={id} value={id}>
-                          {info.name}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger size="sm" className="h-6 text-[11px]">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Uncategorized</SelectItem>
+                        {Array.from(categoryMap.entries()).map(([id, info]) => (
+                          <SelectItem key={id} value={String(id)}>
+                            {info.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   ) : (
                     <button
                       className="text-[11px] text-bento-subtle hover:text-bento-default hover:underline"

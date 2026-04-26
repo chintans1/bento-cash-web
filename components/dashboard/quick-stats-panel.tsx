@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { formatCurrency, formatShortDate } from "@/lib/format";
 import { MONTH_NAMES } from "@/lib/date-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import type { Transaction } from "@/lib/lunchmoney/client";
 import type { CategoryInfo } from "@/lib/lunchmoney/categories";
 import type { QuickStats } from "@/hooks/use-dashboard-data";
@@ -180,12 +181,14 @@ export function QuickStatsPanel({
               {openPanel === "peak" &&
                 `Peak Day — ${formatShortDate(quickStats.peakDay)}`}
             </span>
-            <button
+            <Button
+              variant="ghost"
+              size="icon-sm"
               onClick={() => setOpenPanel(null)}
-              className="flex size-8 items-center justify-center rounded-lg text-bento-subtle transition-colors hover:bg-bento-muted hover:text-bento-default"
+              className="text-bento-subtle hover:text-bento-default"
             >
               <X className="size-3.5" />
-            </button>
+            </Button>
           </div>
           <ul className="divide-y divide-bento-hairline">
             {(openPanel === "income"

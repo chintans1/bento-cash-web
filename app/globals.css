@@ -155,4 +155,18 @@
   html {
     @apply font-sans;
   }
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  [role="tab"],
+  [role="checkbox"],
+  [role="radio"],
+  [role="switch"],
+  [role="menuitem"],
+  [role="option"],
+  [role="combobox"],
+  label[for],
+  select,
+  a[href] {
+    cursor: pointer;
+  }
 }

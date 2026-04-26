@@ -20,6 +20,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
   ACCOUNT_TYPES,
@@ -128,22 +130,19 @@ export function AccountRow({
               </Select>
             </div>
             <div className="flex items-center gap-1.5">
-              <button
-                onClick={saveEdit}
-                disabled={saving}
-                className="flex items-center gap-1 rounded-md bg-bento-brand px-3 py-1.5 text-xs font-medium text-bento-brand-fg disabled:opacity-50"
-              >
+              <Button size="sm" onClick={saveEdit} disabled={saving}>
                 <Check className="h-3 w-3" />
                 {saving ? "Saving…" : "Save"}
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={cancelEdit}
                 disabled={saving}
-                className="flex items-center gap-1 rounded-md border border-bento-hairline px-3 py-1.5 text-xs font-medium text-bento-subtle hover:text-bento-default disabled:opacity-50"
               >
                 <X className="h-3 w-3" />
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -160,23 +159,23 @@ export function AccountRow({
                 {account.name}
               </span>
               {account.subtype && (
-                <span className="rounded-full bg-bento-muted px-1.5 py-0.5 text-xs text-bento-subtle">
+                <Badge variant="secondary">
                   {formatSubtype(account.subtype)}
-                </span>
+                </Badge>
               )}
               {isInactive && (
-                <span className="rounded-full bg-bento-muted px-1.5 py-0.5 text-xs text-bento-subtle">
-                  {account.status}
-                </span>
+                <Badge variant="secondary">{account.status}</Badge>
               )}
               {account.source === "manual" && (
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
                   onClick={startEdit}
-                  className="text-bento-subtle/60 transition-colors hover:text-bento-default"
                   title="Edit type / subtype"
+                  className="text-bento-subtle/60 hover:text-bento-default"
                 >
                   <Pencil className="h-3 w-3" />
-                </button>
+                </Button>
               )}
             </div>
             <p className="mt-0.5 text-xs text-bento-subtle capitalize">

@@ -168,8 +168,8 @@ export function useDashboardData(
   );
 
   const uncategorizedCount = useMemo(
-    () => countUncategorized(transactions, categoryMap),
-    [transactions, categoryMap]
+    () => countUncategorized(transactions),
+    [transactions]
   );
 
   const quickStats = useMemo((): QuickStats | null => {
