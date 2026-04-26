@@ -1,3 +1,4 @@
+import React from "react";
 import {
   type LucideIcon,
   ArrowLeftRight,
@@ -196,23 +197,24 @@ const CATEGORY_ICON_MAP: Record<string, LucideIcon> = {
   uncategorized: CircleQuestionMark,
 };
 
-export function getCategoryIcon(categoryName: string | null): LucideIcon {
-  if (!categoryName) {
-    return Receipt;
-  }
-
+function lookupCategoryIcon(categoryName: string | null): LucideIcon {
+  if (!categoryName) return Receipt;
   const lower = categoryName.toLowerCase();
-
-  if (CATEGORY_ICON_MAP[lower]) {
-    return CATEGORY_ICON_MAP[lower];
-  }
-
-  // Partial match — check if the category name contains a known keyword
+  if (CATEGORY_ICON_MAP[lower]) return CATEGORY_ICON_MAP[lower];
   for (const [key, icon] of Object.entries(CATEGORY_ICON_MAP)) {
-    if (lower.includes(key)) {
-      return icon;
-    }
+    if (lower.includes(key)) return icon;
   }
-
   return Receipt;
+}
+
+export function CategoryIcon({
+  name,
+  className,
+  style,
+}: {
+  name: string | null;
+  className?: string;
+  style?: React.CSSProperties;
+}) {
+  return React.createElement(lookupCategoryIcon(name), { className, style });
 }

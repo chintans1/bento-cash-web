@@ -66,9 +66,6 @@ export type DashboardData = {
   sortedSpendTxs: Transaction[];
   peakDayPanelTxs: Transaction[];
   maxCatSpend: number;
-
-  // Actions
-  handleCategoryUpdated: (txId: number, newCatId: number | null) => void;
 };
 
 export function useDashboardData(
@@ -230,14 +227,6 @@ export function useDashboardData(
 
   const maxCatSpend = categoryTotals[0]?.spend ?? 0;
 
-  // Optimistic update: patch local state immediately after a category reassign,
-  // so the UI reflects the change without needing a full re-fetch.
-  function handleCategoryUpdated(txId: number, newCatId: number | null) {
-    setTransactions((prev) =>
-      prev.map((tx) => (tx.id === txId ? { ...tx, category_id: newCatId } : tx))
-    );
-  }
-
   return {
     transactions,
     categoryMap,
@@ -256,6 +245,5 @@ export function useDashboardData(
     sortedSpendTxs,
     peakDayPanelTxs,
     maxCatSpend,
-    handleCategoryUpdated,
   };
 }

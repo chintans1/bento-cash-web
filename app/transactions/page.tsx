@@ -14,7 +14,7 @@ import {
   filterSpendTransactions,
   type CategoryGroupEntry,
 } from "@/lib/lunchmoney/analytics";
-import { getCategoryIcon } from "@/lib/lunchmoney/category-icons";
+import { CategoryIcon } from "@/lib/lunchmoney/category-icons";
 import { type CategoryInfo, UNCATEGORIZED } from "@/lib/lunchmoney/categories";
 import { formatAmount, formatShortDate } from "@/lib/format";
 import { NoTokenPrompt } from "@/components/no-token-prompt";
@@ -294,7 +294,6 @@ function TransactionsPage() {
               tx.category_id != null
                 ? (categoryMap.get(tx.category_id) ?? UNCATEGORIZED)
                 : UNCATEGORIZED;
-            const Icon = getCategoryIcon(category.name);
             const isCredit = parseFloat(tx.amount) < 0;
             const isUncategorized = tx.category_id == null;
             const isEditing = editingCatId === tx.id;
@@ -308,7 +307,7 @@ function TransactionsPage() {
                 {/* Payee */}
                 <div className="flex min-w-0 items-center gap-3">
                   <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-bento-muted text-bento-subtle">
-                    <Icon className="size-4" />
+                    <CategoryIcon name={category.name} className="size-4" />
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{tx.payee}</p>

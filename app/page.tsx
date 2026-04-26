@@ -46,7 +46,6 @@ export default function HomePage() {
     sortedSpendTxs,
     peakDayPanelTxs,
     maxCatSpend,
-    handleCategoryUpdated,
   } = useDashboardData(token, selectedYear, selectedMonth);
 
   if (!token) {
@@ -151,8 +150,6 @@ export default function HomePage() {
                     primaryCurrency={primaryCurrency}
                     transactions={transactions}
                     categoryMap={categoryMap}
-                    token={token}
-                    onCategoryUpdated={handleCategoryUpdated}
                   />
                 ))}
               </ul>
