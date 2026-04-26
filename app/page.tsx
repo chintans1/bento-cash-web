@@ -1,32 +1,27 @@
 "use client";
 
-import Link from "next/link";
-import { AlertTriangle } from "lucide-react";
 import { useToken } from "@/hooks/use-token";
-import { Alert, AlertTitle } from "@/components/ui/alert";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { NoTokenPrompt } from "@/components/no-token-prompt";
 import { useMonthNavigation } from "@/hooks/use-month-navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MonthSelector } from "@/components/dashboard/month-selector";
+import { UncategorizedBanner } from "@/components/dashboard/uncategorized-banner";
 import { QuickStatsPanel } from "@/components/dashboard/quick-stats-panel";
 import { NetCashFlowBar } from "@/components/dashboard/net-cash-flow-bar";
-import { DailySpendChart } from "@/components/dashboard/daily-spend-chart";
-import { CategoryRow, CAT_COLORS } from "@/components/dashboard/category-row";
+import { DailySpendCard } from "@/components/dashboard/daily-spend-card";
+import { SpendByCategoryCard } from "@/components/dashboard/spend-by-category-card";
 import { TopMerchantsCard } from "@/components/dashboard/top-merchants-card";
 import { BudgetProgressCard } from "@/components/dashboard/budget-progress-card";
 import { SubscriptionsCard } from "@/components/dashboard/subscriptions-card";
-import { MONTH_NAMES } from "@/lib/date-utils";
 
 export default function HomePage() {
   const { token } = useToken();
-  const now = new Date();
   const {
     year: selectedYear,
     month: selectedMonth,
     onPrev,
     onNext,
-  } = useMonthNavigation(now.getFullYear(), now.getMonth() + 1);
+  } = useMonthNavigation(new Date().getFullYear(), new Date().getMonth() + 1);
 
   const {
     transactions,
@@ -61,25 +56,7 @@ export default function HomePage() {
         onNext={onNext}
       />
 
-      {/* Uncategorized Banner */}
-      {!loading && uncategorizedCount > 0 && (
-        <Alert className="mb-4 border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30">
-          <AlertTriangle className="text-amber-600 dark:text-amber-400" />
-          <AlertTitle className="text-amber-800 dark:text-amber-300">
-            <span className="font-semibold">
-              {uncategorizedCount} uncategorized transaction
-              {uncategorizedCount !== 1 ? "s" : ""}
-            </span>
-            {" — "}
-            <Link
-              href="/transactions?category=-1"
-              className="underline underline-offset-2 hover:text-amber-900 dark:hover:text-amber-200"
-            >
-              assign categories →
-            </Link>
-          </AlertTitle>
-        </Alert>
-      )}
+      {!loading && <UncategorizedBanner count={uncategorizedCount} />}
 
       {/*
         key={`${selectedYear}-${selectedMonth}`} causes React to fully unmount
@@ -99,7 +76,6 @@ export default function HomePage() {
         loading={loading}
       />
 
-      {/* Net Cash Flow + Daily Chart row */}
       {!loading && quickStats && (
         <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
           <NetCashFlowBar
@@ -107,55 +83,25 @@ export default function HomePage() {
             spend={quickStats.totalSpend}
             primaryCurrency={primaryCurrency}
           />
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">
-                Daily Spend — {MONTH_NAMES[selectedMonth - 1]}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <DailySpendChart
-                data={dailySpend}
-                primaryCurrency={primaryCurrency}
-              />
-            </CardContent>
-          </Card>
+          <DailySpendCard
+            data={dailySpend}
+            month={selectedMonth}
+            primaryCurrency={primaryCurrency}
+          />
         </div>
       )}
 
-      {/* Category drill-down + Top Merchants */}
       <div className="mb-4 grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-lg">Spend by Category</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <p className="text-sm text-bento-subtle">Loading…</p>
-            ) : error ? (
-              <p className="text-sm text-bento-danger">{error}</p>
-            ) : categoryTotals.length === 0 ? (
-              <p className="text-sm text-bento-subtle">
-                No spending data found.
-              </p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {categoryTotals.map((cat, i) => (
-                  <CategoryRow
-                    key={cat.id}
-                    cat={cat}
-                    color={CAT_COLORS[i % CAT_COLORS.length]}
-                    maxSpend={maxCatSpend}
-                    delta={momDeltas.get(cat.id)}
-                    primaryCurrency={primaryCurrency}
-                    transactions={transactions}
-                    categoryMap={categoryMap}
-                  />
-                ))}
-              </ul>
-            )}
-          </CardContent>
-        </Card>
+        <SpendByCategoryCard
+          categoryTotals={categoryTotals}
+          momDeltas={momDeltas}
+          maxCatSpend={maxCatSpend}
+          primaryCurrency={primaryCurrency}
+          transactions={transactions}
+          categoryMap={categoryMap}
+          loading={loading}
+          error={error}
+        />
 
         <TopMerchantsCard
           merchantTotals={merchantTotals}

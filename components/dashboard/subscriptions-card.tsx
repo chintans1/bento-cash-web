@@ -36,7 +36,7 @@ export function SubscriptionsCard({
   const total = monthly.reduce((s, i) => s + i.monthlyAmount, 0);
 
   return (
-    <Card className="-mt-7">
+    <Card>
       <CardHeader>
         <div className="flex items-baseline justify-between">
           <CardTitle className="text-lg">Subscriptions & Recurring</CardTitle>
