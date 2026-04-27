@@ -26,7 +26,7 @@ export default function SettingsPage() {
   const [floorMonthsInput, setFloorMonthsInput] = useState<string>("3");
 
   useEffect(() => {
-    if (token) fetchUser(token);
+    if (token) fetchUser();
     const raw = localStorage.getItem("investable_months");
     const parsed = raw !== null ? parseInt(raw, 10) : NaN;
     const val = Number.isFinite(parsed) && parsed > 0 ? parsed : 3;
@@ -43,11 +43,11 @@ export default function SettingsPage() {
     }
   }
 
-  async function fetchUser(apiToken: string) {
+  async function fetchUser() {
     setLoading(true);
     setError(null);
     try {
-      setUser(await getMe(apiToken));
+      setUser(await getMe());
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setUser(null);

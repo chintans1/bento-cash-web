@@ -15,7 +15,7 @@ import { BudgetProgressCard } from "@/components/dashboard/budget-progress-card"
 import { SubscriptionsCard } from "@/components/dashboard/subscriptions-card";
 
 export default function HomePage() {
-  const { token } = useToken();
+  const { isAuthenticated } = useToken();
   const {
     year: selectedYear,
     month: selectedMonth,
@@ -41,9 +41,9 @@ export default function HomePage() {
     sortedSpendTxs,
     peakDayPanelTxs,
     maxCatSpend,
-  } = useDashboardData(token, selectedYear, selectedMonth);
+  } = useDashboardData(isAuthenticated, selectedYear, selectedMonth);
 
-  if (!token) {
+  if (!isAuthenticated) {
     return <NoTokenPrompt />;
   }
 
