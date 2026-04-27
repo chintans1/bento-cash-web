@@ -65,7 +65,7 @@ function CategorySelectItems({
 }
 
 function TransactionsPage() {
-  const { token } = useToken();
+  const { isAuthenticated } = useToken();
   const router = useRouter();
   const searchParams = useSearchParams();
   const now = new Date();
@@ -95,11 +95,11 @@ function TransactionsPage() {
   const [savingNoteId, setSavingNoteId] = useState<number | null>(null);
 
   useEffect(() => {
-    if (!token) return;
+    if (!isAuthenticated) return;
     setFetchStatus({ loading: true, error: null });
     Promise.all([
-      getTransactionsForMonth(token, selectedYear, selectedMonth),
-      getCategories(token),
+      getTransactionsForMonth(selectedYear, selectedMonth),
+      getCategories(),
     ])
       .then(([txRes, catRes]) => {
         const { categoryMap, catGroups } = buildCategoryData(catRes);
@@ -114,7 +114,7 @@ function TransactionsPage() {
           error: err instanceof Error ? err.message : "Something went wrong",
         });
       });
-  }, [token, selectedYear, selectedMonth, setFetchStatus]);
+  }, [isAuthenticated, selectedYear, selectedMonth, setFetchStatus]);
 
   const filtered = useMemo(() => {
     let result = [...transactions];
@@ -171,14 +171,14 @@ function TransactionsPage() {
   }
 
   async function handleNotesBlur(txId: number) {
-    if (!token) return;
+    if (!isAuthenticated) return;
     const tx = transactions.find((t) => t.id === txId);
     const draft = notesDraft[txId] ?? "";
     const current = tx?.notes ?? "";
     if (draft === current) return;
     setSavingNoteId(txId);
     try {
-      await updateTransactionNotes(token, txId, draft || null);
+      await updateTransactionNotes(txId, draft || null);
       setTransactions((prev) =>
         prev.map((t) => (t.id === txId ? { ...t, notes: draft || null } : t))
       );
@@ -188,10 +188,10 @@ function TransactionsPage() {
   }
 
   async function handleCategoryChange(txId: number, newCatId: number | null) {
-    if (!token) return;
+    if (!isAuthenticated) return;
     setUpdatingId(txId);
     try {
-      await updateTransactionCategory(token, txId, newCatId);
+      await updateTransactionCategory(txId, newCatId);
       setTransactions((prev) =>
         prev.map((tx) =>
           tx.id === txId ? { ...tx, category_id: newCatId } : tx
@@ -203,7 +203,7 @@ function TransactionsPage() {
     }
   }
 
-  if (!token) return <NoTokenPrompt />;
+  if (!isAuthenticated) return <NoTokenPrompt />;
 
   const SortIcon = ({ k }: { k: SortKey }) =>
     sortKey === k ? (

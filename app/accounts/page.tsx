@@ -27,7 +27,7 @@ import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export default function AccountsPage() {
-  const { token } = useToken();
+  const { isAuthenticated } = useToken();
   const [accounts, setAccounts] = useState<NormalizedAccount[]>([]);
   const [primaryCurrency, setPrimaryCurrency] = useState("usd");
   const [{ loading, error }, setFetchStatus] = useFetchStatus();
@@ -43,8 +43,7 @@ export default function AccountsPage() {
 
   // Non-blocking secondary fetch: triggers after accounts load
   useEffect(() => {
-    if (!token || accounts.length === 0) return;
-    const t = token;
+    if (!isAuthenticated || accounts.length === 0) return;
 
     async function load() {
       setInvestable({ status: "loading" });
@@ -52,12 +51,10 @@ export default function AccountsPage() {
       const months = getLastThreeFullMonths(new Date());
       try {
         const [catMap, monthlyTxArrays] = await Promise.all([
-          getCategories(t).then((r) => buildCategoryMap(r)),
+          getCategories().then((r) => buildCategoryMap(r)),
           Promise.all(
             months.map(({ year, month }) =>
-              getTransactionsForMonth(t, year, month).then(
-                (r) => r.transactions
-              )
+              getTransactionsForMonth(year, month).then((r) => r.transactions)
             )
           ),
         ]);
@@ -106,19 +103,18 @@ export default function AccountsPage() {
     }
 
     load();
-  }, [token, accounts, floorMonths]);
+  }, [isAuthenticated, accounts, floorMonths]);
 
   useEffect(() => {
-    if (!token) return;
-    const t = token;
+    if (!isAuthenticated) return;
 
     async function load() {
       setFetchStatus({ loading: true, error: null });
-      getMe(t)
+      getMe()
         .then((user) => setPrimaryCurrency(user.primary_currency))
         .catch(() => {});
       try {
-        const { manual, plaid } = await getAccounts(t);
+        const { manual, plaid } = await getAccounts();
         setAccounts(normalizeAccounts(manual, plaid));
         setFetchStatus({ loading: false, error: null });
       } catch (err) {
@@ -130,9 +126,9 @@ export default function AccountsPage() {
     }
 
     load();
-  }, [token, setFetchStatus]);
+  }, [isAuthenticated, setFetchStatus]);
 
-  if (!token) return <NoTokenPrompt />;
+  if (!isAuthenticated) return <NoTokenPrompt />;
 
   const assets = accounts.filter(
     (a) => !a.isLiability && a.status !== "closed"

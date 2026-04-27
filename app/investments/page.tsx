@@ -25,21 +25,20 @@ import {
 import { cn } from "@/lib/utils";
 
 export default function InvestmentsPage() {
-  const { token } = useToken();
+  const { isAuthenticated } = useToken();
   const [accounts, setAccounts] = useState<NormalizedAccount[]>([]);
   const [primaryCurrency, setPrimaryCurrency] = useState("usd");
   const [{ loading, error }, setFetchStatus] = useFetchStatus();
 
   useEffect(() => {
-    if (!token) return;
-    const t = token;
+    if (!isAuthenticated) return;
 
     async function load() {
       setFetchStatus({ loading: true, error: null });
       try {
         const [user, { manual, plaid }] = await Promise.all([
-          getMe(t),
-          getAccounts(t),
+          getMe(),
+          getAccounts(),
         ]);
         setPrimaryCurrency(user.primary_currency);
         setAccounts(
@@ -55,7 +54,7 @@ export default function InvestmentsPage() {
     }
 
     load();
-  }, [token, setFetchStatus]);
+  }, [isAuthenticated, setFetchStatus]);
 
   function handleSaved(id: string, type: AccountType, subtype: string) {
     setAccounts((prev) =>
@@ -65,7 +64,7 @@ export default function InvestmentsPage() {
     );
   }
 
-  if (!token) return <NoTokenPrompt />;
+  if (!isAuthenticated) return <NoTokenPrompt />;
 
   const investmentAccounts = accounts.filter(isInvestment);
   const otherAccounts = accounts.filter((a) => !isInvestment(a));
@@ -178,7 +177,6 @@ export default function InvestmentsPage() {
                                   key={a.id}
                                   account={a}
                                   primaryCurrency={primaryCurrency}
-                                  token={token}
                                   onSaved={handleSaved}
                                 />
                               ))}
@@ -220,7 +218,6 @@ export default function InvestmentsPage() {
                               key={a.id}
                               account={a}
                               primaryCurrency={primaryCurrency}
-                              token={token}
                               onSaved={handleSaved}
                             />
                           ))}

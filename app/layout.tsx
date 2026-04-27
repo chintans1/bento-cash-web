@@ -2,6 +2,7 @@ import { Geist_Mono, Public_Sans, Playfair_Display } from "next/font/google";
 
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
+import { TokenProvider } from "@/hooks/use-token";
 import { Header } from "@/components/header";
 import { cn } from "@/lib/utils";
 import { Analytics } from "@vercel/analytics/react";
@@ -37,8 +38,10 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>
-          <Header />
-          <main>{children}</main>
+          <TokenProvider>
+            <Header />
+            <main>{children}</main>
+          </TokenProvider>
           <Analytics />
         </ThemeProvider>
       </body>

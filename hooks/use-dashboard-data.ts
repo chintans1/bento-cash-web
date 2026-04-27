@@ -69,7 +69,7 @@ export type DashboardData = {
 };
 
 export function useDashboardData(
-  token: string | null,
+  isAuthenticated: boolean,
   year: number,
   month: number
 ): DashboardData {
@@ -90,27 +90,26 @@ export function useDashboardData(
     error: string | null;
   }>({ loading: false, error: null });
 
-  // Fetch the user's primary currency once when the token changes
+  // Fetch the user's primary currency once when auth state changes
   useEffect(() => {
-    if (!token) return;
-    getMe(token)
+    if (!isAuthenticated) return;
+    getMe()
       .then((user) => setPrimaryCurrency(user.primary_currency))
       .catch(() => {});
-  }, [token]);
+  }, [isAuthenticated]);
 
-  // Re-fetch all transaction data whenever the token or selected month changes
+  // Re-fetch all transaction data whenever the auth state or selected month changes
   useEffect(() => {
-    if (!token) return;
-    const t = token;
+    if (!isAuthenticated) return;
     const prev = prevMonthOf(year, month);
 
     async function load() {
       setFetchStatus({ loading: true, error: null });
       try {
         const [txRes, prevTxRes, catRes] = await Promise.all([
-          getTransactionsForMonth(t, year, month),
-          getTransactionsForMonth(t, prev.year, prev.month),
-          getCategories(t),
+          getTransactionsForMonth(year, month),
+          getTransactionsForMonth(prev.year, prev.month),
+          getCategories(),
         ]);
         setTransactions(txRes.transactions);
         setPrevTransactions(prevTxRes.transactions);
@@ -127,13 +126,13 @@ export function useDashboardData(
     load();
 
     // These are non-critical — load after the main render, silently ignore errors
-    getRecurringItems(t)
+    getRecurringItems()
       .then(setRecurringItems)
       .catch(() => {});
-    getBudgetSummary(t, year, month)
+    getBudgetSummary(year, month)
       .then(setBudgetSummary)
       .catch(() => {});
-  }, [token, year, month]);
+  }, [isAuthenticated, year, month]);
 
   // ── Derived data ────────────────────────────────────────────────────────────
   // useMemo means "only recompute when the listed dependencies change". Without

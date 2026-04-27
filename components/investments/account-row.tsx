@@ -32,12 +32,10 @@ import {
 export function AccountRow({
   account,
   primaryCurrency,
-  token,
   onSaved,
 }: {
   account: NormalizedAccount;
   primaryCurrency: string;
-  token: string;
   onSaved: (id: string, type: AccountType, subtype: string) => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -62,7 +60,7 @@ export function AccountRow({
   async function saveEdit() {
     setSaving(true);
     try {
-      await updateManualAccount(token, account.rawId, {
+      await updateManualAccount(account.rawId, {
         type: editType,
         subtype: editSubtype || undefined,
       });
