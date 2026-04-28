@@ -434,8 +434,8 @@ export function createDemoClient(): LMClient {
         (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       return Promise.resolve({
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         transactions: transactions as any,
         has_more: false,
       } as TransactionsResponse);

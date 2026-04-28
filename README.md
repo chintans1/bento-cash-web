@@ -2,18 +2,44 @@
 
 A richer analytics interface for [Lunch Money](https://lunchmoney.app) — faster daily-use, deeper spending insights, and a cleaner view of your financial picture than the native Lunch Money UI.
 
-![Bento Cash screenshot](public/screenshot.png)
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="screenshots/dark-mode.png">
+  <source media="(prefers-color-scheme: light)" srcset="screenshots/light-mode.png">
+  <img alt="Bento Cash dashboard" src="screenshots/light-mode.png">
+</picture>
+
+## Try the demo
+
+No account needed — hit **Try Demo** from the home screen to explore with sample data.
 
 ## What it does
 
-- **Dashboard** — monthly spend by category with MoM deltas, daily spend chart, top merchants, budget progress, and recurring subscriptions at a glance
-- **Transactions** — searchable, filterable, sortable transaction list with inline category reassignment
-- **Accounts** — net worth overview grouped by institution, covering both Plaid-synced and manual accounts
-- **Uncategorized alerts** — surfaces transactions missing a category so you can clean them up quickly
+**Dashboard** — income vs. spend, daily spend chart, net cash flow, and month-over-month deltas on every category. Expand any category to see individual transactions and reassign them inline.
+
+<img alt="Spend by category with drill-down" src="screenshots/spend-by-category.png">
+
+**Transactions** — searchable, filterable, sortable list for any month. Category edits write back to Lunch Money immediately.
+
+<img alt="Transactions filtered by Food and Dining" src="screenshots/transactions.png">
+
+**Accounts** — net worth overview with assets and liabilities grouped by institution, covering Plaid-synced and manual accounts.
+
+**Investments** — portfolio allocation and account breakdown across all investment accounts.
+
+**Uncategorized alerts** — amber banner whenever transactions are missing a category, with a direct link to fix them.
+
+## Dark and light mode
+
+Press `d` to toggle. Works across all pages.
+
+<div align="center">
+  <img src="screenshots/dark-mode.png" width="49%" alt="Dark mode">
+  <img src="screenshots/light-mode.png" width="49%" alt="Light mode">
+</div>
 
 ## How it works
 
-Bento Cash is a fully client-side Next.js app. There is no backend, no server, and no proxy. Your Lunch Money API token is stored in your browser's `localStorage` and API calls go directly from your browser to Lunch Money.
+Bento Cash is fully client-side — no backend, no server, no proxy. Your Lunch Money API token is stored in your browser's `localStorage` and API calls go directly from your browser to Lunch Money.
 
 Nothing leaves your browser except requests to the Lunch Money API.
 
