@@ -198,12 +198,12 @@ export function QuickStatsPanel({
                   ? sortedSpendTxs
                   : peakDayPanelTxs
               ).map((tx) => {
+                const catName =
+                  tx.category_id != null
+                    ? (categoryMap.get(tx.category_id)?.name ?? "Uncategorized")
+                    : "Uncategorized";
                 const isCategorized =
-                  tx.category_id != null &&
-                  categoryMap.get(tx.category_id)?.name;
-                const catName = isCategorized
-                  ? categoryMap.get(tx.category_id)?.name
-                  : "Uncategorized";
+                  tx.category_id != null && categoryMap.has(tx.category_id);
                 const amt = parseFloat(tx.amount);
                 const isIncome = amt < 0;
                 return (
