@@ -6,11 +6,9 @@ import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatAmount, formatCurrency } from "@/lib/format";
 import { CategoryIcon } from "@/lib/lunchmoney/category-icons";
-import { UNCATEGORIZED } from "@/lib/lunchmoney/categories";
 import { getTransactionsForCategory } from "@/lib/lunchmoney/analytics";
 import { type Transaction } from "@/lib/lunchmoney/client";
 import type { CategoryTotal, MoMDelta } from "@/lib/lunchmoney/analytics";
-import type { CategoryInfo } from "@/lib/lunchmoney/categories";
 import { MoMBadge } from "./mom-badge";
 
 export const CAT_COLORS = [
@@ -30,7 +28,6 @@ export function CategoryRow({
   delta,
   primaryCurrency,
   transactions,
-  categoryMap,
 }: {
   cat: CategoryTotal;
   color: string;
@@ -38,7 +35,6 @@ export function CategoryRow({
   delta: MoMDelta | undefined;
   primaryCurrency: string;
   transactions: Transaction[];
-  categoryMap: Map<number, CategoryInfo>;
 }) {
   const [expanded, setExpanded] = useState(false);
 
@@ -94,10 +90,6 @@ export function CategoryRow({
       {expanded && topTxs.length > 0 && (
         <ul className="mt-1 mb-2 ml-10 flex flex-col gap-0.5 border-l-2 border-bento-hairline pl-3">
           {topTxs.map((tx) => {
-            const catInfo =
-              tx.category_id != null
-                ? (categoryMap.get(tx.category_id) ?? UNCATEGORIZED)
-                : UNCATEGORIZED;
             return (
               <li
                 key={tx.id}
