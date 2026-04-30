@@ -54,18 +54,14 @@ export function NetCashFlowBar({
             style={{ width: `${spendWidth}%` }}
           />
         </div>
-        <div className="mt-1.5 flex text-sm">
-          <span
-            className="font-medium text-green-600 dark:text-green-400"
-            style={{ width: `${incomeWidth}%` }}
-          >
-            {formatCurrency(income, primaryCurrency, false)} in
+        <div className="mt-1.5 flex items-baseline justify-between gap-2 text-sm">
+          <span className="font-medium text-green-600 dark:text-green-400">
+            {formatCurrency(income, primaryCurrency, false)}{" "}
+            <span className="text-xs font-normal text-bento-subtle">in</span>
           </span>
-          <span
-            className="text-right font-medium text-rose-500"
-            style={{ width: `${spendWidth}%` }}
-          >
-            {formatCurrency(spend, primaryCurrency, false)} out
+          <span className="font-medium text-rose-500">
+            {formatCurrency(spend, primaryCurrency, false)}{" "}
+            <span className="text-xs font-normal text-bento-subtle">out</span>
           </span>
         </div>
       </CardContent>

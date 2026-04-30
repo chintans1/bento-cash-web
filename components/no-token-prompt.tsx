@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Kbd } from "./ui/kbd";
+import { PasteButton } from "./paste-button";
 
 export function NoTokenPrompt() {
   const { setToken, enterDemo } = useToken();
@@ -32,11 +33,8 @@ export function NoTokenPrompt() {
   return (
     <div className="mx-auto flex max-w-sm animate-in flex-col items-center gap-8 px-6 pt-32 text-center duration-500 fill-mode-both fade-in">
       <div className="flex flex-col gap-2">
-        <h1 className="font-heading text-5xl font-bold">
-          Bento Cash{" "}
-          <span className="font-mono text-lg font-bold text-bento-subtle">
-            web
-          </span>
+        <h1 className="font-heading text-5xl font-bold tracking-tight">
+          Bento Cash
         </h1>
         <p className="text-bento-subtle">
           Richer analytics for your Lunch Money finances.
@@ -65,15 +63,20 @@ export function NoTokenPrompt() {
       </Alert>
 
       <form onSubmit={handleConnect} className="flex w-full flex-col gap-3">
-        <Input
-          type="password"
-          placeholder="Lunch Money API token"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          autoComplete="off"
-          disabled={loading}
-          className="h-10"
-        />
+        <div className="relative">
+          <Input
+            type="password"
+            placeholder="Lunch Money API token"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            autoComplete="off"
+            disabled={loading}
+            className="h-10 pr-9"
+          />
+          {!input && !loading && (
+            <PasteButton onPaste={(text) => setInput(text)} />
+          )}
+        </div>
         {error && (
           <p className="text-left text-sm text-bento-danger">{error}</p>
         )}

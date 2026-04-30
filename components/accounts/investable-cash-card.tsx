@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { Check, X } from "lucide-react";
 import { type InvestableState } from "@/lib/investable-utils";
 import { formatCurrency } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,16 +70,11 @@ export function InvestableCashCard({
                 return (
                   <div className="flex items-center justify-between gap-4">
                     <div className="flex min-w-0 items-center gap-2">
-                      <span
-                        className={cn(
-                          "text-sm",
-                          ok
-                            ? "text-green-600 dark:text-green-400"
-                            : "text-amber-600 dark:text-amber-400"
-                        )}
-                      >
-                        {ok ? "✓" : "✗"}
-                      </span>
+                      {ok ? (
+                        <Check className="size-3.5 shrink-0 text-green-600 dark:text-green-400" />
+                      ) : (
+                        <X className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                      )}
                       <span className="truncate text-sm text-bento-subtle">
                         Checking buffer (1mo)
                       </span>
@@ -113,16 +109,11 @@ export function InvestableCashCard({
 
               <div className="flex items-center justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-2">
-                  <span
-                    className={cn(
-                      "text-sm",
-                      state.savingsFunded
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-amber-600 dark:text-amber-400"
-                    )}
-                  >
-                    {state.savingsFunded ? "✓" : "✗"}
-                  </span>
+                  {state.savingsFunded ? (
+                    <Check className="size-3.5 shrink-0 text-green-600 dark:text-green-400" />
+                  ) : (
+                    <X className="size-3.5 shrink-0 text-amber-600 dark:text-amber-400" />
+                  )}
                   <span className="truncate text-sm text-bento-subtle">
                     Emergency fund ({state.savingsMonths}mo)
                   </span>

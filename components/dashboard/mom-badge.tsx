@@ -16,7 +16,7 @@ export function MoMBadge({ delta }: { delta: MoMDelta | undefined }) {
           : "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
       )}
     >
-      {label} vs last mo.
+      {label}
     </Badge>
   );
 }

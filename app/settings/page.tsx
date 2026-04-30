@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Kbd } from "@/components/ui/kbd";
 import { useToken } from "@/hooks/use-token";
 import { getMe, type UserInfo } from "@/lib/lunchmoney/client";
+import { PasteButton } from "@/components/paste-button";
 
 export default function SettingsPage() {
   const { token, setToken, clearToken } = useToken();
@@ -77,7 +78,7 @@ export default function SettingsPage() {
 
   if (user) {
     return (
-      <div className="flex flex-col items-center gap-5 p-6 pt-12">
+      <div className="flex flex-col items-center gap-5 px-4 pt-12 pb-24 sm:p-6 sm:pb-6">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-xl">{user.name}</CardTitle>
@@ -149,7 +150,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col items-center gap-5 p-6 pt-12">
+    <div className="flex flex-col items-center gap-5 px-4 pt-12 pb-24 sm:p-6 sm:pb-6">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-xl">Connect Lunch Money</CardTitle>
@@ -172,15 +173,20 @@ export default function SettingsPage() {
         </CardContent>
         <CardContent>
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            <Input
-              type="password"
-              placeholder="API token"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              autoComplete="off"
-              disabled={loading}
-              className="h-11 text-base"
-            />
+            <div className="relative">
+              <Input
+                type="password"
+                placeholder="API token"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                autoComplete="off"
+                disabled={loading}
+                className="h-11 pr-9 text-base"
+              />
+              {!input && !loading && (
+                <PasteButton onPaste={(text) => setInput(text)} />
+              )}
+            </div>
             {error && <p className="text-base text-bento-danger">{error}</p>}
             <Button type="submit" size="lg" disabled={loading || !input.trim()}>
               {loading ? "Connecting…" : "Connect"}
