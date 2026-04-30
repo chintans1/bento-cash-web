@@ -58,7 +58,7 @@ export default function HomePage() {
 
   return (
     <div
-      className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6"
+      className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:px-6 sm:pb-10"
       {...swipe}
     >
       <MonthSelector

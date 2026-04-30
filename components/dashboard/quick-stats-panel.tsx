@@ -74,7 +74,7 @@ export function QuickStatsPanel({
                 <p className="text-xs font-medium uppercase tracking-wide text-bento-subtle">
                   Income
                 </p>
-                <p className="text-3xl font-bold leading-none text-green-500 tabular-nums">
+                <p className="text-2xl font-bold leading-none sm:text-3xl text-green-500 tabular-nums">
                   {formatCurrency(
                     quickStats.totalIncome,
                     primaryCurrency,
@@ -100,7 +100,7 @@ export function QuickStatsPanel({
                 <p className="text-xs font-medium uppercase tracking-wide text-bento-subtle">
                   Spend
                 </p>
-                <p className="text-3xl font-bold leading-none text-rose-500 tabular-nums">
+                <p className="text-2xl font-bold leading-none sm:text-3xl text-rose-500 tabular-nums">
                   {formatCurrency(
                     quickStats.totalSpend,
                     primaryCurrency,
@@ -118,7 +118,7 @@ export function QuickStatsPanel({
                 <p className="text-xs font-medium uppercase tracking-wide text-bento-subtle">
                   Avg / Day
                 </p>
-                <p className="text-3xl font-bold leading-none text-blue-500 tabular-nums">
+                <p className="text-2xl font-bold leading-none sm:text-3xl text-blue-500 tabular-nums">
                   {formatCurrency(
                     quickStats.avgSpendPerDay,
                     primaryCurrency,
@@ -144,7 +144,7 @@ export function QuickStatsPanel({
                 <p className="text-xs font-medium uppercase tracking-wide text-bento-subtle">
                   Peak Day
                 </p>
-                <p className="text-3xl font-bold leading-none text-amber-500 tabular-nums">
+                <p className="text-2xl font-bold leading-none sm:text-3xl text-amber-500 tabular-nums">
                   {formatCurrency(
                     quickStats.peakAmount,
                     primaryCurrency,

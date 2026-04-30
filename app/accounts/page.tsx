@@ -148,7 +148,7 @@ export default function AccountsPage() {
   const netWorth = totalAssets - totalLiabilities;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:px-6 sm:pb-10">
       {/* Net worth hero */}
       <div className="mb-6 text-center">
         <p className="mb-1 text-sm text-bento-subtle">Net Worth</p>

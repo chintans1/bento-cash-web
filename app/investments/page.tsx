@@ -75,7 +75,7 @@ export default function InvestmentsPage() {
   );
 
   return (
-    <div className="mx-auto max-w-6xl px-6 pt-6 pb-10">
+    <div className="mx-auto max-w-6xl px-4 pt-6 pb-24 sm:px-6 sm:pb-10">
       {/* Hero */}
       <div className="mb-6 text-center">
         <p className="mb-1 text-sm text-bento-subtle">Portfolio Value</p>
@@ -95,7 +95,7 @@ export default function InvestmentsPage() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           {[1, 2].map((i) => (
             <div
               key={i}
@@ -107,7 +107,7 @@ export default function InvestmentsPage() {
         <p className="text-sm text-bento-danger">{error}</p>
       ) : (
         <>
-          <div className="grid grid-cols-2 items-start gap-6">
+          <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2">
             <div>
               {investmentAccounts.length > 0 ? (
                 <AllocationBreakdown
@@ -203,7 +203,7 @@ export default function InvestmentsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
-                <div className="grid grid-cols-2 divide-x divide-bento-hairline">
+                <div className="grid grid-cols-1 divide-y divide-bento-hairline sm:grid-cols-2 sm:divide-x sm:divide-y-0">
                   {groupByInstitution(otherAccounts).map(
                     ([institution, group]) => (
                       <div key={institution}>

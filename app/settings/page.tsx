@@ -78,7 +78,7 @@ export default function SettingsPage() {
 
   if (user) {
     return (
-      <div className="flex flex-col items-center gap-5 p-6 pt-12">
+      <div className="flex flex-col items-center gap-5 px-4 pt-12 pb-24 sm:p-6 sm:pb-6">
         <Card className="w-full max-w-md">
           <CardHeader>
             <CardTitle className="text-xl">{user.name}</CardTitle>
@@ -150,7 +150,7 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="flex flex-col items-center gap-5 p-6 pt-12">
+    <div className="flex flex-col items-center gap-5 px-4 pt-12 pb-24 sm:p-6 sm:pb-6">
       <Card className="w-full max-w-md">
         <CardHeader>
           <CardTitle className="text-xl">Connect Lunch Money</CardTitle>

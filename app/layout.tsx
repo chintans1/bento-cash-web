@@ -4,6 +4,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { TokenProvider } from "@/hooks/use-token";
 import { Header } from "@/components/header";
+import { BottomNav } from "@/components/bottom-nav";
 import { cn } from "@/lib/utils";
 import { Analytics } from "@vercel/analytics/react";
 
@@ -41,6 +42,7 @@ export default function RootLayout({
           <TokenProvider>
             <Header />
             <main>{children}</main>
+            <BottomNav />
           </TokenProvider>
           <Analytics />
         </ThemeProvider>
