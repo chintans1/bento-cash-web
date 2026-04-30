@@ -98,7 +98,6 @@ export default function HomePage() {
           maxCatSpend={maxCatSpend}
           primaryCurrency={primaryCurrency}
           transactions={transactions}
-          categoryMap={categoryMap}
           loading={loading}
           error={error}
         />

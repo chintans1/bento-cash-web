@@ -3,7 +3,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CategoryRow, CAT_COLORS } from "./category-row";
 import type { CategoryTotal, MoMDelta } from "@/lib/lunchmoney/analytics";
-import type { CategoryInfo } from "@/lib/lunchmoney/categories";
 import type { Transaction } from "@/lib/lunchmoney/client";
 
 export function SpendByCategoryCard({
@@ -12,7 +11,6 @@ export function SpendByCategoryCard({
   maxCatSpend,
   primaryCurrency,
   transactions,
-  categoryMap,
   loading,
   error,
 }: {
@@ -21,7 +19,6 @@ export function SpendByCategoryCard({
   maxCatSpend: number;
   primaryCurrency: string;
   transactions: Transaction[];
-  categoryMap: Map<number, CategoryInfo>;
   loading: boolean;
   error: string | null;
 }) {
@@ -48,7 +45,6 @@ export function SpendByCategoryCard({
                 delta={momDeltas.get(cat.id)}
                 primaryCurrency={primaryCurrency}
                 transactions={transactions}
-                categoryMap={categoryMap}
               />
             ))}
           </ul>

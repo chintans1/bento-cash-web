@@ -7,9 +7,10 @@ import { formatCurrency, formatShortDate } from "@/lib/format";
 import { MONTH_NAMES } from "@/lib/date-utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import type { Transaction } from "@/lib/lunchmoney/client";
 import type { CategoryInfo } from "@/lib/lunchmoney/categories";
-import type { QuickStats } from "@/hooks/use-dashboard-data";
+import type { QuickStats } from "@/lib/lunchmoney/analytics";
 
 type StatPanel = "income" | "spend" | "peak";
 
@@ -80,10 +81,10 @@ export function QuickStatsPanel({
               </CardHeader>
               <CardContent>
                 <p className="text-sm font-medium tracking-wide text-bento-subtle">
-                  Income{" "}
-                  <span className="font-mono text-[11px] text-bento-subtle/50">
-                    ({incomePanelTxs.length} deposits)
-                  </span>
+                  Income
+                </p>
+                <p className="font-mono text-[11px] text-bento-subtle/50">
+                  {incomePanelTxs.length} deposits
                 </p>
               </CardContent>
             </Card>
@@ -108,10 +109,10 @@ export function QuickStatsPanel({
               </CardHeader>
               <CardContent>
                 <p className="text-sm font-medium tracking-wide text-bento-subtle">
-                  Spend{" "}
-                  <span className="font-mono text-[11px] text-bento-subtle/50">
-                    ({sortedSpendTxs.length} transactions)
-                  </span>
+                  Spend
+                </p>
+                <p className="font-mono text-[11px] text-bento-subtle/50">
+                  {sortedSpendTxs.length} transactions
                 </p>
               </CardContent>
             </Card>
@@ -128,10 +129,10 @@ export function QuickStatsPanel({
               </CardHeader>
               <CardContent>
                 <p className="text-sm font-medium tracking-wide text-bento-subtle">
-                  Avg / Day{" "}
-                  <span className="font-mono text-[11px] text-bento-subtle/50">
-                    (this {MONTH_NAMES[selectedMonth - 1].toLowerCase()})
-                  </span>
+                  Avg / Day
+                </p>
+                <p className="font-mono text-[11px] text-bento-subtle/50">
+                  This {MONTH_NAMES[selectedMonth - 1]}
                 </p>
               </CardContent>
             </Card>
@@ -156,14 +157,13 @@ export function QuickStatsPanel({
               </CardHeader>
               <CardContent>
                 <p className="text-sm font-medium tracking-wide text-bento-subtle">
-                  Peak Day{" "}
-                  <span className="font-mono text-[11px] text-bento-subtle/50">
-                    (
-                    {quickStats.peakDay
-                      ? formatShortDate(quickStats.peakDay)
-                      : "—"}
-                    )
-                  </span>
+                  Peak Day
+                </p>
+                <p className="font-mono text-[11px] whitespace-nowrap text-bento-subtle/50">
+                  {quickStats.peakDay
+                    ? formatShortDate(quickStats.peakDay)
+                    : "—"}{" "}
+                  · excl. recurring
                 </p>
               </CardContent>
             </Card>
@@ -190,50 +190,59 @@ export function QuickStatsPanel({
               <X className="size-3.5" />
             </Button>
           </div>
-          <ul className="divide-y divide-bento-hairline">
-            {(openPanel === "income"
-              ? incomePanelTxs
-              : openPanel === "spend"
-                ? sortedSpendTxs
-                : peakDayPanelTxs
-            ).map((tx) => {
-              const catName =
-                tx.category_id != null
-                  ? (categoryMap.get(tx.category_id)?.name ?? "—")
-                  : "—";
-              const amt = parseFloat(tx.amount);
-              const isIncome = amt < 0;
-              return (
-                <li
-                  key={tx.id}
-                  className="flex items-center gap-4 px-4 py-2.5 text-xs"
-                >
-                  <span className="w-14 shrink-0 font-mono text-bento-subtle">
-                    {formatShortDate(tx.date)}
-                  </span>
-                  <span className="min-w-0 flex-1 truncate font-medium">
-                    {tx.payee}
-                  </span>
-                  {!isIncome && (
-                    <span className="shrink-0 text-bento-subtle">
-                      {catName}
-                    </span>
-                  )}
-                  <span
-                    className={cn(
-                      "shrink-0 font-mono tabular-nums",
-                      isIncome
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-bento-default"
-                    )}
-                  >
-                    {isIncome ? "+" : ""}
-                    {formatCurrency(Math.abs(amt), primaryCurrency, true)}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
+          <Table>
+            <TableBody>
+              {(openPanel === "income"
+                ? incomePanelTxs
+                : openPanel === "spend"
+                  ? sortedSpendTxs
+                  : peakDayPanelTxs
+              ).map((tx) => {
+                const catName =
+                  tx.category_id != null
+                    ? (categoryMap.get(tx.category_id)?.name ?? "Uncategorized")
+                    : "Uncategorized";
+                const isCategorized =
+                  tx.category_id != null && categoryMap.has(tx.category_id);
+                const amt = parseFloat(tx.amount);
+                const isIncome = amt < 0;
+                return (
+                  <TableRow key={tx.id}>
+                    <TableCell className="w-14 font-mono text-xs text-bento-subtle">
+                      {formatShortDate(tx.date)}
+                    </TableCell>
+                    <TableCell className="text-xs font-medium">
+                      {tx.payee}
+                    </TableCell>
+                    <TableCell className="w-28 text-right text-xs">
+                      {!isIncome && (
+                        <span
+                          className={
+                            isCategorized
+                              ? "text-bento-subtle"
+                              : "text-amber-600 dark:text-amber-400"
+                          }
+                        >
+                          {catName}
+                        </span>
+                      )}
+                    </TableCell>
+                    <TableCell
+                      className={cn(
+                        "w-24 text-right font-mono text-xs tabular-nums",
+                        isIncome
+                          ? "text-green-600 dark:text-green-400"
+                          : "text-bento-default"
+                      )}
+                    >
+                      {isIncome ? "+" : ""}
+                      {formatCurrency(Math.abs(amt), primaryCurrency, true)}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </div>
       )}
     </>
