@@ -105,9 +105,6 @@ export function CategoryRow({
               >
                 <span className="truncate text-bento-subtle">{tx.payee}</span>
                 <div className="flex shrink-0 items-center gap-2">
-                  <span className="text-[11px] text-bento-subtle">
-                    {catInfo.name}
-                  </span>
                   <span className="font-mono tabular-nums">
                     {formatAmount(parseFloat(tx.amount), true)}
                   </span>

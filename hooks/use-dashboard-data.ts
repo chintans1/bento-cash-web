@@ -27,23 +27,19 @@ import {
   computeDailySpend,
   computeMerchantTotals,
   computeMoMDeltas,
+  computeQuickStats,
   countUncategorized,
-  filterSpendTransactions,
+  getPeakDayTxs,
+  getSortedIncomeTxs,
+  getSortedSpendTxs,
   type CategoryTotal,
   type DailySpend,
   type MerchantTotal,
   type MoMDelta,
+  type QuickStats,
 } from "@/lib/lunchmoney/analytics";
 import { type CategoryInfo } from "@/lib/lunchmoney/categories";
 import { prevMonthOf } from "@/lib/date-utils";
-
-export type QuickStats = {
-  totalSpend: number;
-  totalIncome: number;
-  avgSpendPerDay: number;
-  peakDay: string;
-  peakAmount: number;
-};
 
 export type DashboardData = {
   // Raw data
@@ -144,7 +140,7 @@ export function useDashboardData(
   );
 
   const prevCategoryTotals = useMemo(
-    () => computeCategoryTotals(prevTransactions, categoryMap),
+    () => computeCategoryTotals(prevTransactions, categoryMap, 50),
     [prevTransactions, categoryMap]
   );
 
@@ -168,58 +164,33 @@ export function useDashboardData(
     [transactions]
   );
 
-  const quickStats = useMemo((): QuickStats | null => {
-    if (transactions.length === 0) return null;
-
-    const expenses = filterSpendTransactions(transactions, categoryMap);
-    const totalSpend = expenses.reduce(
-      (sum, tx) => sum + parseFloat(tx.amount),
-      0
-    );
-    const totalIncome = transactions
-      .filter((tx) => parseFloat(tx.amount) < 0)
-      .reduce((sum, tx) => sum + Math.abs(parseFloat(tx.amount)), 0);
-
-    const daysInMonth = new Date(year, month, 0).getDate();
-    const isCurrentMonth =
-      year === now.getFullYear() && month === now.getMonth() + 1;
-    const daysElapsed = isCurrentMonth ? now.getDate() : daysInMonth;
-    const avgSpendPerDay = daysElapsed > 0 ? totalSpend / daysElapsed : 0;
-
-    const peak = dailySpend.reduce(
-      (max, d) => (d.amount > max.amount ? d : max),
-      { date: "", amount: 0 }
-    );
-
-    return {
-      totalSpend,
-      totalIncome,
-      avgSpendPerDay,
-      peakDay: peak.date,
-      peakAmount: peak.amount,
-    };
-  }, [transactions, categoryMap, year, month, now, dailySpend]);
+  const quickStats = useMemo(
+    () =>
+      computeQuickStats(
+        transactions,
+        categoryMap,
+        year,
+        month,
+        dailySpend,
+        now
+      ),
+    [transactions, categoryMap, year, month, dailySpend, now]
+  );
 
   const incomePanelTxs = useMemo(
-    () =>
-      transactions
-        .filter((tx) => parseFloat(tx.amount) < 0)
-        .sort((a, b) => parseFloat(a.amount) - parseFloat(b.amount)),
-    [transactions]
+    () => getSortedIncomeTxs(transactions, categoryMap),
+    [transactions, categoryMap]
   );
 
   const sortedSpendTxs = useMemo(
-    () =>
-      filterSpendTransactions(transactions, categoryMap).sort(
-        (a, b) => parseFloat(b.amount) - parseFloat(a.amount)
-      ),
+    () => getSortedSpendTxs(transactions, categoryMap),
     [transactions, categoryMap]
   );
 
   const peakDayPanelTxs = useMemo(
     () =>
       quickStats?.peakDay
-        ? sortedSpendTxs.filter((tx) => tx.date === quickStats.peakDay)
+        ? getPeakDayTxs(sortedSpendTxs, quickStats.peakDay)
         : [],
     [sortedSpendTxs, quickStats]
   );

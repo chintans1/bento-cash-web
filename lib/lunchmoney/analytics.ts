@@ -68,7 +68,8 @@ export type MerchantTotal = {
 
 export type DailySpend = {
   date: string; // YYYY-MM-DD
-  amount: number;
+  amount: number; // non-recurring spend
+  recurring: number; // recurring spend (recurring_id != null)
 };
 
 export type MoMDelta = {
@@ -79,6 +80,7 @@ export type MoMDelta = {
   pct: number | null;
 };
 
+/** Flattens CategoriesResponse into a Map<id, CategoryInfo>, including children of group categories. */
 export function buildCategoryMap(
   res: CategoriesResponse
 ): Map<number, CategoryInfo> {
@@ -103,6 +105,7 @@ export function buildCategoryMap(
   return map;
 }
 
+/** Filters to non-pending expense transactions: amount > 0 and not is_pending. */
 export function filterExpenses(transactions: Transaction[]): Transaction[] {
   return transactions.filter(
     (tx) => parseFloat(tx.amount) > 0 && !tx.is_pending
@@ -132,6 +135,7 @@ export function filterSpendTransactions(
   });
 }
 
+/** Groups filtered spend transactions by category, sorted by spend descending; up to limit entries. Uncategorized transactions use id -1. */
 export function computeCategoryTotals(
   transactions: Transaction[],
   catMap: Map<number, CategoryInfo>,
@@ -175,26 +179,33 @@ export function computeMerchantTotals(
     .slice(0, limit);
 }
 
-/** Returns per-day spend for the given year/month. Days with no spending are omitted. */
+/** Returns per-day spend for every day in the given year/month. Days with no transactions have amount 0.
+ * Recurring transactions (recurring_id != null) are tracked separately so the chart can render them
+ * as a distinct segment, and the peak day stat excludes them to avoid rent/subscription distortion. */
 export function computeDailySpend(
   transactions: Transaction[],
   catMap: Map<number, CategoryInfo>,
   year: number,
   month: number
 ): DailySpend[] {
-  const map = new Map<string, number>();
+  const map = new Map<string, { amount: number; recurring: number }>();
   const daysInMonth = new Date(year, month, 0).getDate();
-  // Initialize all days to 0 so the chart has a full x-axis
   for (let d = 1; d <= daysInMonth; d++) {
     const key = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    map.set(key, 0);
+    map.set(key, { amount: 0, recurring: 0 });
   }
   for (const tx of filterSpendTransactions(transactions, catMap)) {
-    map.set(tx.date, (map.get(tx.date) ?? 0) + parseFloat(tx.amount));
+    const prev = map.get(tx.date) ?? { amount: 0, recurring: 0 };
+    const amt = parseFloat(tx.amount);
+    if (tx.recurring_id != null) {
+      map.set(tx.date, { ...prev, recurring: prev.recurring + amt });
+    } else {
+      map.set(tx.date, { ...prev, amount: prev.amount + amt });
+    }
   }
   return Array.from(map.entries())
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([date, amount]) => ({ date, amount }));
+    .map(([date, { amount, recurring }]) => ({ date, amount, recurring }));
 }
 
 /** Computes MoM deltas between current and previous month category totals. */
@@ -246,8 +257,7 @@ export function computeAverageMonthlySpend(
   return totals.reduce((a, b) => a + b, 0) / totals.length;
 }
 
-// Returns transactions belonging to a given category id (-1 = uncategorized)
-// Will sort the transactions by amount (highest first) and return top 5
+/** Given a category id (-1 for uncategorized), returns up to 5 expense transactions sorted by amount descending. */
 export function getTransactionsForCategory(
   transactions: Transaction[],
   categoryId: number
@@ -258,4 +268,105 @@ export function getTransactionsForCategory(
     )
     .sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount))
     .slice(0, 5);
+}
+
+// ── Dashboard quick stats ─────────────────────────────────────────────────────
+
+export type QuickStats = {
+  totalSpend: number;
+  totalIncome: number;
+  avgSpendPerDay: number;
+  peakDay: string;
+  peakAmount: number;
+};
+
+/**
+ * Filters to income transactions: negative amount, not pending, and not in an
+ * exclude_from_totals category. Mirrors filterSpendTransactions for consistency.
+ */
+export function filterIncomeTxs(
+  transactions: Transaction[],
+  catMap: Map<number, CategoryInfo>
+): Transaction[] {
+  return transactions.filter((tx) => {
+    if (parseFloat(tx.amount) >= 0 || tx.is_pending) return false;
+    if (tx.category_id != null) {
+      const cat = catMap.get(tx.category_id);
+      if (cat?.exclude_from_totals) return false;
+    }
+    return true;
+  });
+}
+
+/** Income transactions sorted by amount ascending (largest credit first). */
+export function getSortedIncomeTxs(
+  transactions: Transaction[],
+  catMap: Map<number, CategoryInfo>
+): Transaction[] {
+  return filterIncomeTxs(transactions, catMap).sort(
+    (a, b) => parseFloat(a.amount) - parseFloat(b.amount)
+  );
+}
+
+/** Spend transactions sorted by amount descending (largest spend first). */
+export function getSortedSpendTxs(
+  transactions: Transaction[],
+  catMap: Map<number, CategoryInfo>
+): Transaction[] {
+  return filterSpendTransactions(transactions, catMap).sort(
+    (a, b) => parseFloat(b.amount) - parseFloat(a.amount)
+  );
+}
+
+/** Filters sortedSpendTxs to only those on the given date. */
+export function getPeakDayTxs(
+  sortedSpendTxs: Transaction[],
+  peakDay: string
+): Transaction[] {
+  return sortedSpendTxs.filter((tx) => tx.date === peakDay);
+}
+
+/**
+ * Computes the four quick-stat values for the dashboard.
+ * today is a parameter so this function is testable with a fixed date.
+ * Returns null when there are no transactions.
+ */
+export function computeQuickStats(
+  transactions: Transaction[],
+  catMap: Map<number, CategoryInfo>,
+  year: number,
+  month: number,
+  dailySpend: DailySpend[],
+  today: Date
+): QuickStats | null {
+  if (transactions.length === 0) return null;
+
+  const totalSpend = filterSpendTransactions(transactions, catMap).reduce(
+    (sum, tx) => sum + parseFloat(tx.amount),
+    0
+  );
+  const totalIncome = filterIncomeTxs(transactions, catMap).reduce(
+    (sum, tx) => sum + Math.abs(parseFloat(tx.amount)),
+    0
+  );
+
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const isCurrentMonth =
+    year === today.getFullYear() && month === today.getMonth() + 1;
+  const daysElapsed = isCurrentMonth ? today.getDate() : daysInMonth;
+  const avgSpendPerDay = daysElapsed > 0 ? totalSpend / daysElapsed : 0;
+
+  // Peak day is based on non-recurring spend only (d.amount) to avoid rent/subscription distortion
+  const peak = dailySpend.reduce(
+    (max, d) => (d.amount > max.amount ? d : max),
+    { date: "", amount: 0, recurring: 0 }
+  );
+
+  return {
+    totalSpend,
+    totalIncome,
+    avgSpendPerDay,
+    peakDay: peak.date,
+    peakAmount: peak.amount,
+  };
 }

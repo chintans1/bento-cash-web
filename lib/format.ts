@@ -1,5 +1,4 @@
-// TODO: should this be used if currency matters? I think everything should be exact
-// 1234.5 => $1,234.50 or $1,235
+/** Formats a number as USD. exact=true → 2 decimal places; exact=false → rounded to whole dollars. */
 export function formatAmount(n: number, exact = false): string {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
@@ -9,7 +8,7 @@ export function formatAmount(n: number, exact = false): string {
   }).format(n);
 }
 
-// Handles the currency formatting, similar return like above
+/** Formats n with the given ISO currency code. Falls back to "1234 USD" style if the code is unsupported. */
 export function formatCurrency(
   n: number,
   currency: string,
@@ -28,7 +27,7 @@ export function formatCurrency(
   }
 }
 
-// Given a date string, will output something like "Jan 1"
+/** Converts a YYYY-MM-DD string to a short date like "Jan 1". Uses noon UTC to avoid timezone off-by-one. */
 export function formatShortDate(dateStr: string): string {
   return new Date(`${dateStr}T12:00:00`).toLocaleDateString("en-US", {
     month: "short",
