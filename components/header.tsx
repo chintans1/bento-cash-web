@@ -26,10 +26,7 @@ export function Header() {
   return (
     <header className="sticky top-0 z-10 border-b border-bento-hairline/60 bg-bento-base/80 backdrop-blur-sm">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-        <span className="font-heading text-2xl font-bold">
-          Bento Cash{" "}
-          <span className="font-mono text-xs text-bento-subtle">web</span>
-        </span>
+        <span className="font-heading text-2xl font-bold">Bento Cash</span>
 
         {/* Desktop nav */}
         <nav className="hidden items-center gap-1 sm:flex">

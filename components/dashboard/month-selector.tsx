@@ -26,7 +26,6 @@ export function MonthSelector({
 }) {
   return (
     <div className={cn("mb-6 flex items-center justify-end gap-1", className)}>
-      <span className="text-sm text-bento-subtle">viewing for</span>
       <Button variant="ghost" size="icon-sm" onClick={onPrev}>
         <ChevronLeft className="size-4" />
       </Button>

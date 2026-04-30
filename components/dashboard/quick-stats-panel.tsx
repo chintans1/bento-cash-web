@@ -5,7 +5,7 @@ import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatShortDate } from "@/lib/format";
 import { MONTH_NAMES } from "@/lib/date-utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import type { Transaction } from "@/lib/lunchmoney/client";
@@ -70,20 +70,18 @@ export function QuickStatsPanel({
                 setOpenPanel((p) => (p === "income" ? null : "income"))
               }
             >
-              <CardHeader>
-                <CardTitle className="text-4xl text-green-500 tabular-nums">
+              <CardContent className="flex flex-col gap-1.5">
+                <p className="text-xs font-medium uppercase tracking-wide text-bento-subtle">
+                  Income
+                </p>
+                <p className="text-3xl font-bold leading-none text-green-500 tabular-nums">
                   {formatCurrency(
                     quickStats.totalIncome,
                     primaryCurrency,
                     false
                   )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm font-medium tracking-wide text-bento-subtle">
-                  Income
                 </p>
-                <p className="font-mono text-[11px] text-bento-subtle/50">
+                <p className="font-mono text-xs text-bento-subtle/60">
                   {incomePanelTxs.length} deposits
                 </p>
               </CardContent>
@@ -98,41 +96,37 @@ export function QuickStatsPanel({
                 setOpenPanel((p) => (p === "spend" ? null : "spend"))
               }
             >
-              <CardHeader>
-                <CardTitle className="text-4xl text-rose-500 tabular-nums">
+              <CardContent className="flex flex-col gap-1.5">
+                <p className="text-xs font-medium uppercase tracking-wide text-bento-subtle">
+                  Spend
+                </p>
+                <p className="text-3xl font-bold leading-none text-rose-500 tabular-nums">
                   {formatCurrency(
                     quickStats.totalSpend,
                     primaryCurrency,
                     false
                   )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm font-medium tracking-wide text-bento-subtle">
-                  Spend
                 </p>
-                <p className="font-mono text-[11px] text-bento-subtle/50">
+                <p className="font-mono text-xs text-bento-subtle/60">
                   {sortedSpendTxs.length} transactions
                 </p>
               </CardContent>
             </Card>
 
             <Card>
-              <CardHeader>
-                <CardTitle className="text-4xl text-blue-500 tabular-nums">
+              <CardContent className="flex flex-col gap-1.5">
+                <p className="text-xs font-medium uppercase tracking-wide text-bento-subtle">
+                  Avg / Day
+                </p>
+                <p className="text-3xl font-bold leading-none text-blue-500 tabular-nums">
                   {formatCurrency(
                     quickStats.avgSpendPerDay,
                     primaryCurrency,
                     false
                   )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm font-medium tracking-wide text-bento-subtle">
-                  Avg / Day
                 </p>
-                <p className="font-mono text-[11px] text-bento-subtle/50">
-                  This {MONTH_NAMES[selectedMonth - 1]}
+                <p className="font-mono text-xs text-bento-subtle/60">
+                  {MONTH_NAMES[selectedMonth - 1]}
                 </p>
               </CardContent>
             </Card>
@@ -146,24 +140,21 @@ export function QuickStatsPanel({
                 setOpenPanel((p) => (p === "peak" ? null : "peak"))
               }
             >
-              <CardHeader>
-                <CardTitle className="text-4xl text-amber-500 tabular-nums">
+              <CardContent className="flex flex-col gap-1.5">
+                <p className="text-xs font-medium uppercase tracking-wide text-bento-subtle">
+                  Peak Day
+                </p>
+                <p className="text-3xl font-bold leading-none text-amber-500 tabular-nums">
                   {formatCurrency(
                     quickStats.peakAmount,
                     primaryCurrency,
                     false
                   )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm font-medium tracking-wide text-bento-subtle">
-                  Peak Day
                 </p>
-                <p className="font-mono text-[11px] whitespace-nowrap text-bento-subtle/50">
+                <p className="font-mono text-xs text-bento-subtle/60">
                   {quickStats.peakDay
                     ? formatShortDate(quickStats.peakDay)
-                    : "—"}{" "}
-                  · excl. recurring
+                    : "—"}
                 </p>
               </CardContent>
             </Card>
@@ -173,7 +164,7 @@ export function QuickStatsPanel({
 
       {/* Drill-down panel */}
       {!loading && openPanel && quickStats && (
-        <div className="mb-4 rounded-xl border border-bento-hairline bg-bento-surface">
+        <div className="mb-4 animate-in slide-in-from-top-1 duration-150 rounded-xl border border-bento-hairline bg-bento-surface">
           <div className="flex items-center justify-between border-b border-bento-hairline px-4 py-3">
             <span className="text-sm font-semibold">
               {openPanel === "income" && "Income Transactions"}
