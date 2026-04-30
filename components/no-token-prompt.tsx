@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Kbd } from "./ui/kbd";
+import { PasteButton } from "./paste-button";
 
 export function NoTokenPrompt() {
   const { setToken, enterDemo } = useToken();
@@ -70,21 +71,10 @@ export function NoTokenPrompt() {
             onChange={(e) => setInput(e.target.value)}
             autoComplete="off"
             disabled={loading}
-            className="h-10 pr-16"
+            className="h-10 pr-9"
           />
           {!input && !loading && (
-            <button
-              type="button"
-              className="absolute top-1/2 right-2 -translate-y-1/2 rounded px-2 py-0.5 text-xs font-medium text-bento-subtle transition-colors hover:bg-bento-muted hover:text-bento-default"
-              onClick={async () => {
-                try {
-                  const text = await navigator.clipboard.readText();
-                  if (text.trim()) setInput(text.trim());
-                } catch {}
-              }}
-            >
-              Paste
-            </button>
+            <PasteButton onPaste={(text) => setInput(text)} />
           )}
         </div>
         {error && (

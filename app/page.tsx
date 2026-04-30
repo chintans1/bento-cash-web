@@ -4,6 +4,7 @@ import { useToken } from "@/hooks/use-token";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { NoTokenPrompt } from "@/components/no-token-prompt";
 import { useMonthNavigation } from "@/hooks/use-month-navigation";
+import { useSwipeNavigation } from "@/hooks/use-swipe-navigation";
 import { MonthSelector } from "@/components/dashboard/month-selector";
 import { UncategorizedBanner } from "@/components/dashboard/uncategorized-banner";
 import { QuickStatsPanel } from "@/components/dashboard/quick-stats-panel";
@@ -13,6 +14,7 @@ import { SpendByCategoryCard } from "@/components/dashboard/spend-by-category-ca
 import { TopMerchantsCard } from "@/components/dashboard/top-merchants-card";
 import { BudgetProgressCard } from "@/components/dashboard/budget-progress-card";
 import { SubscriptionsCard } from "@/components/dashboard/subscriptions-card";
+import { isCurrentOrFutureMonth } from "@/lib/date-utils";
 
 export default function HomePage() {
   const { isAuthenticated } = useToken();
@@ -22,6 +24,13 @@ export default function HomePage() {
     onPrev,
     onNext,
   } = useMonthNavigation(new Date().getFullYear(), new Date().getMonth() + 1);
+
+  const swipe = useSwipeNavigation({
+    onSwipeLeft: () => {
+      if (!isCurrentOrFutureMonth(selectedYear, selectedMonth)) onNext();
+    },
+    onSwipeRight: onPrev,
+  });
 
   const {
     transactions,
@@ -48,7 +57,10 @@ export default function HomePage() {
   }
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
+    <div
+      className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6"
+      {...swipe}
+    >
       <MonthSelector
         year={selectedYear}
         month={selectedMonth}

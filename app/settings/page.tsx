@@ -15,6 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Kbd } from "@/components/ui/kbd";
 import { useToken } from "@/hooks/use-token";
 import { getMe, type UserInfo } from "@/lib/lunchmoney/client";
+import { PasteButton } from "@/components/paste-button";
 
 export default function SettingsPage() {
   const { token, setToken, clearToken } = useToken();
@@ -180,21 +181,10 @@ export default function SettingsPage() {
                 onChange={(e) => setInput(e.target.value)}
                 autoComplete="off"
                 disabled={loading}
-                className="h-11 pr-16 text-base"
+                className="h-11 pr-9 text-base"
               />
               {!input && !loading && (
-                <button
-                  type="button"
-                  className="absolute top-1/2 right-2 -translate-y-1/2 rounded px-2 py-0.5 text-xs font-medium text-bento-subtle transition-colors hover:bg-bento-muted hover:text-bento-default"
-                  onClick={async () => {
-                    try {
-                      const text = await navigator.clipboard.readText();
-                      if (text.trim()) setInput(text.trim());
-                    } catch {}
-                  }}
-                >
-                  Paste
-                </button>
+                <PasteButton onPaste={(text) => setInput(text)} />
               )}
             </div>
             {error && <p className="text-base text-bento-danger">{error}</p>}

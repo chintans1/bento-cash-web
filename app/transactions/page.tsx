@@ -38,6 +38,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ButtonGroup } from "@/components/ui/button-group";
+import { useSwipeNavigation } from "@/hooks/use-swipe-navigation";
+import { isCurrentOrFutureMonth } from "@/lib/date-utils";
 
 type SortKey = "date" | "amount" | "payee";
 type SortDir = "asc" | "desc";
@@ -93,6 +95,13 @@ function TransactionsPage() {
   const [expandedTxId, setExpandedTxId] = useState<number | null>(null);
   const [notesDraft, setNotesDraft] = useState<Record<number, string>>({});
   const [savingNoteId, setSavingNoteId] = useState<number | null>(null);
+
+  const swipe = useSwipeNavigation({
+    onSwipeLeft: () => {
+      if (!isCurrentOrFutureMonth(selectedYear, selectedMonth)) onNext();
+    },
+    onSwipeRight: onPrev,
+  });
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -213,7 +222,7 @@ function TransactionsPage() {
     ) : null;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6" {...swipe}>
       <MonthSelector
         year={selectedYear}
         month={selectedMonth}
