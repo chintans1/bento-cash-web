@@ -173,7 +173,10 @@ export function QuickStatsPanel({
       </div>
 
       {/* Drill-down panel */}
-      <AnimatedCollapse open={!loading && !!openPanel && !!quickStats} className="mb-4">
+      <AnimatedCollapse
+        open={!loading && !!openPanel && !!quickStats}
+        className="mb-4"
+      >
         {openPanel && quickStats && (
           <div className="rounded-xl border border-bento-hairline bg-bento-surface">
             <div className="flex items-center justify-between border-b border-bento-hairline px-4 py-3">
