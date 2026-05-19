@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
+import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { formatAmount, formatCurrency } from "@/lib/format";
 import { CategoryIcon } from "@/lib/lunchmoney/category-icons";
@@ -10,6 +11,7 @@ import { getTransactionsForCategory } from "@/lib/lunchmoney/analytics";
 import { type Transaction } from "@/lib/lunchmoney/client";
 import type { CategoryTotal, MoMDelta } from "@/lib/lunchmoney/analytics";
 import { MoMBadge } from "./mom-badge";
+import { AnimatedCollapse } from "@/components/animated-collapse";
 
 export const CAT_COLORS = [
   "#e85d4a",
@@ -87,23 +89,24 @@ export function CategoryRow({
         />
       </button>
 
-      {expanded && topTxs.length > 0 && (
+      <AnimatedCollapse open={expanded && topTxs.length > 0}>
         <ul className="mt-1 mb-2 ml-10 flex flex-col gap-0.5 border-l-2 border-bento-hairline pl-3">
-          {topTxs.map((tx) => {
-            return (
-              <li
-                key={tx.id}
-                className="flex items-center justify-between gap-2 rounded py-1 text-xs"
-              >
-                <span className="truncate text-bento-subtle">{tx.payee}</span>
-                <div className="flex shrink-0 items-center gap-2">
-                  <span className="font-mono tabular-nums">
-                    {formatAmount(parseFloat(tx.amount), true)}
-                  </span>
-                </div>
-              </li>
-            );
-          })}
+          {topTxs.map((tx, i) => (
+            <motion.li
+              key={tx.id}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.16, delay: i * 0.03 }}
+              className="flex items-center justify-between gap-2 rounded py-1 text-xs"
+            >
+              <span className="truncate text-bento-subtle">{tx.payee}</span>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="font-mono tabular-nums">
+                  {formatAmount(parseFloat(tx.amount), true)}
+                </span>
+              </div>
+            </motion.li>
+          ))}
           {cat.txCount > 5 && (
             <li className="pt-1">
               <Link
@@ -116,7 +119,7 @@ export function CategoryRow({
             </li>
           )}
         </ul>
-      )}
+      </AnimatedCollapse>
     </li>
   );
 }

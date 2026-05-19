@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { X } from "lucide-react";
+import { AnimatedCollapse } from "@/components/animated-collapse";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatShortDate } from "@/lib/format";
 import { MONTH_NAMES } from "@/lib/date-utils";
@@ -172,79 +173,82 @@ export function QuickStatsPanel({
       </div>
 
       {/* Drill-down panel */}
-      {!loading && openPanel && quickStats && (
-        <div className="mb-4 rounded-xl border border-bento-hairline bg-bento-surface">
-          <div className="flex items-center justify-between border-b border-bento-hairline px-4 py-3">
-            <span className="text-sm font-semibold">
-              {openPanel === "income" && "Income Transactions"}
-              {openPanel === "spend" && "Spend Transactions"}
-              {openPanel === "peak" &&
-                `Peak Day — ${formatShortDate(quickStats.peakDay)}`}
-            </span>
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              onClick={() => setOpenPanel(null)}
-              className="text-bento-subtle hover:text-bento-default"
-            >
-              <X className="size-3.5" />
-            </Button>
+      <AnimatedCollapse open={!loading && !!openPanel && !!quickStats} className="mb-4">
+        {openPanel && quickStats && (
+          <div className="rounded-xl border border-bento-hairline bg-bento-surface">
+            <div className="flex items-center justify-between border-b border-bento-hairline px-4 py-3">
+              <span className="text-sm font-semibold">
+                {openPanel === "income" && "Income Transactions"}
+                {openPanel === "spend" && "Spend Transactions"}
+                {openPanel === "peak" &&
+                  `Peak Day — ${formatShortDate(quickStats.peakDay)}`}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon-sm"
+                onClick={() => setOpenPanel(null)}
+                className="text-bento-subtle hover:text-bento-default"
+              >
+                <X className="size-3.5" />
+              </Button>
+            </div>
+            <Table>
+              <TableBody>
+                {(openPanel === "income"
+                  ? incomePanelTxs
+                  : openPanel === "spend"
+                    ? sortedSpendTxs
+                    : peakDayPanelTxs
+                ).map((tx) => {
+                  const catName =
+                    tx.category_id != null
+                      ? (categoryMap.get(tx.category_id)?.name ??
+                        "Uncategorized")
+                      : "Uncategorized";
+                  const isCategorized =
+                    tx.category_id != null && categoryMap.has(tx.category_id);
+                  const amt = parseFloat(tx.amount);
+                  const isIncome = amt < 0;
+                  return (
+                    <TableRow key={tx.id}>
+                      <TableCell className="w-14 font-mono text-xs text-bento-subtle">
+                        {formatShortDate(tx.date)}
+                      </TableCell>
+                      <TableCell className="text-xs font-medium">
+                        {tx.payee}
+                      </TableCell>
+                      <TableCell className="w-28 text-right text-xs">
+                        {!isIncome && (
+                          <span
+                            className={
+                              isCategorized
+                                ? "text-bento-subtle"
+                                : "text-amber-600 dark:text-amber-400"
+                            }
+                          >
+                            {catName}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell
+                        className={cn(
+                          "w-24 text-right font-mono text-xs tabular-nums",
+                          isIncome
+                            ? "text-green-600 dark:text-green-400"
+                            : "text-bento-default"
+                        )}
+                      >
+                        {isIncome ? "+" : ""}
+                        {formatCurrency(Math.abs(amt), primaryCurrency, true)}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
           </div>
-          <Table>
-            <TableBody>
-              {(openPanel === "income"
-                ? incomePanelTxs
-                : openPanel === "spend"
-                  ? sortedSpendTxs
-                  : peakDayPanelTxs
-              ).map((tx) => {
-                const catName =
-                  tx.category_id != null
-                    ? (categoryMap.get(tx.category_id)?.name ?? "Uncategorized")
-                    : "Uncategorized";
-                const isCategorized =
-                  tx.category_id != null && categoryMap.has(tx.category_id);
-                const amt = parseFloat(tx.amount);
-                const isIncome = amt < 0;
-                return (
-                  <TableRow key={tx.id}>
-                    <TableCell className="w-14 font-mono text-xs text-bento-subtle">
-                      {formatShortDate(tx.date)}
-                    </TableCell>
-                    <TableCell className="text-xs font-medium">
-                      {tx.payee}
-                    </TableCell>
-                    <TableCell className="w-28 text-right text-xs">
-                      {!isIncome && (
-                        <span
-                          className={
-                            isCategorized
-                              ? "text-bento-subtle"
-                              : "text-amber-600 dark:text-amber-400"
-                          }
-                        >
-                          {catName}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell
-                      className={cn(
-                        "w-24 text-right font-mono text-xs tabular-nums",
-                        isIncome
-                          ? "text-green-600 dark:text-green-400"
-                          : "text-bento-default"
-                      )}
-                    >
-                      {isIncome ? "+" : ""}
-                      {formatCurrency(Math.abs(amt), primaryCurrency, true)}
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+        )}
+      </AnimatedCollapse>
     </>
   );
 }

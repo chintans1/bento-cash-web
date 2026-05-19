@@ -4,9 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
+import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { useToken } from "@/hooks/use-token";
 import { Button } from "@/components/ui/button";
+import { AnimatedCollapse } from "@/components/animated-collapse";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -38,13 +40,20 @@ export function Header() {
               key={href}
               href={href}
               className={cn(
-                "rounded-4xl px-4 py-1.5 text-sm font-medium transition-colors",
+                "relative rounded-4xl px-4 py-1.5 text-sm font-medium transition-colors",
                 pathname === href
-                  ? "bg-bento-brand text-bento-brand-fg"
+                  ? "text-bento-brand-fg"
                   : "text-bento-subtle hover:bg-bento-muted hover:text-bento-default"
               )}
             >
-              {label}
+              {pathname === href && (
+                <motion.span
+                  layoutId="nav-pill"
+                  className="absolute inset-0 rounded-4xl bg-bento-brand"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.35 }}
+                />
+              )}
+              <span className="relative z-10">{label}</span>
             </Link>
           ))}
         </nav>
@@ -80,7 +89,7 @@ export function Header() {
       )}
 
       {/* Mobile dropdown menu */}
-      {menuOpen && visibleLinks.length > 0 && (
+      <AnimatedCollapse open={menuOpen && visibleLinks.length > 0}>
         <nav className="border-t border-bento-hairline/60 bg-bento-base/95 px-4 pb-4 sm:hidden">
           {visibleLinks.map(({ href, label }) => (
             <Link
@@ -98,7 +107,7 @@ export function Header() {
             </Link>
           ))}
         </nav>
-      )}
+      </AnimatedCollapse>
     </header>
   );
 }
