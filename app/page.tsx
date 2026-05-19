@@ -13,6 +13,7 @@ import { SpendByCategoryCard } from "@/components/dashboard/spend-by-category-ca
 import { TopMerchantsCard } from "@/components/dashboard/top-merchants-card";
 import { BudgetProgressCard } from "@/components/dashboard/budget-progress-card";
 import { SubscriptionsCard } from "@/components/dashboard/subscriptions-card";
+import { AnimatedCollapse } from "@/components/animated-collapse";
 
 export default function HomePage() {
   const { isAuthenticated } = useToken();
@@ -56,7 +57,9 @@ export default function HomePage() {
         onNext={onNext}
       />
 
-      {!loading && <UncategorizedBanner count={uncategorizedCount} />}
+      <AnimatedCollapse open={!loading && uncategorizedCount > 0}>
+        <UncategorizedBanner count={uncategorizedCount} />
+      </AnimatedCollapse>
 
       {/*
         key={`${selectedYear}-${selectedMonth}`} causes React to fully unmount

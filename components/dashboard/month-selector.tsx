@@ -1,4 +1,7 @@
+"use client";
+
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { MONTH_NAMES, isCurrentOrFutureMonth } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
@@ -30,9 +33,24 @@ export function MonthSelector({
       <Button variant="ghost" size="icon-sm" onClick={onPrev}>
         <ChevronLeft className="size-4" />
       </Button>
-      <span className="text-sm font-medium">
-        {MONTH_NAMES[month - 1]} {year}
-      </span>
+      <div className="relative text-center">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.span
+            key={`${year}-${month}`}
+            className="absolute inset-x-0 text-sm font-medium"
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            transition={{ duration: 0.15 }}
+          >
+            {MONTH_NAMES[month - 1]} {year}
+          </motion.span>
+        </AnimatePresence>
+        {/* invisible placeholder holds the container width for the widest label */}
+        <span className="invisible text-sm font-medium" aria-hidden="true">
+          September 2025
+        </span>
+      </div>
       <Button
         variant="ghost"
         size="icon-sm"

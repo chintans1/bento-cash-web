@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Pencil, X, Check } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import type { AccountType } from "@lunch-money/lunch-money-js-v2";
 import {
   type NormalizedAccount,
@@ -73,136 +74,152 @@ export function AccountRow({
 
   return (
     <li className="border-b border-bento-hairline/50 py-3 last:border-0">
-      {editing ? (
-        <div className="flex flex-col gap-3">
-          <span className="text-sm font-medium">{account.name}</span>
-          <div className="flex flex-wrap items-end gap-3">
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-bento-subtle">Type</label>
-              <Select
-                value={editType}
-                onValueChange={(v) => setEditType(v as AccountType)}
-              >
-                <SelectTrigger size="sm" className="w-36">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ACCOUNT_TYPES.map((t) => (
-                    <SelectItem key={t} value={t}>
-                      {t.charAt(0).toUpperCase() + t.slice(1)}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-bento-subtle">Subtype</label>
-              <Select
-                value={editSubtype}
-                onValueChange={(v) => setEditSubtype(v ?? "")}
-              >
-                <SelectTrigger size="sm" className="w-40">
-                  <SelectValue placeholder="— none —" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">— none —</SelectItem>
-                  <SelectSeparator />
-                  <SelectGroup>
-                    <SelectLabel>Investment</SelectLabel>
-                    {INVESTMENT_SUBTYPE_OPTIONS.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {formatSubtype(s)}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                  <SelectSeparator />
-                  <SelectGroup>
-                    <SelectLabel>Other</SelectLabel>
-                    {OTHER_SUBTYPE_OPTIONS.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {formatSubtype(s)}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <Button size="sm" onClick={saveEdit} disabled={saving}>
-                <Check className="h-3 w-3" />
-                {saving ? "Saving…" : "Save"}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={cancelEdit}
-                disabled={saving}
-              >
-                <X className="h-3 w-3" />
-                Cancel
-              </Button>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
-              <span
-                className={cn(
-                  "text-sm font-medium",
-                  isInactive && "text-bento-subtle"
-                )}
-              >
-                {account.name}
-              </span>
-              {account.subtype && (
-                <Badge variant="secondary">
-                  {formatSubtype(account.subtype)}
-                </Badge>
-              )}
-              {isInactive && (
-                <Badge variant="secondary">{account.status}</Badge>
-              )}
-              {account.source === "manual" && (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  onClick={startEdit}
-                  title="Edit type / subtype"
-                  className="text-bento-subtle/60 hover:text-bento-default"
+      <AnimatePresence mode="wait" initial={false}>
+        {editing ? (
+          <motion.div
+            key="edit"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
+            className="flex flex-col gap-3"
+          >
+            <span className="text-sm font-medium">{account.name}</span>
+            <div className="flex flex-wrap items-end gap-3">
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-bento-subtle">Type</label>
+                <Select
+                  value={editType}
+                  onValueChange={(v) => setEditType(v as AccountType)}
                 >
-                  <Pencil className="h-3 w-3" />
+                  <SelectTrigger size="sm" className="w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ACCOUNT_TYPES.map((t) => (
+                      <SelectItem key={t} value={t}>
+                        {t.charAt(0).toUpperCase() + t.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-bento-subtle">Subtype</label>
+                <Select
+                  value={editSubtype}
+                  onValueChange={(v) => setEditSubtype(v ?? "")}
+                >
+                  <SelectTrigger size="sm" className="w-40">
+                    <SelectValue placeholder="— none —" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">— none —</SelectItem>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel>Investment</SelectLabel>
+                      {INVESTMENT_SUBTYPE_OPTIONS.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {formatSubtype(s)}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                    <SelectSeparator />
+                    <SelectGroup>
+                      <SelectLabel>Other</SelectLabel>
+                      {OTHER_SUBTYPE_OPTIONS.map((s) => (
+                        <SelectItem key={s} value={s}>
+                          {formatSubtype(s)}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Button size="sm" onClick={saveEdit} disabled={saving}>
+                  <Check className="h-3 w-3" />
+                  {saving ? "Saving…" : "Save"}
                 </Button>
-              )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={cancelEdit}
+                  disabled={saving}
+                >
+                  <X className="h-3 w-3" />
+                  Cancel
+                </Button>
+              </div>
             </div>
-            <p className="mt-0.5 text-xs text-bento-subtle capitalize">
-              {account.type}
-            </p>
-          </div>
-          <div className="flex shrink-0 flex-col items-end gap-0.5">
-            {account.balanceValid ? (
-              <>
-                <span className="font-mono text-sm font-medium tabular-nums">
-                  {showNative
-                    ? formatCurrency(account.balance, account.currency, true)
-                    : formatCurrency(account.toBase, primaryCurrency, true)}
+          </motion.div>
+        ) : (
+          <motion.div
+            key="view"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.12 }}
+            className="flex items-center gap-3"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2">
+                <span
+                  className={cn(
+                    "text-sm font-medium",
+                    isInactive && "text-bento-subtle"
+                  )}
+                >
+                  {account.name}
                 </span>
-                {showNative && (
-                  <span className="font-mono text-xs text-bento-subtle tabular-nums">
-                    ≈ {formatCurrency(account.toBase, primaryCurrency, true)}
-                  </span>
+                {account.subtype && (
+                  <Badge variant="secondary">
+                    {formatSubtype(account.subtype)}
+                  </Badge>
                 )}
-              </>
-            ) : (
-              <span className="text-sm text-bento-subtle">—</span>
-            )}
-            <span className="text-xs text-bento-subtle">
-              {formatUpdated(account.lastUpdated)}
-            </span>
-          </div>
-        </div>
-      )}
+                {isInactive && (
+                  <Badge variant="secondary">{account.status}</Badge>
+                )}
+                {account.source === "manual" && (
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    onClick={startEdit}
+                    title="Edit type / subtype"
+                    className="text-bento-subtle/60 hover:text-bento-default"
+                  >
+                    <Pencil className="h-3 w-3" />
+                  </Button>
+                )}
+              </div>
+              <p className="mt-0.5 text-xs text-bento-subtle capitalize">
+                {account.type}
+              </p>
+            </div>
+            <div className="flex shrink-0 flex-col items-end gap-0.5">
+              {account.balanceValid ? (
+                <>
+                  <span className="font-mono text-sm font-medium tabular-nums">
+                    {showNative
+                      ? formatCurrency(account.balance, account.currency, true)
+                      : formatCurrency(account.toBase, primaryCurrency, true)}
+                  </span>
+                  {showNative && (
+                    <span className="font-mono text-xs text-bento-subtle tabular-nums">
+                      ≈ {formatCurrency(account.toBase, primaryCurrency, true)}
+                    </span>
+                  )}
+                </>
+              ) : (
+                <span className="text-sm text-bento-subtle">—</span>
+              )}
+              <span className="text-xs text-bento-subtle">
+                {formatUpdated(account.lastUpdated)}
+              </span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </li>
   );
 }
