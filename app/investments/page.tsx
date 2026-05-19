@@ -13,6 +13,7 @@ import { useFetchStatus } from "@/hooks/use-fetch-status";
 import { isInvestment } from "@/lib/investment-utils";
 import { AccountRow } from "@/components/investments/account-row";
 import { AllocationBreakdown } from "@/components/investments/allocation-breakdown";
+import { GrowthProjection } from "@/components/investments/growth-projection";
 import { NoTokenPrompt } from "@/components/no-token-prompt";
 import { formatCurrency } from "@/lib/format";
 import {
@@ -190,6 +191,13 @@ export default function InvestmentsPage() {
               )}
             </div>
           </div>
+
+          {investmentAccounts.length > 0 && (
+            <GrowthProjection
+              currentPortfolio={totalPortfolio}
+              primaryCurrency={primaryCurrency}
+            />
+          )}
 
           {otherAccounts.length > 0 && (
             <Card className="mt-6 pb-0">

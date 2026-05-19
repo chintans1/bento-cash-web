@@ -1,10 +1,2 @@
-echo "Running lint..."
-npm run lint
-
-echo "Running prettier..."
-npx prettier --write .
-
-# Optional: auto-fix instead of check
-git add .
-
-echo "Pre-commit checks passed"
+#!/usr/bin/env sh
+pnpm lint-staged
