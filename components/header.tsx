@@ -13,6 +13,7 @@ import { AnimatedCollapse } from "@/components/animated-collapse";
 const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/transactions", label: "Transactions" },
+  { href: "/budget", label: "Budget" },
   { href: "/accounts", label: "Accounts" },
   { href: "/investments", label: "Investments" },
   { href: "/settings", label: "Settings" },
