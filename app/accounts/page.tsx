@@ -2,18 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { useToken } from "@/hooks/use-token";
-import {
-  getAccounts,
-  getCategories,
-  getMe,
-  getTransactionsForMonth,
-} from "@/lib/lunchmoney/client";
-import {
-  buildCategoryMap,
-  computeAverageMonthlySpend,
-} from "@/lib/lunchmoney/analytics";
-import { type NormalizedAccount, normalizeAccounts } from "@/lib/account-utils";
-import { useFetchStatus } from "@/hooks/use-fetch-status";
+import { getTransactionsForMonth } from "@/lib/lunchmoney/client";
+import { computeAverageMonthlySpend } from "@/lib/lunchmoney/analytics";
+import { useAppData } from "@/hooks/use-app-data";
 import {
   type InvestableState,
   isCheckingAccount,
@@ -22,18 +13,19 @@ import {
 } from "@/lib/investable-utils";
 import { InvestableCashCard } from "@/components/accounts/investable-cash-card";
 import { AccountSection } from "@/components/accounts/account-section";
+import { AnimatedCollapse } from "@/components/animated-collapse";
 import { NoTokenPrompt } from "@/components/no-token-prompt";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
 export default function AccountsPage() {
   const { isAuthenticated } = useToken();
-  const [accounts, setAccounts] = useState<NormalizedAccount[]>([]);
-  const [primaryCurrency, setPrimaryCurrency] = useState("usd");
-  const [{ loading, error }, setFetchStatus] = useFetchStatus();
+  const { accounts, primaryCurrency, categoryMap, loading, error } =
+    useAppData();
   const [investable, setInvestable] = useState<InvestableState>({
     status: "idle",
   });
+  const [showInactive, setShowInactive] = useState(false);
   const [floorMonths] = useState<number>(() => {
     if (typeof window === "undefined") return 3;
     const raw = localStorage.getItem("investable_months");
@@ -41,34 +33,35 @@ export default function AccountsPage() {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 3;
   });
 
-  // Non-blocking secondary fetch: triggers after accounts load
   useEffect(() => {
-    if (!isAuthenticated || accounts.length === 0) return;
+    const activeAccounts = accounts.filter((a) => a.status === "active");
+    if (!isAuthenticated || activeAccounts.length === 0) return;
 
-    async function load() {
+    let ignore = false;
+
+    async function run() {
       setInvestable({ status: "loading" });
 
       const months = getLastThreeFullMonths(new Date());
       try {
-        const [catMap, monthlyTxArrays] = await Promise.all([
-          getCategories().then((r) => buildCategoryMap(r)),
-          Promise.all(
-            months.map(({ year, month }) =>
-              getTransactionsForMonth(year, month).then((r) => r.transactions)
-            )
-          ),
-        ]);
+        const monthlyTxArrays = await Promise.all(
+          months.map(({ year, month }) =>
+            getTransactionsForMonth(year, month).then((r) => r.transactions)
+          )
+        );
+
+        if (ignore) return;
 
         const avgMonthlySpend = computeAverageMonthlySpend(
           monthlyTxArrays,
-          catMap
+          categoryMap
         );
-        const totalCheckingBalance = accounts
+        const totalCheckingBalance = activeAccounts
           .filter(isCheckingAccount)
-          .reduce((sum, a) => sum + (a.balanceValid ? a.toBase : 0), 0);
-        const totalSavingsBalance = accounts
+          .reduce((sum, a) => sum + a.toBase, 0);
+        const totalSavingsBalance = activeAccounts
           .filter(isSavingsAccount)
-          .reduce((sum, a) => sum + (a.balanceValid ? a.toBase : 0), 0);
+          .reduce((sum, a) => sum + a.toBase, 0);
 
         const savingsTarget = avgMonthlySpend * floorMonths;
         const savingsFunded = totalSavingsBalance >= savingsTarget;
@@ -94,6 +87,7 @@ export default function AccountsPage() {
           savingsMonths: floorMonths,
         });
       } catch (err) {
+        if (ignore) return;
         setInvestable({
           status: "error",
           message:
@@ -102,40 +96,19 @@ export default function AccountsPage() {
       }
     }
 
-    load();
-  }, [isAuthenticated, accounts, floorMonths]);
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    async function load() {
-      setFetchStatus({ loading: true, error: null });
-      getMe()
-        .then((user) => setPrimaryCurrency(user.primary_currency))
-        .catch(() => {});
-      try {
-        const { manual, plaid } = await getAccounts();
-        setAccounts(normalizeAccounts(manual, plaid));
-        setFetchStatus({ loading: false, error: null });
-      } catch (err) {
-        setFetchStatus({
-          loading: false,
-          error: err instanceof Error ? err.message : "Something went wrong",
-        });
-      }
-    }
-
-    load();
-  }, [isAuthenticated, setFetchStatus]);
+    run();
+    return () => {
+      ignore = true;
+    };
+  }, [isAuthenticated, accounts, categoryMap, floorMonths]);
 
   if (!isAuthenticated) return <NoTokenPrompt />;
 
-  const assets = accounts.filter(
-    (a) => !a.isLiability && a.status !== "closed"
-  );
-  const liabilities = accounts.filter(
-    (a) => a.isLiability && a.status !== "closed"
-  );
+  const activeAccounts = accounts.filter((a) => a.status === "active");
+  const inactiveAccounts = accounts.filter((a) => a.status !== "active");
+
+  const assets = activeAccounts.filter((a) => !a.isLiability);
+  const liabilities = activeAccounts.filter((a) => a.isLiability);
 
   const totalAssets = assets.reduce(
     (sum, a) => sum + (a.balanceValid ? a.toBase : 0),
@@ -222,6 +195,34 @@ export default function AccountsPage() {
               </p>
             )}
           </div>
+          {inactiveAccounts.length > 0 && (
+            <div className="mt-4 sm:mt-6">
+              <button
+                onClick={() => setShowInactive((v) => !v)}
+                className="mb-3 flex items-center gap-1.5 text-sm text-bento-subtle transition-colors hover:text-bento-default"
+              >
+                <span>{showInactive ? "▾" : "▸"}</span>
+                {inactiveAccounts.length} inactive or revoked{" "}
+                {inactiveAccounts.length === 1 ? "account" : "accounts"}
+              </button>
+              <AnimatedCollapse open={showInactive}>
+                <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-6">
+                  <AccountSection
+                    title="Inactive / Revoked"
+                    accounts={inactiveAccounts.filter((a) => !a.isLiability)}
+                    total={0}
+                    primaryCurrency={primaryCurrency}
+                  />
+                  <AccountSection
+                    title="Inactive / Revoked"
+                    accounts={inactiveAccounts.filter((a) => a.isLiability)}
+                    total={0}
+                    primaryCurrency={primaryCurrency}
+                  />
+                </div>
+              </AnimatedCollapse>
+            </div>
+          )}
         </>
       )}
     </div>
