@@ -235,9 +235,12 @@ Theme is defined in `app/globals.css` using CSS custom properties (oklch color s
 
 **Surfaces are translucent.** A fixed ambient wash (`body::before`, radial gradients tinted with `--primary` and the chart hues) sits behind the page, and every raised surface — cards, the transaction list, drill-down panels, chart tooltips, the header — is a pane of glass over it. The material lives in one Tailwind utility, `glass`, which sets the translucent fill, the backdrop blur/saturate, a hairline ring and a lit top edge. Use it rather than reaching for `bg-card` + blur classes, so all surfaces stay the same sheet.
 
+The light page carries a faint tint (`--background` sits just below white, in the same neutral ramp as `--sidebar`) rather than being paper-white — glass over pure white is invisible, so the tint is what the cards separate from.
+
 Two consequences to keep in mind when adding UI:
 
 - Fills that sit **on** glass should be translucent too — `bento-raised` for row hovers and skeletons, `bento-hairline` for progress tracks. An opaque fill reads as a patch stuck on the pane.
+- Charts pull `--series-1` / `--series-2`, not `--chart-1` directly. The chart ramp is amber, and its bright end is unreadable as a line on a white surface, so light mode maps the series to the ramp's darker steps and dark mode to its brighter ones.
 - Category chips tint with the category's own color: `color-mix(in oklab, <color> var(--chip-tint), transparent)`. `--chip-tint` is per-theme (26% light, 34% dark) because a tint over dark glass needs more strength to read.
 
 App code should use the semantic `bento-*` tokens rather than raw Tailwind palette colors, so both themes stay in sync:

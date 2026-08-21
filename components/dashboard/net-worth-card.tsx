@@ -124,7 +124,7 @@ export function NetWorthCard({
       </CardContent>
 
       <div className="-mb-6">
-        <ChartContainer config={chartConfig} className="h-36 w-full sm:h-44">
+        <ChartContainer config={chartConfig} className="h-32 w-full sm:h-40">
           <AreaChart
             data={chartData}
             margin={{ top: 4, right: 0, bottom: 0, left: 0 }}

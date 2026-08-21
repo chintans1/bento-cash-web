@@ -135,11 +135,11 @@ export function BudgetProgressCard({
                     </span>
                   </span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-bento-hairline">
+                <div className="h-1.5 overflow-hidden rounded-full bg-bento-hairline">
                   <div
                     className={cn(
                       "h-full rounded-full transition-[width,background-color]",
-                      over ? "bg-bento-negative" : "bg-bento-brand"
+                      over ? "bg-bento-negative/85" : "bg-bento-brand"
                     )}
                     style={{ width: `${pct}%` }}
                   />
