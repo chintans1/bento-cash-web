@@ -47,8 +47,8 @@
   --surface-hairline: oklch(0.148 0.004 228.8 / 0.09);
   --surface-sheen: oklch(1 0 0 / 0.9);
   --surface-shadow:
-    0 1px 2px oklch(0.148 0.004 228.8 / 0.06),
-    0 14px 30px -16px oklch(0.148 0.004 228.8 / 0.22);
+    0 1px 1px oklch(0.148 0.004 228.8 / 0.03),
+    0 8px 20px -16px oklch(0.148 0.004 228.8 / 0.12);
   /* Chart series. Light mode takes the darker steps of the same amber ramp —
      --chart-1 is far too pale to read as a line on a white surface. */
   --series-1: var(--chart-4);
