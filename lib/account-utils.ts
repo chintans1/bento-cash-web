@@ -127,3 +127,25 @@ export function groupByInstitution(
       ] as [string, NormalizedAccount[]]
   );
 }
+
+export type NetWorth = {
+  totalAssets: number;
+  totalLiabilities: number;
+  netWorth: number;
+};
+
+/** Sums open accounts into assets, liabilities and net worth (all in the primary currency). */
+export function computeNetWorth(accounts: NormalizedAccount[]): NetWorth {
+  const open = accounts.filter((a) => a.status !== "closed");
+  const sum = (accs: NormalizedAccount[]) =>
+    accs.reduce((total, a) => total + (a.balanceValid ? a.toBase : 0), 0);
+
+  const totalAssets = sum(open.filter((a) => !a.isLiability));
+  const totalLiabilities = sum(open.filter((a) => a.isLiability));
+
+  return {
+    totalAssets,
+    totalLiabilities,
+    netWorth: totalAssets - totalLiabilities,
+  };
+}

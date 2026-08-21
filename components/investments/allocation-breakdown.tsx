@@ -58,7 +58,7 @@ export function AllocationBreakdown({
           {
             bucket: {
               label: "Other",
-              color: "bg-gray-400",
+              color: "bg-bento-subtle",
               subtypes: new Set<string>(),
             },
             bucketAccounts: otherAccounts,

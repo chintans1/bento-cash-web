@@ -44,7 +44,7 @@ export function InvestableCashCard({
                 className={cn(
                   "font-mono text-3xl font-bold tabular-nums",
                   state.investableAmount > 0
-                    ? "text-green-600 dark:text-green-400"
+                    ? "text-bento-positive"
                     : "text-bento-subtle"
                 )}
               >
@@ -72,9 +72,7 @@ export function InvestableCashCard({
                       <span
                         className={cn(
                           "text-sm",
-                          ok
-                            ? "text-green-600 dark:text-green-400"
-                            : "text-amber-600 dark:text-amber-400"
+                          ok ? "text-bento-positive" : "text-bento-brand"
                         )}
                       >
                         {ok ? "✓" : "✗"}
@@ -99,9 +97,7 @@ export function InvestableCashCard({
                       <span
                         className={cn(
                           "font-medium",
-                          ok
-                            ? "text-bento-default"
-                            : "text-amber-600 dark:text-amber-400"
+                          ok ? "text-bento-default" : "text-bento-brand"
                         )}
                       >
                         {formatCurrency(surplus, primaryCurrency, true)}
@@ -117,8 +113,8 @@ export function InvestableCashCard({
                     className={cn(
                       "text-sm",
                       state.savingsFunded
-                        ? "text-green-600 dark:text-green-400"
-                        : "text-amber-600 dark:text-amber-400"
+                        ? "text-bento-positive"
+                        : "text-bento-brand"
                     )}
                   >
                     {state.savingsFunded ? "✓" : "✗"}
@@ -139,13 +135,13 @@ export function InvestableCashCard({
                       "font-medium",
                       state.savingsFunded
                         ? "text-bento-default"
-                        : "text-amber-600 dark:text-amber-400"
+                        : "text-bento-brand"
                     )}
                   >
                     {formatCurrency(state.savingsTarget, primaryCurrency, true)}
                   </span>
                   {!state.savingsFunded && (
-                    <span className="text-amber-600 dark:text-amber-400">
+                    <span className="text-bento-brand">
                       {" (−"}
                       {formatCurrency(
                         state.savingsShortfall,

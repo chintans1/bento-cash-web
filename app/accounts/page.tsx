@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useToken } from "@/hooks/use-token";
 import { getTransactionsForMonth } from "@/lib/lunchmoney/client";
 import { computeAverageMonthlySpend } from "@/lib/lunchmoney/analytics";
+import { computeNetWorth } from "@/lib/account-utils";
 import { useAppData } from "@/hooks/use-app-data";
 import {
   type InvestableState,
@@ -110,15 +111,7 @@ export default function AccountsPage() {
   const assets = activeAccounts.filter((a) => !a.isLiability);
   const liabilities = activeAccounts.filter((a) => a.isLiability);
 
-  const totalAssets = assets.reduce(
-    (sum, a) => sum + (a.balanceValid ? a.toBase : 0),
-    0
-  );
-  const totalLiabilities = liabilities.reduce(
-    (sum, a) => sum + (a.balanceValid ? a.toBase : 0),
-    0
-  );
-  const netWorth = totalAssets - totalLiabilities;
+  const { totalAssets, totalLiabilities, netWorth } = computeNetWorth(accounts);
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
@@ -142,7 +135,7 @@ export default function AccountsPage() {
           <div className="mt-4 flex items-center justify-center gap-10 sm:gap-16">
             <div className="text-right">
               <p className="text-xs text-bento-subtle">Assets</p>
-              <p className="font-mono text-sm font-medium text-green-600 dark:text-green-400">
+              <p className="font-mono text-sm font-medium text-bento-positive">
                 {formatCurrency(totalAssets, primaryCurrency, true)}
               </p>
             </div>

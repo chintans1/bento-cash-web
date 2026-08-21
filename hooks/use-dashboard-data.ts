@@ -12,6 +12,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  getAccounts,
   getBudgetSummary,
   getCategories,
   getMe,
@@ -24,21 +25,31 @@ import {
 import {
   buildCategoryMap,
   computeCategoryTotals,
+  computeCumulativeSpendComparison,
+  computeNetFlowSeries,
   computeDailySpend,
   computeMerchantTotals,
   computeMoMDeltas,
   computeQuickStats,
   countUncategorized,
   getPeakDayTxs,
+  getRecentTransactions,
   getSortedIncomeTxs,
   getSortedSpendTxs,
   type CategoryTotal,
+  type CumulativeSpendPoint,
   type DailySpend,
   type MerchantTotal,
   type MoMDelta,
+  type NetFlowPoint,
   type QuickStats,
 } from "@/lib/lunchmoney/analytics";
 import { type CategoryInfo } from "@/lib/lunchmoney/categories";
+import {
+  computeNetWorth,
+  normalizeAccounts,
+  type NetWorth,
+} from "@/lib/account-utils";
 import { prevMonthOf } from "@/lib/date-utils";
 
 export type DashboardData = {
@@ -48,6 +59,8 @@ export type DashboardData = {
   primaryCurrency: string;
   recurringItems: RecurringItem[];
   budgetSummary: AlignedSummaryResponse | null;
+  /** null until the accounts request resolves — it loads after the main render. */
+  netWorth: NetWorth | null;
   loading: boolean;
   error: string | null;
 
@@ -56,6 +69,9 @@ export type DashboardData = {
   momDeltas: Map<number, MoMDelta>;
   merchantTotals: MerchantTotal[];
   dailySpend: DailySpend[];
+  netFlowSeries: NetFlowPoint[];
+  cumulativeSpend: CumulativeSpendPoint[];
+  recentTransactions: Transaction[];
   uncategorizedCount: number;
   quickStats: QuickStats | null;
   incomePanelTxs: Transaction[];
@@ -81,16 +97,23 @@ export function useDashboardData(
   const [recurringItems, setRecurringItems] = useState<RecurringItem[]>([]);
   const [budgetSummary, setBudgetSummary] =
     useState<AlignedSummaryResponse | null>(null);
+  const [netWorth, setNetWorth] = useState<NetWorth | null>(null);
   const [{ loading, error }, setFetchStatus] = useState<{
     loading: boolean;
     error: string | null;
   }>({ loading: false, error: null });
 
-  // Fetch the user's primary currency once when auth state changes
+  // Fetch the user's primary currency and account balances once when auth
+  // state changes — neither depends on the selected month.
   useEffect(() => {
     if (!isAuthenticated) return;
     getMe()
       .then((user) => setPrimaryCurrency(user.primary_currency))
+      .catch(() => {});
+    getAccounts()
+      .then(({ manual, plaid }) =>
+        setNetWorth(computeNetWorth(normalizeAccounts(manual, plaid)))
+      )
       .catch(() => {});
   }, [isAuthenticated]);
 
@@ -159,6 +182,29 @@ export function useDashboardData(
     [transactions, categoryMap, year, month]
   );
 
+  const netFlowSeries = useMemo(
+    () => computeNetFlowSeries(transactions, categoryMap, year, month),
+    [transactions, categoryMap, year, month]
+  );
+
+  const cumulativeSpend = useMemo(
+    () =>
+      computeCumulativeSpendComparison(
+        transactions,
+        prevTransactions,
+        categoryMap,
+        year,
+        month,
+        now
+      ),
+    [transactions, prevTransactions, categoryMap, year, month, now]
+  );
+
+  const recentTransactions = useMemo(
+    () => getRecentTransactions(transactions),
+    [transactions]
+  );
+
   const uncategorizedCount = useMemo(
     () => countUncategorized(transactions),
     [transactions]
@@ -203,12 +249,16 @@ export function useDashboardData(
     primaryCurrency,
     recurringItems,
     budgetSummary,
+    netWorth,
     loading,
     error,
     categoryTotals,
     momDeltas,
     merchantTotals,
     dailySpend,
+    netFlowSeries,
+    cumulativeSpend,
+    recentTransactions,
     uncategorizedCount,
     quickStats,
     incomePanelTxs,

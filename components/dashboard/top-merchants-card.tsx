@@ -7,6 +7,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { categoryColor } from "@/lib/lunchmoney/category-colors";
 import type { MerchantTotal } from "@/lib/lunchmoney/analytics";
 
 export function TopMerchantsCard({
@@ -21,7 +22,7 @@ export function TopMerchantsCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Top Merchants</CardTitle>
+        <CardTitle className="text-lg">Top merchants</CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -30,12 +31,19 @@ export function TopMerchantsCard({
           <p className="text-sm text-bento-subtle">No spending data found.</p>
         ) : (
           <ul className="flex flex-col gap-3">
-            {merchantTotals.map((m, i) => {
+            {merchantTotals.map((m) => {
               const maxMerchant = merchantTotals[0].spend;
               return (
                 <li key={m.payee} className="flex items-center gap-3">
-                  <span className="w-4 shrink-0 text-right font-mono text-xs text-bento-subtle/60 tabular-nums">
-                    {i + 1}
+                  <span
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
+                    style={{
+                      backgroundColor: `color-mix(in oklab, ${categoryColor(m.payee)} 32%, var(--card))`,
+                      color: `color-mix(in oklab, ${categoryColor(m.payee)} 80%, var(--foreground))`,
+                    }}
+                    aria-hidden="true"
+                  >
+                    {m.payee.charAt(0).toUpperCase()}
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="mb-1 flex items-center justify-between">

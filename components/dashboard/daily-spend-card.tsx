@@ -18,7 +18,7 @@ export function DailySpendCard({
     <Card>
       <CardHeader>
         <CardTitle className="text-lg">
-          Daily Spend — {MONTH_NAMES[month - 1]}
+          Daily spend — {MONTH_NAMES[month - 1]}
         </CardTitle>
       </CardHeader>
       <CardContent>

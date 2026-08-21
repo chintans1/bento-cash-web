@@ -9,14 +9,15 @@ export function MoMBadge({ delta }: { delta: MoMDelta | undefined }) {
   const label = `${isUp ? "+" : ""}${pct.toFixed(0)}%`;
   return (
     <Badge
+      title="vs last month"
       className={cn(
-        "ml-2 text-[10px] tabular-nums",
+        "shrink-0 text-[10px] tabular-nums",
         isUp
-          ? "bg-rose-100 text-rose-600 dark:bg-rose-900/40 dark:text-rose-400"
-          : "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+          ? "bg-bento-negative/15 text-bento-negative"
+          : "bg-bento-positive/15 text-bento-positive"
       )}
     >
-      {label} vs last mo.
+      {label}
     </Badge>
   );
 }

@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useToken } from "@/hooks/use-token";
 import { Button } from "@/components/ui/button";
 import { AnimatedCollapse } from "@/components/animated-collapse";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -34,46 +35,54 @@ export function Header() {
           <span className="font-mono text-xs text-bento-subtle">web</span>
         </span>
 
-        {/* Desktop nav */}
-        <nav className="hidden items-center gap-1 sm:flex">
-          {visibleLinks.map(({ href, label }) => (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "relative rounded-4xl px-4 py-1.5 text-sm font-medium transition-colors",
-                pathname === href
-                  ? "text-bento-brand-fg"
-                  : "text-bento-subtle hover:bg-bento-muted hover:text-bento-default"
-              )}
-            >
-              {pathname === href && (
-                <motion.span
-                  layoutId="nav-pill"
-                  className="absolute inset-0 rounded-4xl bg-bento-brand"
-                  transition={{ type: "spring", bounce: 0.2, duration: 0.35 }}
-                />
-              )}
-              <span className="relative z-10">{label}</span>
-            </Link>
-          ))}
-        </nav>
+        <div className="flex items-center gap-1">
+          {/* Desktop nav */}
+          <nav className="hidden items-center gap-1 sm:flex">
+            {visibleLinks.map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className={cn(
+                  "relative rounded-4xl px-4 py-1.5 text-sm font-medium transition-colors",
+                  pathname === href
+                    ? "text-bento-brand-fg"
+                    : "text-bento-subtle hover:bg-bento-muted hover:text-bento-default"
+                )}
+              >
+                {pathname === href && (
+                  <motion.span
+                    layoutId="nav-pill"
+                    className="absolute inset-0 rounded-4xl bg-bento-brand"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.35 }}
+                  />
+                )}
+                <span className="relative z-10">{label}</span>
+              </Link>
+            ))}
+          </nav>
 
-        {/* Mobile hamburger */}
-        {visibleLinks.length > 0 && (
-          <button
-            className="flex size-9 items-center justify-center rounded-lg text-bento-subtle transition-colors hover:bg-bento-muted hover:text-bento-default sm:hidden"
-            onClick={() => setMenuOpen((o) => !o)}
-            aria-label="Toggle menu"
-          >
-            {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
-          </button>
-        )}
+          <ThemeToggle />
+
+          {/* Mobile hamburger */}
+          {visibleLinks.length > 0 && (
+            <button
+              className="flex size-9 items-center justify-center rounded-lg text-bento-subtle transition-colors hover:bg-bento-muted hover:text-bento-default sm:hidden"
+              onClick={() => setMenuOpen((o) => !o)}
+              aria-label="Toggle menu"
+            >
+              {menuOpen ? (
+                <X className="size-5" />
+              ) : (
+                <Menu className="size-5" />
+              )}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Demo mode banner */}
       {isDemo && (
-        <div className="flex items-center justify-center gap-3 border-t border-amber-200 bg-amber-50 px-4 py-2 text-sm dark:border-amber-800 dark:bg-amber-950">
+        <div className="flex items-center justify-center gap-3 border-t border-bento-hairline bg-bento-brand/10 px-4 py-2 text-sm">
           <span className="text-bento-subtle">
             Viewing demo data —{" "}
             <Link

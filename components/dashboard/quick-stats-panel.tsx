@@ -6,7 +6,7 @@ import { AnimatedCollapse } from "@/components/animated-collapse";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatShortDate } from "@/lib/format";
 import { MONTH_NAMES } from "@/lib/date-utils";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import type { Transaction } from "@/lib/lunchmoney/client";
@@ -28,6 +28,55 @@ type StatPanel = "income" | "spend" | "peak";
  * idiomatic React way to reset component state in response to a prop change,
  * without adding a useEffect.
  */
+/**
+ * One stat tile. Clickable tiles open the drill-down panel below the grid;
+ * Avg/day has nothing to drill into, so it renders without a click handler.
+ */
+function StatTile({
+  label,
+  value,
+  hint,
+  accent,
+  open,
+  onClick,
+}: {
+  label: string;
+  value: string;
+  hint: string;
+  accent: string;
+  open?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <Card
+      size="sm"
+      onClick={onClick}
+      className={cn(
+        "gap-2",
+        onClick &&
+          "cursor-pointer transition-[transform,box-shadow] hover:shadow-md active:scale-[0.98]",
+        open && "ring-2 ring-bento-brand/60"
+      )}
+    >
+      <CardContent>
+        <div className="flex items-center gap-1.5">
+          <span
+            className="size-1.5 rounded-full"
+            style={{ backgroundColor: accent }}
+          />
+          <p className="text-[11px] font-medium tracking-[0.12em] text-bento-subtle uppercase">
+            {label}
+          </p>
+        </div>
+        <p className="mt-1.5 font-heading text-2xl font-semibold tabular-nums sm:text-3xl">
+          {value}
+        </p>
+        <p className="mt-0.5 truncate text-[11px] text-bento-subtle">{hint}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function QuickStatsPanel({
   quickStats,
   primaryCurrency,
@@ -57,117 +106,49 @@ export function QuickStatsPanel({
           Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="h-24 animate-pulse rounded-xl bg-bento-muted"
+              className="h-24 animate-pulse rounded-4xl bg-bento-muted"
             />
           ))
         ) : quickStats ? (
           <>
-            <Card
-              className={cn(
-                "cursor-pointer transition-[transform,box-shadow] hover:shadow-md active:scale-[0.98]",
-                openPanel === "income" && "ring-2 ring-green-500/50"
-              )}
+            <StatTile
+              label="Income"
+              value={formatCurrency(quickStats.totalIncome, primaryCurrency)}
+              hint={`${incomePanelTxs.length} deposits`}
+              accent="var(--bento-positive)"
+              open={openPanel === "income"}
               onClick={() =>
                 setOpenPanel((p) => (p === "income" ? null : "income"))
               }
-            >
-              <CardHeader>
-                <CardTitle className="text-4xl text-green-500 tabular-nums">
-                  {formatCurrency(
-                    quickStats.totalIncome,
-                    primaryCurrency,
-                    false
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm font-medium tracking-wide text-bento-subtle">
-                  Income
-                </p>
-                <p className="font-mono text-[11px] text-bento-subtle/50">
-                  {incomePanelTxs.length} deposits
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card
-              className={cn(
-                "cursor-pointer transition-[transform,box-shadow] hover:shadow-md active:scale-[0.98]",
-                openPanel === "spend" && "ring-2 ring-rose-500/50"
-              )}
+            />
+            <StatTile
+              label="Spend"
+              value={formatCurrency(quickStats.totalSpend, primaryCurrency)}
+              hint={`${sortedSpendTxs.length} transactions`}
+              accent="var(--chart-1)"
+              open={openPanel === "spend"}
               onClick={() =>
                 setOpenPanel((p) => (p === "spend" ? null : "spend"))
               }
-            >
-              <CardHeader>
-                <CardTitle className="text-4xl text-rose-500 tabular-nums">
-                  {formatCurrency(
-                    quickStats.totalSpend,
-                    primaryCurrency,
-                    false
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm font-medium tracking-wide text-bento-subtle">
-                  Spend
-                </p>
-                <p className="font-mono text-[11px] text-bento-subtle/50">
-                  {sortedSpendTxs.length} transactions
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-4xl text-blue-500 tabular-nums">
-                  {formatCurrency(
-                    quickStats.avgSpendPerDay,
-                    primaryCurrency,
-                    false
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm font-medium tracking-wide text-bento-subtle">
-                  Avg / Day
-                </p>
-                <p className="font-mono text-[11px] text-bento-subtle/50">
-                  This {MONTH_NAMES[selectedMonth - 1]}
-                </p>
-              </CardContent>
-            </Card>
-
-            <Card
-              className={cn(
-                "cursor-pointer transition-[transform,box-shadow] hover:shadow-md active:scale-[0.98]",
-                openPanel === "peak" && "ring-2 ring-amber-500/50"
-              )}
+            />
+            <StatTile
+              label="Avg / day"
+              value={formatCurrency(quickStats.avgSpendPerDay, primaryCurrency)}
+              hint={`This ${MONTH_NAMES[selectedMonth - 1]}`}
+              accent="var(--cat-1)"
+            />
+            <StatTile
+              label="Peak day"
+              value={formatCurrency(quickStats.peakAmount, primaryCurrency)}
+              hint={`${
+                quickStats.peakDay ? formatShortDate(quickStats.peakDay) : "—"
+              } · excl. recurring`}
+              accent="var(--cat-2)"
+              open={openPanel === "peak"}
               onClick={() =>
                 setOpenPanel((p) => (p === "peak" ? null : "peak"))
               }
-            >
-              <CardHeader>
-                <CardTitle className="text-4xl text-amber-500 tabular-nums">
-                  {formatCurrency(
-                    quickStats.peakAmount,
-                    primaryCurrency,
-                    false
-                  )}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm font-medium tracking-wide text-bento-subtle">
-                  Peak Day
-                </p>
-                <p className="font-mono text-[11px] whitespace-nowrap text-bento-subtle/50">
-                  {quickStats.peakDay
-                    ? formatShortDate(quickStats.peakDay)
-                    : "—"}{" "}
-                  · excl. recurring
-                </p>
-              </CardContent>
-            </Card>
+            />
           </>
         ) : null}
       </div>
@@ -178,7 +159,7 @@ export function QuickStatsPanel({
         className="mb-4"
       >
         {openPanel && quickStats && (
-          <div className="rounded-xl border border-bento-hairline bg-bento-surface">
+          <div className="rounded-4xl border border-bento-hairline bg-bento-surface">
             <div className="flex items-center justify-between border-b border-bento-hairline px-4 py-3">
               <span className="text-sm font-semibold">
                 {openPanel === "income" && "Income Transactions"}
@@ -226,7 +207,7 @@ export function QuickStatsPanel({
                             className={
                               isCategorized
                                 ? "text-bento-subtle"
-                                : "text-amber-600 dark:text-amber-400"
+                                : "text-bento-brand"
                             }
                           >
                             {catName}
@@ -237,7 +218,7 @@ export function QuickStatsPanel({
                         className={cn(
                           "w-24 text-right font-mono text-xs tabular-nums",
                           isIncome
-                            ? "text-green-600 dark:text-green-400"
+                            ? "text-bento-positive"
                             : "text-bento-default"
                         )}
                       >
