@@ -69,7 +69,7 @@ export function NetWorthCard({
           Net worth
         </p>
         {loading || (netWorth === null && isCurrentMonth) ? (
-          <div className="mt-2 h-11 w-56 animate-pulse rounded-lg bg-bento-muted" />
+          <div className="mt-2 h-11 w-56 animate-pulse rounded-lg bg-bento-raised" />
         ) : (
           <p className="mt-1 font-heading text-4xl font-bold tracking-tight tabular-nums sm:text-5xl">
             {formatCurrency(netWorth?.netWorth ?? 0, primaryCurrency, true)}
@@ -150,7 +150,7 @@ export function NetWorthCard({
                   value: number;
                 };
                 return (
-                  <div className="rounded-lg border border-bento-hairline bg-bento-surface px-2.5 py-1.5 text-xs shadow-md">
+                  <div className="rounded-xl glass px-2.5 py-1.5 text-xs">
                     <p className="text-bento-subtle">
                       {formatShortDate(point.date)}
                     </p>

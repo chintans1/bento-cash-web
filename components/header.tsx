@@ -28,7 +28,7 @@ export function Header() {
   const visibleLinks = isAuthenticated ? NAV_LINKS : [];
 
   return (
-    <header className="sticky top-0 z-10 border-b border-bento-hairline/60 bg-bento-base/80 backdrop-blur-sm">
+    <header className="sticky top-0 z-10 border-b border-bento-hairline/60 bg-bento-base/60 backdrop-blur-xl backdrop-saturate-150">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
         <span className="font-heading text-2xl font-bold">
           Bento Cash{" "}
@@ -46,7 +46,7 @@ export function Header() {
                   "relative rounded-4xl px-4 py-1.5 text-sm font-medium transition-colors",
                   pathname === href
                     ? "text-bento-brand-fg"
-                    : "text-bento-subtle hover:bg-bento-muted hover:text-bento-default"
+                    : "text-bento-subtle hover:bg-bento-raised hover:text-bento-default"
                 )}
               >
                 {pathname === href && (
@@ -66,7 +66,7 @@ export function Header() {
           {/* Mobile hamburger */}
           {visibleLinks.length > 0 && (
             <button
-              className="flex size-9 items-center justify-center rounded-lg text-bento-subtle transition-colors hover:bg-bento-muted hover:text-bento-default sm:hidden"
+              className="flex size-9 items-center justify-center rounded-lg text-bento-subtle transition-colors hover:bg-bento-raised hover:text-bento-default sm:hidden"
               onClick={() => setMenuOpen((o) => !o)}
               aria-label="Toggle menu"
             >
@@ -100,7 +100,7 @@ export function Header() {
 
       {/* Mobile dropdown menu */}
       <AnimatedCollapse open={menuOpen && visibleLinks.length > 0}>
-        <nav className="border-t border-bento-hairline/60 bg-bento-base/95 px-4 pb-4 sm:hidden">
+        <nav className="border-t border-bento-hairline/60 px-4 pb-4 sm:hidden">
           {visibleLinks.map(({ href, label }) => (
             <Link
               key={href}
@@ -110,7 +110,7 @@ export function Header() {
                 "mt-1 block rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",
                 pathname === href
                   ? "bg-bento-brand text-bento-brand-fg"
-                  : "text-bento-subtle hover:bg-bento-muted hover:text-bento-default"
+                  : "text-bento-subtle hover:bg-bento-raised hover:text-bento-default"
               )}
             >
               {label}

@@ -38,7 +38,7 @@ export function TopMerchantsCard({
                   <span
                     className="flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
                     style={{
-                      backgroundColor: `color-mix(in oklab, ${categoryColor(m.payee)} 32%, var(--card))`,
+                      backgroundColor: `color-mix(in oklab, ${categoryColor(m.payee)} var(--chip-tint), transparent)`,
                       color: `color-mix(in oklab, ${categoryColor(m.payee)} 80%, var(--foreground))`,
                     }}
                     aria-hidden="true"
@@ -54,7 +54,7 @@ export function TopMerchantsCard({
                         {formatCurrency(m.spend, primaryCurrency, false)}
                       </span>
                     </div>
-                    <div className="h-1.5 overflow-hidden rounded-full bg-bento-muted">
+                    <div className="h-1.5 overflow-hidden rounded-full bg-bento-hairline">
                       <div
                         className="h-full rounded-full bg-bento-brand"
                         style={{

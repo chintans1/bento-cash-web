@@ -45,7 +45,7 @@ export function CategoryRow({
   return (
     <li>
       <button
-        className="flex w-full items-center gap-3 rounded-xl px-1 py-1 text-left transition-colors hover:bg-bento-muted/50"
+        className="flex w-full items-center gap-3 rounded-xl px-1 py-1 text-left transition-colors hover:bg-bento-raised"
         onClick={() => setExpanded((v) => !v)}
       >
         <div className="min-w-0 flex-1">
@@ -55,7 +55,8 @@ export function CategoryRow({
               width: `${pct}%`,
               minWidth: "fit-content",
               maxWidth: "100%",
-              backgroundColor: `color-mix(in oklab, ${color} 32%, var(--card))`,
+              backgroundColor: `color-mix(in oklab, ${color} var(--chip-tint), transparent)`,
+              boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${color} 30%, transparent)`,
             }}
           >
             <CategoryIcon

@@ -18,7 +18,7 @@ function BudgetGauge({ pct, over }: { pct: number; over: boolean }) {
           cy="32"
           r={radius}
           fill="none"
-          stroke="var(--bento-muted)"
+          stroke="var(--bento-hairline)"
           strokeWidth="7"
         />
         <circle
@@ -135,7 +135,7 @@ export function BudgetProgressCard({
                     </span>
                   </span>
                 </div>
-                <div className="h-2 overflow-hidden rounded-full bg-bento-muted">
+                <div className="h-2 overflow-hidden rounded-full bg-bento-hairline">
                   <div
                     className={cn(
                       "h-full rounded-full transition-[width,background-color]",

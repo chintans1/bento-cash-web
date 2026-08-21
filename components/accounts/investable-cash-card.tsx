@@ -29,9 +29,9 @@ export function InvestableCashCard({
       <CardContent className="space-y-4">
         {state.status === "idle" || state.status === "loading" ? (
           <div className="space-y-3">
-            <div className="h-9 w-40 animate-pulse rounded-lg bg-bento-muted" />
-            <div className="h-5 w-full animate-pulse rounded bg-bento-muted" />
-            <div className="h-5 w-full animate-pulse rounded bg-bento-muted" />
+            <div className="h-9 w-40 animate-pulse rounded-lg bg-bento-raised" />
+            <div className="h-5 w-full animate-pulse rounded bg-bento-raised" />
+            <div className="h-5 w-full animate-pulse rounded bg-bento-raised" />
           </div>
         ) : state.status === "error" ? (
           <p className="text-sm text-bento-subtle">
