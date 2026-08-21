@@ -151,6 +151,9 @@ Pure functions that operate on already-fetched transaction arrays. No API calls 
 | `computeMoMDeltas(current, prev)`            | Returns `Map<categoryId, MoMDelta>` with `pct` change (null when prev spend = 0)                      |
 | `countUncategorized(txs, catMap)`            | Count of expense transactions with no category_id                                                     |
 | `getTransactionsForCategory(txs, catId)`     | Top 5 transactions for a category by amount (used for category drill-down)                            |
+| `computeNetFlowSeries(txs, catMap, y, m)`    | Running income − spend for every day of the month; anchors the net worth chart                        |
+| `computeCumulativeSpendComparison(...)`      | Day-by-day cumulative spend for the month vs. the previous one, on one axis                           |
+| `getRecentTransactions(txs, limit?)`         | Most recent non-pending transactions, newest first                                                    |
 
 ### `lib/lunchmoney/categories.ts`
 
@@ -159,6 +162,10 @@ Defines `CategoryInfo` interface and the `UNCATEGORIZED` sentinel object.
 ### `lib/lunchmoney/category-icons.ts`
 
 Maps lowercase category name keywords → Lucide icon components. `getCategoryIcon(name)` first does an exact lookup, then a substring match, then falls back to `Receipt`. Add entries to `CATEGORY_ICON_MAP` to support new category names.
+
+### `lib/lunchmoney/category-colors.ts`
+
+`categoryColor(name)` hashes a category (or merchant) name to one of the eight `--cat-*` custom properties defined for both themes in `globals.css`. Hashing rather than indexing by position keeps a category's color stable when the spend ranking reshuffles between months. Chips mix the color with `--card` (`color-mix(in oklab, <color> 32%, var(--card))`) so the same token reads correctly in light and dark.
 
 ### `lib/format.ts`
 
@@ -178,15 +185,18 @@ The main analytics view. Fetches current month + previous month transactions in 
 
 **Sections, top to bottom:**
 
-1. **Month selector** — prev/next chevrons; future months disabled
-2. **Uncategorized banner** — amber alert shown when any expense transaction has no `category_id`; links to `/transactions`
-3. **Quick Stats** — 4 cards: Total Income, Total Spend, Avg Spend/Day, Peak Day
-4. **Net Cash Flow bar** — green/red split bar showing income vs. spend proportion; surplus/deficit label
-5. **Daily Spend chart** — bar-per-day for the selected month; hover tooltip
-6. **Spend by Category** — ranked list with colored progress bars; each row is expandable (click → shows top 5 transactions inline, with clickable category labels that open an inline `<select>` to reassign category, writing back to LM); MoM delta badge on each category
-7. **Top Merchants** — ranked by spend with progress bars and transaction count
-8. **Budget Progress** — only rendered when the user has budgets configured in LM; shows spend vs. budget per category with red bar when over budget
-9. **Subscriptions & Recurring** — sourced from LM's recurring items API (not computed locally); only `status="reviewed"` items shown; amounts normalized to monthly equivalent; total shown in header
+1. **Header** — page title and month selector (prev/next chevrons; future months disabled)
+2. **Uncategorized banner** — shown when any transaction has no `category_id`; links to `/transactions`
+3. **Net Worth hero** — assets − liabilities from the accounts endpoint, plus an area chart of the month. LM has no historical-balance endpoint, so the curve is derived: today's balances walked backwards through the month's net cash flow (`computeNetFlowSeries`). That anchor only exists for the current month; for a past month the same series is drawn from zero as cumulative cash flow, and the caption says so.
+4. **Cash flow** — surplus/deficit headline, savings rate, income/spend breakdown, and a green/red proportion bar
+5. **Quick Stats** — 4 tiles: Income, Spend, Avg/Day, Peak Day; clicking Income/Spend/Peak opens a drill-down transaction table
+6. **Spending** — cumulative spend for the month drawn against the previous month on one axis (`computeCumulativeSpendComparison`); the current line stops at today rather than flatlining
+7. **Top expense categories** — each row's colored pill doubles as the bar (width = share of the largest category, `min-width: fit-content` keeps small ones readable); expandable to the top 5 transactions; MoM delta badge
+8. **Daily spend** — bar-per-day for the selected month, recurring spend stacked separately
+9. **Top merchants** — ranked by spend with progress bars and transaction count
+10. **Budget** — only rendered when the user has budgets configured in LM; ring gauge for the month total, then spend vs. budget per category
+11. **Upcoming bills** — LM recurring items (`status="reviewed"` only) with cadence and, when LM provides `matches.expected_occurrence_dates`, the next expected date; amounts normalized to a monthly equivalent
+12. **Transactions** — the month's most recent activity with category icons
 
 **LM sign convention:** positive `amount` = expense, negative `amount` = income/credit.
 
@@ -221,7 +231,18 @@ Current installed components in `components/ui/`:
 - `input`
 - `kbd`
 
-Theme is defined in `app/globals.css` using CSS custom properties (oklch color space). Dark mode via `next-themes` with class strategy. Toggle: press `d` key.
+Theme is defined in `app/globals.css` using CSS custom properties (oklch color space): a warm off-white light palette and a warm near-black dark one, with an orange brand accent. Dark mode via `next-themes` with class strategy. Toggle: press `d` or use the header button.
+
+App code should use the semantic `bento-*` tokens rather than raw Tailwind palette colors, so both themes stay in sync:
+
+| Token                               | Use                                         |
+| ----------------------------------- | ------------------------------------------- |
+| `bento-base` / `bento-surface`      | page background / card background           |
+| `bento-default` / `bento-subtle`    | primary / secondary text                    |
+| `bento-hairline` / `bento-muted`    | borders / muted fills                       |
+| `bento-brand` / `bento-brand-fg`    | orange accent and text on it                |
+| `bento-positive` / `bento-negative` | money in / money out, under / over budget   |
+| `cat-1` … `cat-8`                   | category accents (see `category-colors.ts`) |
 
 ---
 

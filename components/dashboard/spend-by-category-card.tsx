@@ -1,7 +1,8 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CategoryRow, CAT_COLORS } from "./category-row";
+import { CategoryRow } from "./category-row";
+import { categoryColor } from "@/lib/lunchmoney/category-colors";
 import type { CategoryTotal, MoMDelta } from "@/lib/lunchmoney/analytics";
 import type { Transaction } from "@/lib/lunchmoney/client";
 
@@ -25,7 +26,7 @@ export function SpendByCategoryCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Spend by Category</CardTitle>
+        <CardTitle className="text-lg">Top expense categories</CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -35,12 +36,12 @@ export function SpendByCategoryCard({
         ) : categoryTotals.length === 0 ? (
           <p className="text-sm text-bento-subtle">No spending data found.</p>
         ) : (
-          <ul className="flex flex-col gap-2">
-            {categoryTotals.map((cat, i) => (
+          <ul className="flex flex-col gap-1.5">
+            {categoryTotals.map((cat) => (
               <CategoryRow
                 key={cat.id}
                 cat={cat}
-                color={CAT_COLORS[i % CAT_COLORS.length]}
+                color={categoryColor(cat.name)}
                 maxSpend={maxCatSpend}
                 delta={momDeltas.get(cat.id)}
                 primaryCurrency={primaryCurrency}

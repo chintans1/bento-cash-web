@@ -13,16 +13,11 @@ import type { CategoryTotal, MoMDelta } from "@/lib/lunchmoney/analytics";
 import { MoMBadge } from "./mom-badge";
 import { AnimatedCollapse } from "@/components/animated-collapse";
 
-export const CAT_COLORS = [
-  "#e85d4a",
-  "#f97316",
-  "#eab308",
-  "#22c55e",
-  "#06b6d4",
-  "#8b5cf6",
-  "#ec4899",
-];
-
+/**
+ * One category in the spend breakdown. The colored pill doubles as the bar:
+ * its width is the category's share of the largest category, and `fit-content`
+ * keeps the label readable even for a tiny slice.
+ */
 export function CategoryRow({
   cat,
   color,
@@ -45,42 +40,39 @@ export function CategoryRow({
     [transactions, cat.id]
   );
 
+  const pct = maxSpend > 0 ? (cat.spend / maxSpend) * 100 : 0;
+
   return (
     <li>
       <button
-        className="flex w-full items-center gap-3 rounded-lg px-1 py-1 transition-colors hover:bg-bento-muted/50"
+        className="flex w-full items-center gap-3 rounded-xl px-1 py-1 text-left transition-colors hover:bg-bento-muted/50"
         onClick={() => setExpanded((v) => !v)}
       >
-        <div
-          className="flex size-7 shrink-0 items-center justify-center rounded-lg"
-          style={{ backgroundColor: `${color}22` }}
-        >
-          <CategoryIcon
-            name={cat.name}
-            className="size-3.5"
-            style={{ color }}
-          />
-        </div>
-        <div className="min-w-0 flex-1 text-left">
-          <div className="mb-1.5 flex items-center justify-between">
-            <div className="flex items-center">
-              <span className="truncate text-xs font-medium">{cat.name}</span>
-              <MoMBadge delta={delta} />
-            </div>
-            <span className="ml-3 shrink-0 font-mono text-xs text-bento-subtle tabular-nums">
-              {formatCurrency(cat.spend, primaryCurrency, false)}
-            </span>
-          </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-bento-muted">
-            <div
-              className="h-full rounded-full"
-              style={{
-                width: maxSpend > 0 ? `${(cat.spend / maxSpend) * 100}%` : "0%",
-                backgroundColor: color,
-              }}
+        <div className="min-w-0 flex-1">
+          <div
+            className="flex h-9 items-center gap-2 rounded-full px-2.5"
+            style={{
+              width: `${pct}%`,
+              minWidth: "fit-content",
+              maxWidth: "100%",
+              backgroundColor: `color-mix(in oklab, ${color} 32%, var(--card))`,
+            }}
+          >
+            <CategoryIcon
+              name={cat.name}
+              className="size-4 shrink-0"
+              style={{ color }}
             />
+            <span className="truncate text-xs font-medium">{cat.name}</span>
           </div>
         </div>
+
+        <MoMBadge delta={delta} />
+
+        <span className="shrink-0 font-mono text-xs font-medium tabular-nums">
+          {formatCurrency(cat.spend, primaryCurrency, false)}
+        </span>
+
         <ChevronDown
           className={cn(
             "size-3.5 shrink-0 text-bento-subtle transition-transform",
@@ -90,7 +82,7 @@ export function CategoryRow({
       </button>
 
       <AnimatedCollapse open={expanded && topTxs.length > 0}>
-        <ul className="mt-1 mb-2 ml-10 flex flex-col gap-0.5 border-l-2 border-bento-hairline pl-3">
+        <ul className="mt-1 mb-2 ml-4 flex flex-col gap-0.5 border-l-2 border-bento-hairline pl-3">
           {topTxs.map((tx, i) => (
             <motion.li
               key={tx.id}

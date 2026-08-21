@@ -1,3 +1,4 @@
+import { prevMonthOf } from "../date-utils";
 import type { CategoriesResponse, Transaction } from "./client";
 import type { CategoryInfo } from "./categories";
 
@@ -410,4 +411,119 @@ export function computeQuickStats(
     peakDay: peak.date,
     peakAmount: peak.amount,
   };
+}
+
+// ── Trend series ─────────────────────────────────────────────────────────────
+
+export type NetFlowPoint = {
+  date: string; // YYYY-MM-DD
+  /** Running income − spend from the first of the month through this day. */
+  net: number;
+};
+
+/**
+ * Running net cash flow (income − spend) for every day of the given month.
+ *
+ * The dashboard's net worth chart anchors this series to today's account
+ * balances: net worth on day N = net worth today − (net at end of series − net
+ * on day N). Transfers are excluded (they carry exclude_from_totals), so money
+ * moving between the user's own accounts doesn't show up as a swing.
+ */
+export function computeNetFlowSeries(
+  transactions: Transaction[],
+  catMap: Map<number, CategoryInfo>,
+  year: number,
+  month: number
+): NetFlowPoint[] {
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const perDay = new Map<string, number>();
+
+  for (const tx of filterSpendTransactions(transactions, catMap)) {
+    perDay.set(tx.date, (perDay.get(tx.date) ?? 0) - parseFloat(tx.amount));
+  }
+  for (const tx of filterIncomeTxs(transactions, catMap)) {
+    perDay.set(
+      tx.date,
+      (perDay.get(tx.date) ?? 0) + Math.abs(parseFloat(tx.amount))
+    );
+  }
+
+  const series: NetFlowPoint[] = [];
+  let running = 0;
+  for (let d = 1; d <= daysInMonth; d++) {
+    const date = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    running += perDay.get(date) ?? 0;
+    series.push({ date, net: running });
+  }
+  return series;
+}
+
+export type CumulativeSpendPoint = {
+  day: number;
+  /** Cumulative spend in the selected month; null for days that haven't happened yet. */
+  current: number | null;
+  /** Cumulative spend in the previous month up to the same day number. */
+  previous: number | null;
+};
+
+/**
+ * Day-by-day cumulative spend for the selected month against the previous one,
+ * so the two months can be drawn on the same axis. The current line stops at
+ * today when the selected month is the current month — carrying a flat line to
+ * the end of the month would read as "spending stopped".
+ */
+export function computeCumulativeSpendComparison(
+  transactions: Transaction[],
+  prevTransactions: Transaction[],
+  catMap: Map<number, CategoryInfo>,
+  year: number,
+  month: number,
+  today: Date
+): CumulativeSpendPoint[] {
+  const prev = prevMonthOf(year, month);
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const daysInPrevMonth = new Date(prev.year, prev.month, 0).getDate();
+
+  const isCurrentMonth =
+    year === today.getFullYear() && month === today.getMonth() + 1;
+  const lastDayWithData = isCurrentMonth ? today.getDate() : daysInMonth;
+
+  const dayTotals = (txs: Transaction[]) => {
+    const totals = new Map<number, number>();
+    for (const tx of filterSpendTransactions(txs, catMap)) {
+      const day = parseInt(tx.date.slice(8, 10), 10);
+      totals.set(day, (totals.get(day) ?? 0) + parseFloat(tx.amount));
+    }
+    return totals;
+  };
+
+  const currentTotals = dayTotals(transactions);
+  const prevTotals = dayTotals(prevTransactions);
+
+  const points: CumulativeSpendPoint[] = [];
+  let currentRunning = 0;
+  let prevRunning = 0;
+  for (let day = 1; day <= Math.max(daysInMonth, daysInPrevMonth); day++) {
+    currentRunning += currentTotals.get(day) ?? 0;
+    prevRunning += prevTotals.get(day) ?? 0;
+    points.push({
+      day,
+      current:
+        day <= Math.min(lastDayWithData, daysInMonth) ? currentRunning : null,
+      previous: day <= daysInPrevMonth ? prevRunning : null,
+    });
+  }
+  return points;
+}
+
+/** Most recent non-pending transactions, newest first. */
+export function getRecentTransactions(
+  transactions: Transaction[],
+  limit = 6
+): Transaction[] {
+  return transactions
+    .filter((tx) => !tx.is_pending)
+    .slice()
+    .sort((a, b) => b.date.localeCompare(a.date))
+    .slice(0, limit);
 }

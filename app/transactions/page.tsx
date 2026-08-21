@@ -18,6 +18,7 @@ import {
   type CategoryGroupEntry,
 } from "@/lib/lunchmoney/analytics";
 import { CategoryIcon } from "@/lib/lunchmoney/category-icons";
+import { categoryColor } from "@/lib/lunchmoney/category-colors";
 import { type CategoryInfo, UNCATEGORIZED } from "@/lib/lunchmoney/categories";
 import { formatAmount, formatShortDate } from "@/lib/format";
 import { NoTokenPrompt } from "@/components/no-token-prompt";
@@ -44,6 +45,11 @@ import { ButtonGroup } from "@/components/ui/button-group";
 type SortKey = "date" | "amount" | "payee";
 type SortDir = "asc" | "desc";
 
+/**
+ * Arrow next to the active sort column. Declared at module scope rather than
+ * inside the page so React doesn't treat it as a new component type on every
+ * render.
+ */
 function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   if (!active) return null;
   return (
@@ -352,8 +358,17 @@ function TransactionsPage() {
                   >
                     {/* Payee */}
                     <div className="flex min-w-0 items-center gap-3">
-                      <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-bento-muted text-bento-subtle">
-                        <CategoryIcon name={category.name} className="size-4" />
+                      <div
+                        className="flex size-8 shrink-0 items-center justify-center rounded-full"
+                        style={{
+                          backgroundColor: `color-mix(in oklab, ${categoryColor(category.name)} 32%, var(--card))`,
+                        }}
+                      >
+                        <CategoryIcon
+                          name={category.name}
+                          className="size-4"
+                          style={{ color: categoryColor(category.name) }}
+                        />
                       </div>
                       <div className="min-w-0">
                         <p className="truncate text-sm font-medium">
@@ -413,7 +428,7 @@ function TransactionsPage() {
                           className={cn(
                             "w-full truncate rounded px-1.5 py-0.5 text-left text-xs transition-colors hover:bg-bento-muted",
                             isUncategorized
-                              ? "text-amber-600 dark:text-amber-400"
+                              ? "text-bento-brand"
                               : "text-bento-subtle"
                           )}
                           onClick={() => setEditingCatId(tx.id)}
@@ -432,7 +447,7 @@ function TransactionsPage() {
                     <span
                       className={cn(
                         "text-right font-mono text-sm font-medium tabular-nums",
-                        isCredit && "text-green-600 dark:text-green-400"
+                        isCredit && "text-bento-positive"
                       )}
                     >
                       {isCredit ? "+" : "−"}
