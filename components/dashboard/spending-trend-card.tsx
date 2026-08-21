@@ -98,7 +98,7 @@ export function SpendingTrendCard({
         </div>
 
         {loading ? (
-          <div className="h-48 animate-pulse rounded-xl bg-bento-muted" />
+          <div className="h-48 animate-pulse rounded-xl bg-bento-raised" />
         ) : (
           <ChartContainer config={chartConfig} className="h-48 w-full">
             <AreaChart
@@ -144,7 +144,7 @@ export function SpendingTrendCard({
                 content={({ active, payload, label }) => {
                   if (!active || !payload?.length) return null;
                   return (
-                    <div className="rounded-lg border border-bento-hairline bg-bento-surface px-2.5 py-1.5 text-xs shadow-md">
+                    <div className="rounded-xl glass px-2.5 py-1.5 text-xs">
                       <p className="mb-1 text-bento-subtle">Day {label}</p>
                       {payload.map((entry) => (
                         <p

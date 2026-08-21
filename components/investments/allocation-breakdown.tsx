@@ -95,7 +95,7 @@ export function AllocationBreakdown({
                     </span>
                   </div>
                 </div>
-                <div className="h-2 w-full overflow-hidden rounded-full bg-bento-muted">
+                <div className="h-2 w-full overflow-hidden rounded-full bg-bento-hairline">
                   <div
                     className={cn("h-full rounded-full", bucket.color)}
                     style={{ width: `${pct}%` }}

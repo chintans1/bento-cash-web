@@ -316,7 +316,7 @@ function TransactionsPage() {
           {Array.from({ length: 12 }).map((_, i) => (
             <div
               key={i}
-              className="h-12 animate-pulse rounded-lg bg-bento-muted"
+              className="h-12 animate-pulse rounded-lg bg-bento-raised"
             />
           ))}
         </div>
@@ -327,7 +327,7 @@ function TransactionsPage() {
           No transactions match.
         </p>
       ) : (
-        <div className="relative divide-y divide-bento-hairline/50 overflow-hidden rounded-xl border border-bento-hairline">
+        <div className="relative divide-y divide-bento-hairline/50 overflow-hidden rounded-4xl glass">
           <AnimatePresence mode="popLayout" initial={false}>
             {filtered.map((tx) => {
               const category =
@@ -349,7 +349,7 @@ function TransactionsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, x: -12, transition: { duration: 0.15 } }}
                   transition={{ duration: 0.2 }}
-                  className="bg-bento-base transition-colors hover:bg-bento-muted/30"
+                  className="transition-colors hover:bg-bento-raised"
                 >
                   {/* Row */}
                   <div
@@ -361,7 +361,7 @@ function TransactionsPage() {
                       <div
                         className="flex size-8 shrink-0 items-center justify-center rounded-full"
                         style={{
-                          backgroundColor: `color-mix(in oklab, ${categoryColor(category.name)} 32%, var(--card))`,
+                          backgroundColor: `color-mix(in oklab, ${categoryColor(category.name)} var(--chip-tint), transparent)`,
                         }}
                       >
                         <CategoryIcon
@@ -426,10 +426,8 @@ function TransactionsPage() {
                       ) : (
                         <button
                           className={cn(
-                            "w-full truncate rounded px-1.5 py-0.5 text-left text-xs transition-colors hover:bg-bento-muted",
-                            isUncategorized
-                              ? "text-bento-brand"
-                              : "text-bento-subtle"
+                            "w-full truncate rounded px-1.5 py-0.5 text-left text-xs transition-colors hover:bg-bento-raised",
+                            isUncategorized ? "text-cat-3" : "text-bento-subtle"
                           )}
                           onClick={() => setEditingCatId(tx.id)}
                         >

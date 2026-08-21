@@ -165,7 +165,7 @@ Maps lowercase category name keywords → Lucide icon components. `getCategoryIc
 
 ### `lib/lunchmoney/category-colors.ts`
 
-`categoryColor(name)` hashes a category (or merchant) name to one of the eight `--cat-*` custom properties defined for both themes in `globals.css`. Hashing rather than indexing by position keeps a category's color stable when the spend ranking reshuffles between months. Chips mix the color with `--card` (`color-mix(in oklab, <color> 32%, var(--card))`) so the same token reads correctly in light and dark.
+`categoryColor(name)` hashes a category (or merchant) name to one of the seven `--cat-*` custom properties defined for both themes in `globals.css` (the dashboard's original spend colors, lifted slightly in dark mode). Hashing rather than indexing by position keeps a category's color stable when the spend ranking reshuffles between months.
 
 ### `lib/format.ts`
 
@@ -231,18 +231,26 @@ Current installed components in `components/ui/`:
 - `input`
 - `kbd`
 
-Theme is defined in `app/globals.css` using CSS custom properties (oklch color space): a warm off-white light palette and a warm near-black dark one, with an orange brand accent. Dark mode via `next-themes` with class strategy. Toggle: press `d` or use the header button.
+Theme is defined in `app/globals.css` using CSS custom properties (oklch color space). Dark mode via `next-themes` with class strategy. Toggle: press `d` or use the header button.
+
+**Surfaces are translucent.** A fixed ambient wash (`body::before`, radial gradients tinted with `--primary` and the chart hues) sits behind the page, and every raised surface — cards, the transaction list, drill-down panels, chart tooltips, the header — is a pane of glass over it. The material lives in one Tailwind utility, `glass`, which sets the translucent fill, the backdrop blur/saturate, a hairline ring and a lit top edge. Use it rather than reaching for `bg-card` + blur classes, so all surfaces stay the same sheet.
+
+Two consequences to keep in mind when adding UI:
+
+- Fills that sit **on** glass should be translucent too — `bento-raised` for row hovers and skeletons, `bento-hairline` for progress tracks. An opaque fill reads as a patch stuck on the pane.
+- Category chips tint with the category's own color: `color-mix(in oklab, <color> var(--chip-tint), transparent)`. `--chip-tint` is per-theme (26% light, 34% dark) because a tint over dark glass needs more strength to read.
 
 App code should use the semantic `bento-*` tokens rather than raw Tailwind palette colors, so both themes stay in sync:
 
-| Token                               | Use                                         |
-| ----------------------------------- | ------------------------------------------- |
-| `bento-base` / `bento-surface`      | page background / card background           |
-| `bento-default` / `bento-subtle`    | primary / secondary text                    |
-| `bento-hairline` / `bento-muted`    | borders / muted fills                       |
-| `bento-brand` / `bento-brand-fg`    | orange accent and text on it                |
-| `bento-positive` / `bento-negative` | money in / money out, under / over budget   |
-| `cat-1` … `cat-8`                   | category accents (see `category-colors.ts`) |
+| Token                               | Use                                                     |
+| ----------------------------------- | ------------------------------------------------------- |
+| `bento-base` / `bento-surface`      | page background / card background                       |
+| `bento-glass` / `bento-raised`      | translucent panel fill / translucent overlay on a panel |
+| `bento-default` / `bento-subtle`    | primary / secondary text                                |
+| `bento-hairline` / `bento-muted`    | borders and tracks / muted fills                        |
+| `bento-brand` / `bento-brand-fg`    | brand accent and text on it                             |
+| `bento-positive` / `bento-negative` | money in / money out, under / over budget               |
+| `cat-1` … `cat-7`                   | category accents (see `category-colors.ts`)             |
 
 ---
 

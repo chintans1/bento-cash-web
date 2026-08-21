@@ -94,12 +94,12 @@ export function UpcomingBillsCard({
             return (
               <li
                 key={bill.id}
-                className="flex items-center gap-3 rounded-xl px-1 py-1.5 transition-colors hover:bg-bento-muted/50"
+                className="flex items-center gap-3 rounded-xl px-1 py-1.5 transition-colors hover:bg-bento-raised"
               >
                 <span
                   className="flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
                   style={{
-                    backgroundColor: `color-mix(in oklab, ${color} 32%, var(--card))`,
+                    backgroundColor: `color-mix(in oklab, ${color} var(--chip-tint), transparent)`,
                     color: `color-mix(in oklab, ${color} 80%, var(--foreground))`,
                   }}
                   aria-hidden="true"

@@ -106,7 +106,7 @@ export function QuickStatsPanel({
           Array.from({ length: 4 }).map((_, i) => (
             <div
               key={i}
-              className="h-24 animate-pulse rounded-4xl bg-bento-muted"
+              className="h-24 animate-pulse rounded-4xl bg-bento-raised"
             />
           ))
         ) : quickStats ? (
@@ -125,7 +125,7 @@ export function QuickStatsPanel({
               label="Spend"
               value={formatCurrency(quickStats.totalSpend, primaryCurrency)}
               hint={`${sortedSpendTxs.length} transactions`}
-              accent="var(--chart-1)"
+              accent="var(--cat-3)"
               open={openPanel === "spend"}
               onClick={() =>
                 setOpenPanel((p) => (p === "spend" ? null : "spend"))
@@ -135,7 +135,7 @@ export function QuickStatsPanel({
               label="Avg / day"
               value={formatCurrency(quickStats.avgSpendPerDay, primaryCurrency)}
               hint={`This ${MONTH_NAMES[selectedMonth - 1]}`}
-              accent="var(--cat-1)"
+              accent="var(--cat-5)"
             />
             <StatTile
               label="Peak day"
@@ -159,7 +159,7 @@ export function QuickStatsPanel({
         className="mb-4"
       >
         {openPanel && quickStats && (
-          <div className="rounded-4xl border border-bento-hairline bg-bento-surface">
+          <div className="overflow-hidden rounded-4xl glass">
             <div className="flex items-center justify-between border-b border-bento-hairline px-4 py-3">
               <span className="text-sm font-semibold">
                 {openPanel === "income" && "Income Transactions"}

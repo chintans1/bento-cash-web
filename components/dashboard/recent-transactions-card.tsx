@@ -36,7 +36,7 @@ export function RecentTransactionsCard({
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="h-10 animate-pulse rounded-xl bg-bento-muted"
+                className="h-10 animate-pulse rounded-xl bg-bento-raised"
               />
             ))}
           </div>
@@ -56,12 +56,12 @@ export function RecentTransactionsCard({
               return (
                 <li
                   key={tx.id}
-                  className="flex items-center gap-3 rounded-xl px-1 py-1.5 transition-colors hover:bg-bento-muted/50"
+                  className="flex items-center gap-3 rounded-xl px-1 py-1.5 transition-colors hover:bg-bento-raised"
                 >
                   <span
                     className="flex size-8 shrink-0 items-center justify-center rounded-full"
                     style={{
-                      backgroundColor: `color-mix(in oklab, ${color} 32%, var(--card))`,
+                      backgroundColor: `color-mix(in oklab, ${color} var(--chip-tint), transparent)`,
                     }}
                   >
                     <CategoryIcon

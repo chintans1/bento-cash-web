@@ -119,7 +119,7 @@ export default function AccountsPage() {
       <div className="mb-6 text-center">
         <p className="mb-1 text-sm text-bento-subtle">Net Worth</p>
         {loading ? (
-          <div className="h-12 animate-pulse rounded-lg bg-bento-muted" />
+          <div className="h-12 animate-pulse rounded-lg bg-bento-raised" />
         ) : (
           <p
             className={cn(
@@ -155,7 +155,7 @@ export default function AccountsPage() {
           {[1, 2].map((i) => (
             <div
               key={i}
-              className="h-40 animate-pulse rounded-xl bg-bento-muted"
+              className="h-40 animate-pulse rounded-xl bg-bento-raised"
             />
           ))}
         </div>

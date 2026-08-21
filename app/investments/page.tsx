@@ -116,7 +116,7 @@ export default function InvestmentsPage() {
           {[1, 2].map((i) => (
             <div
               key={i}
-              className="h-64 animate-pulse rounded-xl bg-bento-muted"
+              className="h-64 animate-pulse rounded-xl bg-bento-raised"
             />
           ))}
         </div>
@@ -198,7 +198,7 @@ export default function InvestmentsPage() {
                           i > 0 && "border-t border-bento-hairline"
                         )}
                       >
-                        <div className="flex items-baseline justify-between bg-bento-muted/90 px-6 py-2">
+                        <div className="flex items-baseline justify-between bg-bento-raised px-6 py-2">
                           <span className="text-xs font-semibold tracking-wide text-bento-subtle uppercase">
                             {institution}
                           </span>
@@ -253,7 +253,7 @@ export default function InvestmentsPage() {
                   key={institution}
                   className={cn(i > 0 && "border-t border-bento-hairline")}
                 >
-                  <div className="flex items-baseline justify-between bg-bento-muted/90 px-6 py-2">
+                  <div className="flex items-baseline justify-between bg-bento-raised px-6 py-2">
                     <span className="text-xs font-semibold tracking-wide text-bento-subtle uppercase">
                       {institution}
                     </span>
@@ -283,7 +283,7 @@ export default function InvestmentsPage() {
       <div className="mb-6 text-center">
         <p className="mb-1 text-sm text-bento-subtle">Portfolio Value</p>
         {loading ? (
-          <div className="mx-auto h-12 w-56 animate-pulse rounded-lg bg-bento-muted" />
+          <div className="mx-auto h-12 w-56 animate-pulse rounded-lg bg-bento-raised" />
         ) : (
           <p className="font-heading text-4xl font-bold sm:text-5xl">
             {formatCurrency(totalPortfolio, primaryCurrency, true)}

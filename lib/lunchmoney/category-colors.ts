@@ -1,11 +1,11 @@
 /**
  * Category accent colors.
  *
- * The eight `--cat-*` custom properties are defined for both themes in
- * globals.css, so a category keeps the same hue in light and dark mode while
- * staying legible in each. Colors are picked by hashing the category name
- * rather than by list position, so a category doesn't change color when the
- * spend ranking reshuffles between months.
+ * The `--cat-*` custom properties are defined for both themes in globals.css
+ * (same hues, lifted a little in dark mode), so a category keeps its identity
+ * across themes. Colors are picked by hashing the category name rather than by
+ * list position, so a category doesn't change color when the spend ranking
+ * reshuffles between months.
  */
 export const CAT_COLOR_VARS = [
   "var(--cat-1)",
@@ -15,7 +15,6 @@ export const CAT_COLOR_VARS = [
   "var(--cat-5)",
   "var(--cat-6)",
   "var(--cat-7)",
-  "var(--cat-8)",
 ] as const;
 
 export function categoryColor(name: string): string {
