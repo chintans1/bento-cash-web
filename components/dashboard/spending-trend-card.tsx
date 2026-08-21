@@ -12,7 +12,7 @@ import { MONTH_NAMES, prevMonthOf } from "@/lib/date-utils";
 import type { CumulativeSpendPoint } from "@/lib/lunchmoney/analytics";
 
 const chartConfig = {
-  current: { label: "This month", color: "var(--chart-1)" },
+  current: { label: "This month", color: "var(--series-1)" },
   previous: { label: "Last month", color: "var(--bento-subtle)" },
 } satisfies ChartConfig;
 
@@ -88,7 +88,7 @@ export function SpendingTrendCard({
       <CardContent>
         <div className="mb-3 flex items-center gap-4 text-xs">
           <span className="flex items-center gap-1.5">
-            <span className="h-0.5 w-4 rounded-full bg-[var(--chart-1)]" />
+            <span className="h-0.5 w-4 rounded-full bg-[var(--series-1)]" />
             <span className="text-bento-subtle">This month</span>
           </span>
           <span className="flex items-center gap-1.5">
@@ -109,12 +109,12 @@ export function SpendingTrendCard({
                 <linearGradient id="spend-fill" x1="0" y1="0" x2="0" y2="1">
                   <stop
                     offset="0%"
-                    stopColor="var(--chart-1)"
+                    stopColor="var(--series-1)"
                     stopOpacity={0.3}
                   />
                   <stop
                     offset="100%"
-                    stopColor="var(--chart-1)"
+                    stopColor="var(--series-1)"
                     stopOpacity={0}
                   />
                 </linearGradient>
@@ -181,7 +181,7 @@ export function SpendingTrendCard({
               <Area
                 dataKey="current"
                 type="monotone"
-                stroke="var(--chart-1)"
+                stroke="var(--series-1)"
                 strokeWidth={2.5}
                 fill="url(#spend-fill)"
                 connectNulls

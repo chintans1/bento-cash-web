@@ -68,7 +68,7 @@ export function NetCashFlowBar({
           </div>
         </dl>
 
-        <div className="mt-auto pt-6">
+        <div className="pt-6">
           <div className="flex h-3 overflow-hidden">
             <div
               className="h-full rounded-l-full bg-bento-positive"

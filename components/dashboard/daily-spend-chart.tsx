@@ -11,8 +11,8 @@ import { formatCurrency, formatShortDate } from "@/lib/format";
 import type { DailySpend } from "@/lib/lunchmoney/analytics";
 
 const chartConfig = {
-  amount: { label: "Spend", color: "var(--chart-1)" },
-  recurring: { label: "Recurring", color: "var(--chart-2)" },
+  amount: { label: "Spend", color: "var(--series-1)" },
+  recurring: { label: "Recurring", color: "var(--series-2)" },
 } satisfies ChartConfig;
 
 export function DailySpendChart({
@@ -51,8 +51,8 @@ export function DailySpendChart({
                     style={{
                       backgroundColor:
                         name === "recurring"
-                          ? "var(--chart-2)"
-                          : "var(--chart-1)",
+                          ? "var(--series-2)"
+                          : "var(--series-1)",
                     }}
                   />
                   <div className="flex flex-1 justify-between gap-4">
@@ -71,13 +71,13 @@ export function DailySpendChart({
         <Bar
           dataKey="amount"
           stackId="daily"
-          fill="var(--chart-1)"
+          fill="var(--series-1)"
           radius={[0, 0, 0, 0]}
         />
         <Bar
           dataKey="recurring"
           stackId="daily"
-          fill="var(--chart-2)"
+          fill="var(--series-2)"
           radius={[2, 2, 0, 0]}
         />
       </BarChart>

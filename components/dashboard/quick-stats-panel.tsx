@@ -125,7 +125,7 @@ export function QuickStatsPanel({
               label="Spend"
               value={formatCurrency(quickStats.totalSpend, primaryCurrency)}
               hint={`${sortedSpendTxs.length} transactions`}
-              accent="var(--cat-3)"
+              accent="var(--series-1)"
               open={openPanel === "spend"}
               onClick={() =>
                 setOpenPanel((p) => (p === "spend" ? null : "spend"))
