@@ -25,6 +25,7 @@ export default function HomePage() {
     month: selectedMonth,
     onPrev,
     onNext,
+    pending,
   } = useMonthNavigation(new Date().getFullYear(), new Date().getMonth() + 1);
 
   const {
@@ -35,6 +36,7 @@ export default function HomePage() {
     budgetSummary,
     netWorth,
     loading,
+    refreshing,
     error,
     categoryTotals,
     momDeltas,
@@ -65,6 +67,7 @@ export default function HomePage() {
           month={selectedMonth}
           onPrev={onPrev}
           onNext={onNext}
+          refreshing={refreshing || pending}
           className="mb-0"
         />
       </div>

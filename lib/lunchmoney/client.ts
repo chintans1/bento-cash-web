@@ -1,4 +1,5 @@
 import { LunchMoneyClient } from "@lunch-money/lunch-money-js-v2";
+import { cached, clearCache, invalidate } from "./cache";
 import type {
   Category,
   Transaction,
@@ -127,6 +128,8 @@ let _activeClient: LMClient | null = null;
 
 export function setActiveClient(client: LMClient | null): void {
   _activeClient = client;
+  // Never serve one account's cached data to another's session.
+  clearCache();
 }
 
 function activeClient(): LMClient {
@@ -136,48 +139,71 @@ function activeClient(): LMClient {
 
 // ── Public API (no token param — baked in at factory time) ──────────────────
 
-export const getMe = (): Promise<User> => activeClient().getMe();
+export const getMe = (): Promise<User> =>
+  cached("me", () => activeClient().getMe());
 
 export const getTransactionsForMonth = (
   year: number,
   month: number
 ): Promise<TransactionsResponse> =>
-  activeClient().getTransactionsForMonth(year, month);
+  cached(`tx:${year}-${month}`, () =>
+    activeClient().getTransactionsForMonth(year, month)
+  );
 
 export const getCategories = (): Promise<CategoriesResponse> =>
-  activeClient().getCategories();
+  cached("categories", () => activeClient().getCategories());
 
 export const getAccounts = (): Promise<{
   manual: ManualAccount[];
   plaid: PlaidAccount[];
-}> => activeClient().getAccounts();
+}> => cached("accounts", () => activeClient().getAccounts());
 
 export const getRecurringItems = (): Promise<RecurringItem[]> =>
-  activeClient().getRecurringItems();
+  cached("recurring", () => activeClient().getRecurringItems());
 
 export const getBudgetSummary = (
   year: number,
   month: number
 ): Promise<AlignedSummaryResponse> =>
-  activeClient().getBudgetSummary(year, month);
+  cached(`budget:${year}-${month}`, () =>
+    activeClient().getBudgetSummary(year, month)
+  );
 
-export const updateManualAccount = (
+export const updateManualAccount = async (
   id: number,
   data: UpdateManualAccountBody
-): Promise<void> => activeClient().updateManualAccount(id, data);
+): Promise<void> => {
+  await activeClient().updateManualAccount(id, data);
+  invalidate("accounts");
+};
+
+/** A transaction edit can move month totals and budget actuals, so drop both. */
+async function afterTransactionWrite(write: Promise<void>): Promise<void> {
+  await write;
+  invalidate("tx:");
+  invalidate("budget:");
+}
 
 export const updateTransactionCategory = (
   transactionId: number,
   categoryId: number | null
 ): Promise<void> =>
-  activeClient().updateTransactionCategory(transactionId, categoryId);
+  afterTransactionWrite(
+    activeClient().updateTransactionCategory(transactionId, categoryId)
+  );
 
 export const updateTransactionNotes = (
   transactionId: number,
   notes: string | null
-): Promise<void> => activeClient().updateTransactionNotes(transactionId, notes);
+): Promise<void> =>
+  afterTransactionWrite(
+    activeClient().updateTransactionNotes(transactionId, notes)
+  );
 
 export const updateTransactionPayee = (
   transactionId: number,
   payee: string
-): Promise<void> => activeClient().updateTransactionPayee(transactionId, payee);
+): Promise<void> =>
+  afterTransactionWrite(
+    activeClient().updateTransactionPayee(transactionId, payee)
+  );

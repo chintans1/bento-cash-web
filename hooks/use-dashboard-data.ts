@@ -63,7 +63,10 @@ export type DashboardData = {
   budgetSummary: AlignedSummaryResponse | null;
   /** null until the accounts request resolves — it loads after the main render. */
   netWorth: NetWorth | null;
+  /** True only when there's nothing to show yet. A month change keeps the previous month on screen instead of flashing skeletons. */
   loading: boolean;
+  /** True while a month change is in flight over already-rendered content. */
+  refreshing: boolean;
   error: string | null;
 
   // Derived / computed values
@@ -259,7 +262,8 @@ export function useDashboardData(
     recurringItems,
     budgetSummary,
     netWorth,
-    loading,
+    loading: loading && transactions.length === 0,
+    refreshing: loading && transactions.length > 0,
     error,
     categoryTotals,
     momDeltas,
