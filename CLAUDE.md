@@ -168,6 +168,12 @@ Maps lowercase category name keywords → Lucide icon components. `getCategoryIc
 
 `categoryColor(name)` hashes a category (or merchant) name to one of the seven `--cat-*` custom properties defined for both themes in `globals.css` (the dashboard's original spend colors, lifted slightly in dark mode). Hashing rather than indexing by position keeps a category's color stable when the spend ranking reshuffles between months.
 
+### `lib/motion.ts`
+
+`EASE` (a quart ease-out) and `DURATION` (`expand` 0.26s, `collapse` 0.2s, `quick` 0.15s). Every transition in the app pulls from these — expanding rows, drill-down panels, the nav pill, list entries — so motion reads as one system. Collapsing is faster than expanding on purpose: nobody wants to wait to dismiss something.
+
+`AnimatedCollapse` (`components/animated-collapse.tsx`) is the shared expand/collapse. Height and opacity run on different clocks: the box opens over the full duration while the content fades in over the back half, so content arrives in an open container rather than appearing stretched. Anything below it reflows along with the height, which is what makes surrounding cards slide rather than jump.
+
 ### `lib/format.ts`
 
 | Function                              | Purpose                                                                                                     |
@@ -233,7 +239,9 @@ Current installed components in `components/ui/`:
 
 Theme is defined in `app/globals.css` using CSS custom properties (oklch color space). Dark mode via `next-themes` with class strategy. Toggle: press `d` or use the header button.
 
-**Surfaces are translucent.** A fixed ambient wash (`body::before`, radial gradients tinted with `--primary` and the chart hues) sits behind the page, and every raised surface — cards, the transaction list, drill-down panels, chart tooltips, the header — is a pane of glass over it. The material lives in one Tailwind utility, `glass`, which sets the translucent fill, the backdrop blur/saturate, a hairline ring and a lit top edge. Use it rather than reaching for `bg-card` + blur classes, so all surfaces stay the same sheet.
+**Surfaces are translucent.** A fixed ambient wash (`body::before`, radial gradients tinted with `--primary` and the chart hues) sits behind the page, and every raised surface — cards, the transaction list, drill-down panels, chart tooltips, the header — is a pane of glass over it. The material lives in one Tailwind utility, `glass`: translucent fill, hairline ring, lit top edge. Use it rather than reaching for `bg-card` + blur classes, so all surfaces stay the same sheet.
+
+**`glass` deliberately has no backdrop-filter** — don't add one back. What sits behind these panels is the ambient wash, a smooth gradient, so blurring it is visually a no-op; but it forces every panel to re-sample and re-blur its backdrop on every frame that anything moves. Measured on an expanding category row, that was the difference between 22fps and 63fps. Surfaces that sit over genuinely _varying_ content add `glass-blur` alongside `glass` — chart tooltips do, and the sticky header carries its own blur — because there the blur is both visible and cheap.
 
 The light page carries a faint tint (`--background` sits just below white, in the same neutral ramp as `--sidebar`) rather than being paper-white — glass over pure white is invisible, so the tint is what the cards separate from.
 

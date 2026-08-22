@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { MONTH_NAMES, isCurrentOrFutureMonth } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
+import { DURATION, EASE } from "@/lib/motion";
 
 /**
  * The prev/next month navigation bar.
@@ -43,7 +44,7 @@ export function MonthSelector({
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
-            transition={{ duration: 0.15 }}
+            transition={{ duration: DURATION.quick, ease: EASE }}
           >
             {MONTH_NAMES[month - 1]} {year}
           </motion.span>

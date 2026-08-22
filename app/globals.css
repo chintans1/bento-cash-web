@@ -210,19 +210,28 @@
 }
 
 /*
-  The app's surface material: a translucent panel that blurs the ambient wash
-  behind the page, ringed with a hairline and lit along its top edge. Used by
-  every raised surface — cards, the transaction list, drill-downs, tooltips —
-  so they all read as the same sheet of glass.
+  The app's surface material: a translucent panel ringed with a hairline and lit
+  along its top edge. Used by every raised surface — cards, the transaction
+  list, drill-downs, tooltips — so they all read as the same sheet of glass.
+
+  Deliberately no backdrop-filter. What sits behind these panels is the fixed
+  ambient wash, a smooth gradient: blurring it is visually a no-op, but it
+  forces every panel to re-sample and re-blur its backdrop on every frame that
+  anything moves, which cost ~35fps on an expanding card. Surfaces that sit
+  over *varying* content — the sticky header, popovers, chart tooltips — add
+  `glass-blur`, where the blur is both visible and cheap.
 */
 @utility glass {
   background-color: var(--surface-glass);
-  -webkit-backdrop-filter: blur(20px) saturate(150%);
-  backdrop-filter: blur(20px) saturate(150%);
   box-shadow:
     var(--surface-shadow),
     inset 0 0 0 1px var(--surface-hairline),
     inset 0 1px 0 0 var(--surface-sheen);
+}
+
+@utility glass-blur {
+  -webkit-backdrop-filter: blur(20px) saturate(150%);
+  backdrop-filter: blur(20px) saturate(150%);
 }
 
 /* Without backdrop-filter the panels would be see-through onto the wash, so
