@@ -42,6 +42,7 @@ export default function HomePage() {
     dailySpend,
     netFlowSeries,
     cumulativeSpend,
+    prevMonthTotals,
     recentTransactions,
     uncategorizedCount,
     quickStats,
@@ -88,6 +89,9 @@ export default function HomePage() {
           <NetCashFlowBar
             income={quickStats.totalIncome}
             spend={quickStats.totalSpend}
+            previous={prevMonthTotals}
+            year={selectedYear}
+            month={selectedMonth}
             primaryCurrency={primaryCurrency}
           />
         )}
@@ -137,17 +141,23 @@ export default function HomePage() {
             error={error}
           />
 
-          <DailySpendCard
-            data={dailySpend}
-            month={selectedMonth}
-            primaryCurrency={primaryCurrency}
-          />
+          {/*
+            The two shortest cards share a row inside the wide column. Stacked,
+            they left the wide column running far past the narrow one.
+          */}
+          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
+            <DailySpendCard
+              data={dailySpend}
+              month={selectedMonth}
+              primaryCurrency={primaryCurrency}
+            />
 
-          <TopMerchantsCard
-            merchantTotals={merchantTotals}
-            primaryCurrency={primaryCurrency}
-            loading={loading}
-          />
+            <TopMerchantsCard
+              merchantTotals={merchantTotals}
+              primaryCurrency={primaryCurrency}
+              loading={loading}
+            />
+          </div>
         </div>
 
         <div className="flex flex-col gap-4">

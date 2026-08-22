@@ -225,6 +225,16 @@
     inset 0 1px 0 0 var(--surface-sheen);
 }
 
+/* Without backdrop-filter the panels would be see-through onto the wash, so
+   fall back to the opaque card fill. */
+@supports not (
+  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
+) {
+  .glass {
+    background-color: var(--card);
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -276,6 +286,16 @@
   }
   html {
     @apply font-sans;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
   button:not(:disabled),
   [role="button"]:not(:disabled),

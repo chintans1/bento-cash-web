@@ -23,7 +23,7 @@ export function DailySpendChart({
   primaryCurrency: string;
 }) {
   return (
-    <ChartContainer config={chartConfig} className="h-24 w-full">
+    <ChartContainer config={chartConfig} className="h-32 w-full">
       <BarChart data={data} barCategoryGap={2}>
         <XAxis
           dataKey="date"
