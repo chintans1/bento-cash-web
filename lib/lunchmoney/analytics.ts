@@ -85,25 +85,7 @@ export type MoMDelta = {
 export function buildCategoryMap(
   res: CategoriesResponse
 ): Map<number, CategoryInfo> {
-  const map = new Map<number, CategoryInfo>();
-
-  for (const cat of res.categories) {
-    map.set(cat.id, {
-      name: cat.name,
-      is_income: cat.is_income,
-      exclude_from_totals: cat.exclude_from_totals,
-    });
-
-    for (const child of cat.children ?? []) {
-      map.set(child.id, {
-        name: child.name,
-        is_income: child.is_income,
-        exclude_from_totals: child.exclude_from_totals,
-      });
-    }
-  }
-
-  return map;
+  return buildCategoryData(res).categoryMap;
 }
 
 /** Filters to non-pending expense transactions: amount > 0 and not is_pending. */
@@ -383,13 +365,9 @@ export function computeQuickStats(
 ): QuickStats | null {
   if (transactions.length === 0) return null;
 
-  const totalSpend = filterSpendTransactions(transactions, catMap).reduce(
-    (sum, tx) => sum + parseFloat(tx.amount),
-    0
-  );
-  const totalIncome = filterIncomeTxs(transactions, catMap).reduce(
-    (sum, tx) => sum + Math.abs(parseFloat(tx.amount)),
-    0
+  const { income: totalIncome, spend: totalSpend } = computeMonthTotals(
+    transactions,
+    catMap
   );
 
   const daysInMonth = new Date(year, month, 0).getDate();

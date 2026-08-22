@@ -6,6 +6,7 @@ import { getTransactionsForMonth } from "@/lib/lunchmoney/client";
 import { computeAverageMonthlySpend } from "@/lib/lunchmoney/analytics";
 import { computeNetWorth } from "@/lib/account-utils";
 import { useAppData } from "@/hooks/use-app-data";
+import { useInvestableMonths } from "@/hooks/use-investable-months";
 import {
   type InvestableState,
   isCheckingAccount,
@@ -27,12 +28,7 @@ export default function AccountsPage() {
     status: "idle",
   });
   const [showInactive, setShowInactive] = useState(false);
-  const [floorMonths] = useState<number>(() => {
-    if (typeof window === "undefined") return 3;
-    const raw = localStorage.getItem("investable_months");
-    const parsed = raw !== null ? parseInt(raw, 10) : NaN;
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 3;
-  });
+  const { months: floorMonths } = useInvestableMonths();
 
   useEffect(() => {
     const activeAccounts = accounts.filter((a) => a.status === "active");

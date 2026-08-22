@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useCallback, useState, useTransition } from "react";
 import { prevMonthOf, nextMonthOf } from "@/lib/date-utils";
 
 type MonthNavigation = {
@@ -24,27 +24,25 @@ export function useMonthNavigation(
   initialYear: number,
   initialMonth: number
 ): MonthNavigation {
-  const [year, setYear] = useState(initialYear);
-  const [month, setMonth] = useState(initialMonth);
+  const [{ year, month }, setSelected] = useState({
+    year: initialYear,
+    month: initialMonth,
+  });
   const [pending, startTransition] = useTransition();
 
-  return {
-    year,
-    month,
-    pending,
-    onPrev: () => {
-      const p = prevMonthOf(year, month);
-      startTransition(() => {
-        setYear(p.year);
-        setMonth(p.month);
-      });
-    },
-    onNext: () => {
-      const n = nextMonthOf(year, month);
-      startTransition(() => {
-        setYear(n.year);
-        setMonth(n.month);
-      });
-    },
-  };
+  // Stable identities: the transactions page binds these to a window keydown
+  // listener, and new closures each render would re-subscribe it every time.
+  const onPrev = useCallback(() => {
+    startTransition(() =>
+      setSelected((current) => prevMonthOf(current.year, current.month))
+    );
+  }, []);
+
+  const onNext = useCallback(() => {
+    startTransition(() =>
+      setSelected((current) => nextMonthOf(current.year, current.month))
+    );
+  }, []);
+
+  return { year, month, pending, onPrev, onNext };
 }
