@@ -24,6 +24,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { DURATION, EASE } from "@/lib/motion";
 import {
   ACCOUNT_TYPES,
   INVESTMENT_SUBTYPE_OPTIONS,
@@ -81,7 +82,7 @@ export function AccountRow({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
+            transition={{ duration: DURATION.quick, ease: EASE }}
             className="flex flex-col gap-3"
           >
             <span className="text-sm font-medium">{account.name}</span>
@@ -159,7 +160,7 @@ export function AccountRow({
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.12 }}
+            transition={{ duration: DURATION.quick, ease: EASE }}
             className="flex items-center gap-3"
           >
             <div className="min-w-0 flex-1">

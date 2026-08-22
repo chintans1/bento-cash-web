@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
+import { DURATION, EASE } from "@/lib/motion";
 import { useToken } from "@/hooks/use-token";
 import { Button } from "@/components/ui/button";
 import { AnimatedCollapse } from "@/components/animated-collapse";
@@ -53,7 +54,7 @@ export function Header() {
                   <motion.span
                     layoutId="nav-pill"
                     className="absolute inset-0 rounded-4xl bg-bento-brand"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.35 }}
+                    transition={{ duration: DURATION.expand, ease: EASE }}
                   />
                 )}
                 <span className="relative z-10">{label}</span>

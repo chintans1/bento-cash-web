@@ -30,6 +30,7 @@ import { Search, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { MonthSelector } from "@/components/dashboard/month-selector";
 import { cn } from "@/lib/utils";
+import { DURATION, EASE } from "@/lib/motion";
 import {
   Select,
   SelectContent,
@@ -347,8 +348,12 @@ function TransactionsPage() {
                   layout
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, x: -12, transition: { duration: 0.15 } }}
-                  transition={{ duration: 0.2 }}
+                  exit={{
+                    opacity: 0,
+                    x: -12,
+                    transition: { duration: DURATION.quick, ease: EASE },
+                  }}
+                  transition={{ duration: DURATION.collapse, ease: EASE }}
                   className="transition-colors hover:bg-bento-raised"
                 >
                   {/* Row */}

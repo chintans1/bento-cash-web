@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
-import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { formatAmount, formatCurrency } from "@/lib/format";
 import { CategoryIcon } from "@/lib/lunchmoney/category-icons";
@@ -76,7 +75,7 @@ export function CategoryRow({
 
         <ChevronDown
           className={cn(
-            "size-3.5 shrink-0 text-bento-subtle transition-transform",
+            "size-3.5 shrink-0 text-bento-subtle transition-transform duration-200 ease-[cubic-bezier(0.25,1,0.5,1)]",
             expanded && "rotate-180"
           )}
         />
@@ -84,12 +83,9 @@ export function CategoryRow({
 
       <AnimatedCollapse open={expanded && topTxs.length > 0}>
         <ul className="mt-1 mb-2 ml-4 flex flex-col gap-0.5 border-l-2 border-bento-hairline pl-3">
-          {topTxs.map((tx, i) => (
-            <motion.li
+          {topTxs.map((tx) => (
+            <li
               key={tx.id}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.16, delay: i * 0.03 }}
               className="flex items-center justify-between gap-2 rounded py-1 text-xs"
             >
               <span className="truncate text-bento-subtle">{tx.payee}</span>
@@ -98,7 +94,7 @@ export function CategoryRow({
                   {formatAmount(parseFloat(tx.amount), true)}
                 </span>
               </div>
-            </motion.li>
+            </li>
           ))}
           {cat.txCount > 5 && (
             <li className="pt-1">
