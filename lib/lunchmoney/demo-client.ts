@@ -453,5 +453,6 @@ export function createDemoClient(): LMClient {
     updateManualAccount: () => Promise.resolve(),
     updateTransactionCategory: () => Promise.resolve(),
     updateTransactionNotes: () => Promise.resolve(),
+    updateTransactionPayee: () => Promise.resolve(),
   };
 }

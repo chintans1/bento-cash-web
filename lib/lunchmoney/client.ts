@@ -49,6 +49,7 @@ export interface LMClient {
     transactionId: number,
     notes: string | null
   ): Promise<void>;
+  updateTransactionPayee(transactionId: number, payee: string): Promise<void>;
 }
 
 // ── Factory ─────────────────────────────────────────────────────────────────
@@ -113,6 +114,10 @@ export function createRealClient(token: string): LMClient {
     async updateTransactionNotes(transactionId, notes) {
       await sdk.transactions.update(transactionId, { notes: notes ?? null });
     },
+
+    async updateTransactionPayee(transactionId, payee) {
+      await sdk.transactions.update(transactionId, { payee });
+    },
   };
 }
 
@@ -171,3 +176,8 @@ export const updateTransactionNotes = (
   transactionId: number,
   notes: string | null
 ): Promise<void> => activeClient().updateTransactionNotes(transactionId, notes);
+
+export const updateTransactionPayee = (
+  transactionId: number,
+  payee: string
+): Promise<void> => activeClient().updateTransactionPayee(transactionId, payee);

@@ -136,6 +136,7 @@ Exported functions:
 | `getRecurringItems(token)`                      | `recurringItems.getAll()`                            | Returns LM's native recurring item list             |
 | `getBudgetSummary(token, year, month)`          | `summary.get()`                                      | Budget vs. actual per category                      |
 | `updateTransactionCategory(token, txId, catId)` | `transactions.update()`                              | Writes back to LM; `catId=null` clears the category |
+| `updateTransactionPayee(token, txId, payee)`    | `transactions.update()`                              | Renames a transaction's description                 |
 
 ### `lib/lunchmoney/analytics.ts`
 
@@ -213,7 +214,10 @@ Full searchable, filterable, sortable transaction list for a given month.
 - **Search** — filters by payee or notes (case-insensitive substring)
 - **Category filter** — dropdown of categories present in that month's data; "Uncategorized" option filters to `category_id == null`
 - **Sort** — payee, date, amount; toggle asc/desc
-- **Inline category edit** — click a category label → `<select>` dropdown → `onChange` immediately calls `updateTransactionCategory` and updates local state optimistically
+- **Inline description edit** — click the payee → it becomes an input in place. Enter or blur commits, Escape reverts. (`components/transactions/editable-text.tsx`)
+- **Category picker** — click the category chip → a searchable list (`components/transactions/category-picker.tsx`). The tree is flattened into one flat list with the group name on each row, because typing three letters beats scrolling to the right group. Typing then pressing Enter takes the top match; arrow keys and clicking work as usual. Tab order runs description → category → next row's description
+- **Every edit is optimistic** — local state updates immediately and the request goes out after. A failure rolls the row back to its previous values and shows "Couldn't save" on it, so an edit is never silently lost. All three fields (description, category, notes) go through the same `save()` helper
+- **Notes** — click a row to expand its detail panel; `⌘/Ctrl + Enter` saves and closes, `Escape` cancels. On small screens the panel also carries the category picker, since the row's category cell is hidden there
 - **Footer** — shows transaction count and total spend for the current filtered view
 
 ### `/accounts` — Accounts (`app/accounts/page.tsx`)
@@ -230,12 +234,15 @@ Token entry form. On submit, calls `getMe()` to verify the token, then stores it
 
 Only shadcn-installed components are used. No custom UI primitive files should be created — install via `npx shadcn add <component>` instead.
 
+One exception: `components/ui/combobox.tsx`. The category picker needs a searchable select, and `npx shadcn add command popover` cannot reach the registry from the sandboxed dev environment (the proxy 403s `ui.shadcn.com`). It wraps `@base-ui/react`'s Combobox — the same primitive the generated `select.tsx` uses — and mirrors that file's popup styling. If the registry becomes reachable, replacing it with the generated component is the better path.
+
 Current installed components in `components/ui/`:
 
 - `button` — includes `icon-sm` size variant
 - `card` — `Card`, `CardHeader`, `CardTitle`, `CardContent`, `CardFooter`, `CardDescription`
 - `input`
 - `kbd`
+- `combobox` — see the exception noted above
 
 Theme is defined in `app/globals.css` using CSS custom properties (oklch color space). Dark mode via `next-themes` with class strategy. Toggle: press `d` or use the header button.
 
