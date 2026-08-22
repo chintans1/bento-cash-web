@@ -3,6 +3,11 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AnimatedCollapse } from "@/components/animated-collapse";
+import {
+  buildCategoryOptions,
+  CategoryPicker,
+} from "@/components/transactions/category-picker";
+import { EditableText } from "@/components/transactions/editable-text";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToken } from "@/hooks/use-token";
 import {
@@ -10,6 +15,7 @@ import {
   getTransactionsForMonth,
   updateTransactionCategory,
   updateTransactionNotes,
+  updateTransactionPayee,
   type Transaction,
 } from "@/lib/lunchmoney/client";
 import {
@@ -28,6 +34,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { Kbd } from "@/components/ui/kbd";
 import { MonthSelector } from "@/components/dashboard/month-selector";
 import { cn } from "@/lib/utils";
 import { DURATION, EASE } from "@/lib/motion";
@@ -104,11 +111,10 @@ function TransactionsPage() {
   });
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [updatingId, setUpdatingId] = useState<number | null>(null);
-  const [editingCatId, setEditingCatId] = useState<number | null>(null);
+  const [savingIds, setSavingIds] = useState<Set<number>>(new Set());
+  const [failedId, setFailedId] = useState<number | null>(null);
   const [expandedTxId, setExpandedTxId] = useState<number | null>(null);
   const [notesDraft, setNotesDraft] = useState<Record<number, string>>({});
-  const [savingNoteId, setSavingNoteId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -160,6 +166,11 @@ function TransactionsPage() {
     return result;
   }, [transactions, query, filterCatId, sortKey, sortDir]);
 
+  const categoryOptions = useMemo(
+    () => buildCategoryOptions(catGroups),
+    [catGroups]
+  );
+
   const totalSpend = useMemo(
     () =>
       filterSpendTransactions(filtered, categoryMap).reduce(
@@ -186,37 +197,58 @@ function TransactionsPage() {
     });
   }
 
-  async function handleNotesBlur(txId: number) {
+  /**
+   * Applies an edit to local state immediately, then persists it. The UI never
+   * waits on the network; if the request fails the row snaps back to its
+   * previous values and says so, so an edit is never silently lost.
+   */
+  async function save(
+    txId: number,
+    patch: Partial<Transaction>,
+    persist: () => Promise<void>
+  ) {
     if (!isAuthenticated) return;
-    const tx = transactions.find((t) => t.id === txId);
-    const draft = notesDraft[txId] ?? "";
-    const current = tx?.notes ?? "";
-    if (draft === current) return;
-    setSavingNoteId(txId);
+
+    const before = transactions.find((t) => t.id === txId);
+    if (!before) return;
+
+    setFailedId(null);
+    setTransactions((prev) =>
+      prev.map((t) => (t.id === txId ? { ...t, ...patch } : t))
+    );
+    setSavingIds((prev) => new Set(prev).add(txId));
+
     try {
-      await updateTransactionNotes(txId, draft || null);
-      setTransactions((prev) =>
-        prev.map((t) => (t.id === txId ? { ...t, notes: draft || null } : t))
-      );
+      await persist();
+    } catch {
+      setTransactions((prev) => prev.map((t) => (t.id === txId ? before : t)));
+      setFailedId(txId);
     } finally {
-      setSavingNoteId(null);
+      setSavingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(txId);
+        return next;
+      });
     }
   }
 
-  async function handleCategoryChange(txId: number, newCatId: number | null) {
-    if (!isAuthenticated) return;
-    setUpdatingId(txId);
-    try {
-      await updateTransactionCategory(txId, newCatId);
-      setTransactions((prev) =>
-        prev.map((tx) =>
-          tx.id === txId ? { ...tx, category_id: newCatId } : tx
-        )
-      );
-    } finally {
-      setUpdatingId(null);
-      setEditingCatId(null);
-    }
+  function handleCategoryChange(txId: number, newCatId: number | null) {
+    save(txId, { category_id: newCatId }, () =>
+      updateTransactionCategory(txId, newCatId)
+    );
+  }
+
+  function handlePayeeChange(txId: number, payee: string) {
+    save(txId, { payee }, () => updateTransactionPayee(txId, payee));
+  }
+
+  function handleNotesCommit(txId: number) {
+    const tx = transactions.find((t) => t.id === txId);
+    const draft = (notesDraft[txId] ?? "").trim();
+    if (!tx || draft === (tx.notes ?? "")) return;
+    save(txId, { notes: draft || null }, () =>
+      updateTransactionNotes(txId, draft || null)
+    );
   }
 
   if (!isAuthenticated) return <NoTokenPrompt />;
@@ -336,11 +368,9 @@ function TransactionsPage() {
                   ? (categoryMap.get(tx.category_id) ?? UNCATEGORIZED)
                   : UNCATEGORIZED;
               const isCredit = parseFloat(tx.amount) < 0;
-              const isUncategorized = tx.category_id == null;
-              const isEditing = editingCatId === tx.id;
-              const isUpdating = updatingId === tx.id;
               const isExpanded = expandedTxId === tx.id;
-              const isSavingNote = savingNoteId === tx.id;
+              const isSaving = savingIds.has(tx.id);
+              const hasFailed = failedId === tx.id;
 
               return (
                 <motion.div
@@ -375,18 +405,26 @@ function TransactionsPage() {
                           style={{ color: categoryColor(category.name) }}
                         />
                       </div>
-                      <div className="min-w-0">
-                        <p className="truncate text-sm font-medium">
-                          {tx.payee}
-                        </p>
+                      <div className="min-w-0 flex-1">
+                        <EditableText
+                          value={tx.payee ?? ""}
+                          placeholder="Add a description…"
+                          ariaLabel={`Description: ${tx.payee}. Edit`}
+                          onCommit={(next) => handlePayeeChange(tx.id, next)}
+                        />
                         {!isExpanded && tx.notes && (
-                          <p className="truncate text-xs text-bento-subtle">
+                          <p className="truncate px-1.5 text-xs text-bento-subtle">
                             {tx.notes}
                           </p>
                         )}
-                        <span className="font-mono text-[10px] text-bento-subtle sm:hidden">
+                        <span className="px-1.5 font-mono text-[10px] text-bento-subtle sm:hidden">
                           {formatShortDate(tx.date)}
                         </span>
+                        {hasFailed && (
+                          <p className="px-1.5 text-xs text-bento-negative">
+                            Couldn&apos;t save — change reverted.
+                          </p>
+                        )}
                       </div>
                     </div>
 
@@ -395,50 +433,15 @@ function TransactionsPage() {
                       className="hidden min-w-0 sm:block"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      {isEditing ? (
-                        <Select
-                          value={tx.category_id?.toString() ?? ""}
-                          onValueChange={(val) =>
-                            handleCategoryChange(
-                              tx.id,
-                              val === "" ? null : Number(val)
-                            )
-                          }
-                          onOpenChange={(open) => {
-                            if (!open) setEditingCatId(null);
-                          }}
-                          disabled={isUpdating}
-                        >
-                          <SelectTrigger
-                            size="sm"
-                            className="h-7 w-full text-xs"
-                          >
-                            <SelectValue>
-                              {tx.category_id == null
-                                ? "Uncategorized"
-                                : (categoryMap.get(tx.category_id)?.name ??
-                                  "Uncategorized")}
-                            </SelectValue>
-                          </SelectTrigger>
-                          <SelectContent className="min-w-max">
-                            <SelectGroup>
-                              <SelectItem value="">Uncategorized</SelectItem>
-                            </SelectGroup>
-                            <SelectSeparator />
-                            <CategorySelectItems catGroups={catGroups} />
-                          </SelectContent>
-                        </Select>
-                      ) : (
-                        <button
-                          className={cn(
-                            "w-full truncate rounded px-1.5 py-0.5 text-left text-xs transition-colors hover:bg-bento-raised",
-                            isUncategorized ? "text-cat-3" : "text-bento-subtle"
-                          )}
-                          onClick={() => setEditingCatId(tx.id)}
-                        >
-                          {category.name}
-                        </button>
-                      )}
+                      <CategoryPicker
+                        categoryId={tx.category_id}
+                        categoryName={category.name}
+                        options={categoryOptions}
+                        saving={isSaving}
+                        onChange={(newCatId) =>
+                          handleCategoryChange(tx.id, newCatId)
+                        }
+                      />
                     </div>
 
                     {/* Date */}
@@ -458,9 +461,24 @@ function TransactionsPage() {
                     </span>
                   </div>
 
-                  {/* Notes panel */}
+                  {/* Detail panel */}
                   <AnimatedCollapse open={isExpanded}>
-                    <div className="border-t border-bento-hairline/50 px-4 pt-2 pb-3">
+                    <div
+                      className="flex flex-col gap-2 border-t border-bento-hairline/50 px-4 pt-2 pb-3"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      {/* the row's category cell is hidden on small screens */}
+                      <div className="sm:hidden">
+                        <CategoryPicker
+                          categoryId={tx.category_id}
+                          categoryName={category.name}
+                          options={categoryOptions}
+                          saving={isSaving}
+                          onChange={(newCatId) =>
+                            handleCategoryChange(tx.id, newCatId)
+                          }
+                        />
+                      </div>
                       <Textarea
                         rows={2}
                         placeholder="Add a note…"
@@ -471,16 +489,28 @@ function TransactionsPage() {
                             [tx.id]: e.target.value,
                           }))
                         }
-                        onBlur={() => handleNotesBlur(tx.id)}
-                        disabled={isSavingNote}
+                        onBlur={() => handleNotesCommit(tx.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+                            e.preventDefault();
+                            handleNotesCommit(tx.id);
+                            setExpandedTxId(null);
+                          } else if (e.key === "Escape") {
+                            e.preventDefault();
+                            setNotesDraft((d) => ({
+                              ...d,
+                              [tx.id]: tx.notes ?? "",
+                            }));
+                            setExpandedTxId(null);
+                          }
+                        }}
                         autoFocus
                         className="resize-none text-sm"
                       />
-                      {isSavingNote && (
-                        <p className="mt-1 text-xs text-bento-subtle">
-                          Saving…
-                        </p>
-                      )}
+                      <p className="text-[11px] text-bento-subtle">
+                        <Kbd>⌘</Kbd>
+                        <Kbd>↵</Kbd> to save · <Kbd>esc</Kbd> to cancel
+                      </p>
                     </div>
                   </AnimatedCollapse>
                 </motion.div>
