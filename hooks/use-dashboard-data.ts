@@ -12,10 +12,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  getAccounts,
   getBudgetSummary,
   getCategories,
-  getMe,
   getRecurringItems,
   getTransactionsForMonth,
   type AlignedSummaryResponse,
@@ -47,11 +45,8 @@ import {
   type QuickStats,
 } from "@/lib/lunchmoney/analytics";
 import { type CategoryInfo } from "@/lib/lunchmoney/categories";
-import {
-  computeNetWorth,
-  normalizeAccounts,
-  type NetWorth,
-} from "@/lib/account-utils";
+import { computeNetWorth, type NetWorth } from "@/lib/account-utils";
+import { useAccounts } from "@/hooks/use-accounts";
 import { prevMonthOf } from "@/lib/date-utils";
 
 export type DashboardData = {
@@ -99,65 +94,70 @@ export function useDashboardData(
   const [categoryMap, setCategoryMap] = useState<Map<number, CategoryInfo>>(
     new Map()
   );
-  const [primaryCurrency, setPrimaryCurrency] = useState("usd");
   const [recurringItems, setRecurringItems] = useState<RecurringItem[]>([]);
   const [budgetSummary, setBudgetSummary] =
     useState<AlignedSummaryResponse | null>(null);
-  const [netWorth, setNetWorth] = useState<NetWorth | null>(null);
-  const [{ loading, error }, setFetchStatus] = useState<{
-    loading: boolean;
-    error: string | null;
-  }>({ loading: false, error: null });
+  const { accounts, primaryCurrency } = useAccounts(isAuthenticated);
+  /** The month currently on screen, and any failure, both tagged by month. */
+  const [loadedMonth, setLoadedMonth] = useState<string | null>(null);
+  const [failure, setFailure] = useState<{
+    month: string;
+    message: string;
+  } | null>(null);
 
-  // Fetch the user's primary currency and account balances once when auth
-  // state changes — neither depends on the selected month.
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    getMe()
-      .then((user) => setPrimaryCurrency(user.primary_currency))
-      .catch(() => {});
-    getAccounts()
-      .then(({ manual, plaid }) =>
-        setNetWorth(computeNetWorth(normalizeAccounts(manual, plaid)))
-      )
-      .catch(() => {});
-  }, [isAuthenticated]);
+  const monthKey = `${year}-${month}`;
+  // Derived: we're loading whenever what's rendered isn't the month selected
+  // and that month hasn't already failed. No flag to keep in sync.
+  const isLoading =
+    isAuthenticated && loadedMonth !== monthKey && failure?.month !== monthKey;
+  const error = failure?.month === monthKey ? failure.message : null;
 
   // Re-fetch all transaction data whenever the auth state or selected month changes
   useEffect(() => {
     if (!isAuthenticated) return;
-    const prev = prevMonthOf(year, month);
 
-    async function load() {
-      setFetchStatus({ loading: true, error: null });
-      try {
-        const [txRes, prevTxRes, catRes] = await Promise.all([
-          getTransactionsForMonth(year, month),
-          getTransactionsForMonth(prev.year, prev.month),
-          getCategories(),
-        ]);
+    const prev = prevMonthOf(year, month);
+    // Guards against a slow response for a month the user has already left
+    // overwriting the month they're now looking at.
+    let cancelled = false;
+
+    Promise.all([
+      getTransactionsForMonth(year, month),
+      getTransactionsForMonth(prev.year, prev.month),
+      getCategories(),
+    ])
+      .then(([txRes, prevTxRes, catRes]) => {
+        if (cancelled) return;
         setTransactions(txRes.transactions);
         setPrevTransactions(prevTxRes.transactions);
         setCategoryMap(buildCategoryMap(catRes));
-        setFetchStatus({ loading: false, error: null });
-      } catch (err) {
-        setFetchStatus({
-          loading: false,
-          error: err instanceof Error ? err.message : "Something went wrong",
+        setLoadedMonth(monthKey);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        setFailure({
+          month: monthKey,
+          message: err instanceof Error ? err.message : "Something went wrong",
         });
-      }
-    }
+      });
 
-    load();
-
-    // These are non-critical — load after the main render, silently ignore errors
+    // Secondary data: renders after the main content, failures stay quiet
+    // because the cards simply don't render without them.
     getRecurringItems()
-      .then(setRecurringItems)
+      .then((items) => {
+        if (!cancelled) setRecurringItems(items);
+      })
       .catch(() => {});
     getBudgetSummary(year, month)
-      .then(setBudgetSummary)
+      .then((summary) => {
+        if (!cancelled) setBudgetSummary(summary);
+      })
       .catch(() => {});
-  }, [isAuthenticated, year, month]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated, year, month, monthKey]);
 
   // ── Derived data ────────────────────────────────────────────────────────────
   // useMemo means "only recompute when the listed dependencies change". Without
@@ -186,6 +186,12 @@ export function useDashboardData(
   const dailySpend = useMemo(
     () => computeDailySpend(transactions, categoryMap, year, month),
     [transactions, categoryMap, year, month]
+  );
+
+  /** null until the accounts request resolves, so the hero can hold its shape. */
+  const netWorth = useMemo(
+    () => (accounts.length > 0 ? computeNetWorth(accounts) : null),
+    [accounts]
   );
 
   const netFlowSeries = useMemo(
@@ -262,8 +268,8 @@ export function useDashboardData(
     recurringItems,
     budgetSummary,
     netWorth,
-    loading: loading && transactions.length === 0,
-    refreshing: loading && transactions.length > 0,
+    loading: isLoading && transactions.length === 0,
+    refreshing: isLoading && transactions.length > 0,
     error,
     categoryTotals,
     momDeltas,

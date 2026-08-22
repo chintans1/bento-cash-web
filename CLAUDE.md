@@ -121,6 +121,14 @@ The LM API token lives in `localStorage`. There is no `.env`, no server, no prox
 
 SSR-safe hook that reads `localStorage["lm_token"]` in a `useEffect` (avoids hydration mismatch). Exposes `{ token, setToken, clearToken }`. Every page gates rendering on `if (!token)` and shows a link to `/settings`.
 
+### `hooks/use-accounts.ts`
+
+Account balances plus the user's primary currency — the pair the dashboard, accounts and investments pages all need. Each page used to fetch both for itself; both requests are cached at the client boundary, so mounting this in several places costs one round-trip per session.
+
+### `hooks/use-investable-months.ts`
+
+The `investable_months` setting, shared by the settings and accounts pages. Backed by `useSyncExternalStore` so the two stay in agreement and SSR gets a defined snapshot — reading localStorage during render would mismatch the prerendered HTML.
+
 ### `lib/lunchmoney/client.ts`
 
 Thin wrappers around `LunchMoneyClient` from `@lunch-money/lunch-money-js-v2`. The client is cached per token in a module-level singleton (`_client`, `_clientToken`) so navigating between pages doesn't create a new instance each render.
@@ -228,6 +236,8 @@ Full searchable, filterable, sortable transaction list for a given month.
 - **Clearing the uncategorized queue** — when the Uncategorized filter is on, categorizing a row moves focus to the next row's picker, so `Enter → type → Enter` repeats without touching the mouse. Focus targets a specific transaction id rather than a row index, because the categorized row lingers in the DOM for its exit animation. Outside that filter focus is left alone, where moving it would be surprising
 - **Footer** — shows transaction count and total spend for the current filtered view
 
+Rows live in `components/transactions/transaction-row.tsx` and are memoized. The page re-renders on every keystroke in the search box, so the row callbacks are wrapped in `useCallback` and the filtered list is mirrored in a ref — without stable identities the memo would never hit and each character would re-render every visible row, picker and collapse included.
+
 ### `/accounts` — Accounts (`app/accounts/page.tsx`)
 
 Shows net worth hero (assets − liabilities), grouped by institution within Asset/Liability sections. Handles Plaid (live-synced) and manual accounts. Revoked Plaid accounts show `—` for balance. Displays `last_update` as relative time.
@@ -281,6 +291,10 @@ App code should use the semantic `bento-*` tokens rather than raw Tailwind palet
 ---
 
 ## Data Flow Patterns
+
+### Loading state is derived, never flagged
+
+Both data hooks track _which month is on screen_ (`loadedMonth`) and tag failures with the month they belong to, instead of toggling a `loading` boolean. Loading is then `loadedMonth !== selectedMonth && that month hasn't failed` — there's no flag to get out of sync, and no `setState` at the top of an effect. Each fetch also carries a `cancelled` flag, so a slow response for a month the user has already left can't overwrite the month they're now looking at.
 
 ### Month changes keep the current view
 

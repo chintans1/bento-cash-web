@@ -14,24 +14,20 @@ import {
 import { Kbd } from "@/components/ui/kbd";
 import { useToken } from "@/hooks/use-token";
 import { useAppData } from "@/hooks/use-app-data";
+import { useInvestableMonths } from "@/hooks/use-investable-months";
 
 export default function SettingsPage() {
   const { clearToken } = useToken();
   const { user, loading } = useAppData();
 
-  const [floorMonthsInput, setFloorMonthsInput] = useState<string>(() => {
-    if (typeof window === "undefined") return "3";
-    const raw = localStorage.getItem("investable_months");
-    const parsed = raw !== null ? parseInt(raw, 10) : NaN;
-    return String(Number.isFinite(parsed) && parsed > 0 ? parsed : 3);
-  });
+  const { months: floorMonths, setMonths } = useInvestableMonths();
+  // The field holds its own text so a half-typed value ("" while retyping)
+  // doesn't get rejected mid-edit; only valid numbers reach storage.
+  const [floorMonthsInput, setFloorMonthsInput] = useState<string | null>(null);
 
   function handleFloorMonthsChange(raw: string) {
     setFloorMonthsInput(raw);
-    const n = parseInt(raw, 10);
-    if (Number.isFinite(n) && n > 0) {
-      localStorage.setItem("investable_months", String(n));
-    }
+    setMonths(Number.parseInt(raw, 10));
   }
 
   const hint = (
@@ -105,7 +101,7 @@ export default function SettingsPage() {
               min={1}
               max={24}
               step={1}
-              value={floorMonthsInput}
+              value={floorMonthsInput ?? String(floorMonths)}
               onChange={(e) => handleFloorMonthsChange(e.target.value)}
               className="h-11 w-24 text-center font-mono text-base"
             />

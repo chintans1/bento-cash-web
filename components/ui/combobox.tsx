@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
  * primitive the generated `select.tsx` is built on, with its popup styling.
  */
 const Combobox = ComboboxPrimitive.Root;
-const ComboboxValue = ComboboxPrimitive.Value;
 const ComboboxTrigger = ComboboxPrimitive.Trigger;
 
 function ComboboxInput({ className, ...props }: ComboboxPrimitive.Input.Props) {
@@ -97,22 +96,6 @@ function ComboboxItem({
   );
 }
 
-function ComboboxGroupLabel({
-  className,
-  ...props
-}: ComboboxPrimitive.GroupLabel.Props) {
-  return (
-    <ComboboxPrimitive.GroupLabel
-      data-slot="combobox-group-label"
-      className={cn(
-        "px-2.5 pt-2 pb-1 text-[11px] font-medium tracking-wide text-muted-foreground uppercase",
-        className
-      )}
-      {...props}
-    />
-  );
-}
-
 function ComboboxEmpty({ className, ...props }: ComboboxPrimitive.Empty.Props) {
   return (
     <ComboboxPrimitive.Empty
@@ -131,9 +114,7 @@ export {
   ComboboxTrigger,
   ComboboxContent,
   ComboboxEmpty,
-  ComboboxGroupLabel,
   ComboboxInput,
   ComboboxItem,
   ComboboxList,
-  ComboboxValue,
 };
