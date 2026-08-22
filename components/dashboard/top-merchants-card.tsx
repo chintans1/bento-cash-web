@@ -56,7 +56,7 @@ export function TopMerchantsCard({
                     </div>
                     <div className="h-1.5 overflow-hidden rounded-full bg-bento-hairline">
                       <div
-                        className="h-full rounded-full bg-bento-brand"
+                        className="h-full rounded-full bg-[var(--series-1)]"
                         style={{
                           width:
                             maxMerchant > 0

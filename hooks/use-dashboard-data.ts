@@ -29,6 +29,7 @@ import {
   computeNetFlowSeries,
   computeDailySpend,
   computeMerchantTotals,
+  computeMonthTotals,
   computeMoMDeltas,
   computeQuickStats,
   countUncategorized,
@@ -40,6 +41,7 @@ import {
   type CumulativeSpendPoint,
   type DailySpend,
   type MerchantTotal,
+  type MonthTotals,
   type MoMDelta,
   type NetFlowPoint,
   type QuickStats,
@@ -71,6 +73,7 @@ export type DashboardData = {
   dailySpend: DailySpend[];
   netFlowSeries: NetFlowPoint[];
   cumulativeSpend: CumulativeSpendPoint[];
+  prevMonthTotals: MonthTotals;
   recentTransactions: Transaction[];
   uncategorizedCount: number;
   quickStats: QuickStats | null;
@@ -200,6 +203,12 @@ export function useDashboardData(
     [transactions, prevTransactions, categoryMap, year, month, now]
   );
 
+  /** Previous month's income and spend, for the cash flow card's comparison. */
+  const prevMonthTotals = useMemo(
+    () => computeMonthTotals(prevTransactions, categoryMap),
+    [prevTransactions, categoryMap]
+  );
+
   const recentTransactions = useMemo(
     () => getRecentTransactions(transactions),
     [transactions]
@@ -258,6 +267,7 @@ export function useDashboardData(
     dailySpend,
     netFlowSeries,
     cumulativeSpend,
+    prevMonthTotals,
     recentTransactions,
     uncategorizedCount,
     quickStats,

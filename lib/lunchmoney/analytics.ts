@@ -527,3 +527,21 @@ export function getRecentTransactions(
     .sort((a, b) => b.date.localeCompare(a.date))
     .slice(0, limit);
 }
+
+export type MonthTotals = { income: number; spend: number };
+
+/** Income and spend totals for a month's transactions, both as positive numbers. */
+export function computeMonthTotals(
+  transactions: Transaction[],
+  catMap: Map<number, CategoryInfo>
+): MonthTotals {
+  const income = filterIncomeTxs(transactions, catMap).reduce(
+    (sum, tx) => sum + Math.abs(parseFloat(tx.amount)),
+    0
+  );
+  const spend = filterSpendTransactions(transactions, catMap).reduce(
+    (sum, tx) => sum + parseFloat(tx.amount),
+    0
+  );
+  return { income, spend };
+}

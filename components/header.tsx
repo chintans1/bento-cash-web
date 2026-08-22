@@ -82,7 +82,7 @@ export function Header() {
 
       {/* Demo mode banner */}
       {isDemo && (
-        <div className="flex items-center justify-center gap-3 border-t border-bento-hairline bg-bento-brand/10 px-4 py-2 text-sm">
+        <div className="flex flex-col items-center justify-center gap-1 border-t border-bento-hairline bg-bento-brand/10 px-4 py-2 text-center text-sm sm:flex-row sm:gap-3">
           <span className="text-bento-subtle">
             Viewing demo data —{" "}
             <Link

@@ -154,6 +154,7 @@ Pure functions that operate on already-fetched transaction arrays. No API calls 
 | `computeNetFlowSeries(txs, catMap, y, m)`    | Running income − spend for every day of the month; anchors the net worth chart                        |
 | `computeCumulativeSpendComparison(...)`      | Day-by-day cumulative spend for the month vs. the previous one, on one axis                           |
 | `getRecentTransactions(txs, limit?)`         | Most recent non-pending transactions, newest first                                                    |
+| `computeMonthTotals(txs, catMap)`            | Income and spend totals for a month, both positive; used for the cash flow comparison                 |
 
 ### `lib/lunchmoney/categories.ts`
 
@@ -188,15 +189,14 @@ The main analytics view. Fetches current month + previous month transactions in 
 1. **Header** — page title and month selector (prev/next chevrons; future months disabled)
 2. **Uncategorized banner** — shown when any transaction has no `category_id`; links to `/transactions`
 3. **Net Worth hero** — assets − liabilities from the accounts endpoint, plus an area chart of the month. LM has no historical-balance endpoint, so the curve is derived: today's balances walked backwards through the month's net cash flow (`computeNetFlowSeries`). That anchor only exists for the current month; for a past month the same series is drawn from zero as cumulative cash flow, and the caption says so.
-4. **Cash flow** — surplus/deficit headline, savings rate, income/spend breakdown, and a green/red proportion bar
+4. **Cash flow** — surplus/deficit headline, savings rate, income and spend each measured against the same figure last month, a green/red proportion bar, and last month's closing net. The direction arrow's color depends on the row: more income is good news, more spend isn't
 5. **Quick Stats** — 4 tiles: Income, Spend, Avg/Day, Peak Day; clicking Income/Spend/Peak opens a drill-down transaction table
 6. **Spending** — cumulative spend for the month drawn against the previous month on one axis (`computeCumulativeSpendComparison`); the current line stops at today rather than flatlining
 7. **Top expense categories** — each row's colored pill doubles as the bar (width = share of the largest category, `min-width: fit-content` keeps small ones readable); expandable to the top 5 transactions; MoM delta badge
-8. **Daily spend** — bar-per-day for the selected month, recurring spend stacked separately
-9. **Top merchants** — ranked by spend with progress bars and transaction count
-10. **Budget** — only rendered when the user has budgets configured in LM; ring gauge for the month total, then spend vs. budget per category
-11. **Upcoming bills** — LM recurring items (`status="reviewed"` only) with cadence and, when LM provides `matches.expected_occurrence_dates`, the next expected date; amounts normalized to a monthly equivalent
-12. **Transactions** — the month's most recent activity with category icons
+8. **Daily spend** and **Top merchants** — paired side by side inside the wide column; stacked, the two shortest cards left that column running well past the narrow one. Daily spend is a bar-per-day with recurring stacked separately; merchants are ranked by spend with a bar and transaction count
+9. **Budget** — only rendered when the user has budgets configured in LM; ring gauge for the month total, then spend vs. budget per category
+10. **Upcoming bills** — LM recurring items (`status="reviewed"` only) with cadence and, when LM provides `matches.expected_occurrence_dates`, the next expected date; amounts normalized to a monthly equivalent
+11. **Transactions** — the month's most recent activity with category icons
 
 **LM sign convention:** positive `amount` = expense, negative `amount` = income/credit.
 
