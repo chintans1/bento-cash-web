@@ -138,6 +138,12 @@ Exported functions:
 | `updateTransactionCategory(token, txId, catId)` | `transactions.update()`                              | Writes back to LM; `catId=null` clears the category |
 | `updateTransactionPayee(token, txId, payee)`    | `transactions.update()`                              | Renames a transaction's description                 |
 
+### `lib/lunchmoney/cache.ts`
+
+Request cache sitting at the client boundary, so every page gets it for free. Entries are keyed by request (`tx:2026-8`, `categories`, `budget:2026-8`, …) and live for 5 minutes. Before it, every month change refetched everything — including categories and recurring items, which don't depend on the month — so stepping back to a month you had just viewed cost a full round-trip.
+
+It caches the _promise_, not the resolved value, so the dashboard's current-month and previous-month requests share one fetch when they overlap. Rejections are evicted so a failure isn't served to the next caller. `setActiveClient` clears the whole cache, which is what keeps one account's data from surviving into another's session; a transaction write invalidates `tx:` and `budget:` (local state is already patched optimistically, so this only governs the next fetch).
+
 ### `lib/lunchmoney/analytics.ts`
 
 Pure functions that operate on already-fetched transaction arrays. No API calls here.
@@ -218,6 +224,8 @@ Full searchable, filterable, sortable transaction list for a given month.
 - **Category picker** — click the category chip → a searchable list (`components/transactions/category-picker.tsx`). The tree is flattened into one flat list with the group name on each row, because typing three letters beats scrolling to the right group. Typing then pressing Enter takes the top match; arrow keys and clicking work as usual. Tab order runs description → category → next row's description
 - **Every edit is optimistic** — local state updates immediately and the request goes out after. A failure rolls the row back to its previous values and shows "Couldn't save" on it, so an edit is never silently lost. All three fields (description, category, notes) go through the same `save()` helper
 - **Notes** — click a row to expand its detail panel; `⌘/Ctrl + Enter` saves and closes, `Escape` cancels. On small screens the panel also carries the category picker, since the row's category cell is hidden there
+- **Keyboard** — `/` focuses search (`Esc` clears it and lets go), `[` and `]` step months. All are ignored while typing, so they never eat input
+- **Clearing the uncategorized queue** — when the Uncategorized filter is on, categorizing a row moves focus to the next row's picker, so `Enter → type → Enter` repeats without touching the mouse. Focus targets a specific transaction id rather than a row index, because the categorized row lingers in the DOM for its exit animation. Outside that filter focus is left alone, where moving it would be surprising
 - **Footer** — shows transaction count and total spend for the current filtered view
 
 ### `/accounts` — Accounts (`app/accounts/page.tsx`)
@@ -273,6 +281,10 @@ App code should use the semantic `bento-*` tokens rather than raw Tailwind palet
 ---
 
 ## Data Flow Patterns
+
+### Month changes keep the current view
+
+Both pages treat a month change as a refresh of what's on screen, not a reload: the previous month's content stays put with a small spinner by the month label, and skeletons appear only on a first load when there is nothing to keep. `useMonthNavigation` runs the change inside `useTransition` — re-rendering a month of cards and charts is a ~170ms job, and as a blocking update it froze the UI between click and content. As a transition React slices it (measured: one 170ms task became two of ~70ms), so the arrows stay responsive.
 
 ### Parallel fetching
 

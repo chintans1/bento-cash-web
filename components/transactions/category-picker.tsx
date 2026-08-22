@@ -76,12 +76,18 @@ export function CategoryPicker({
   options,
   onChange,
   saving,
+  finalFocus,
 }: {
   categoryId: number | null;
   categoryName: string;
   options: CategoryOption[];
   onChange: (categoryId: number | null) => void;
   saving?: boolean;
+  /**
+   * What receives focus when the picker closes. Return an element to focus it,
+   * `false` to leave focus alone, or nothing for the default (the trigger).
+   */
+  finalFocus?: () => HTMLElement | boolean | null | void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -127,7 +133,7 @@ export function CategoryPicker({
         <ChevronDown className="ml-auto size-3 shrink-0 text-bento-subtle opacity-0 transition-opacity group-hover/cat:opacity-100" />
       </ComboboxTrigger>
 
-      <ComboboxContent>
+      <ComboboxContent finalFocus={finalFocus}>
         <div className="border-b border-bento-hairline/60 p-1.5">
           <ComboboxInput
             placeholder="Search categories…"

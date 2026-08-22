@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { MONTH_NAMES, isCurrentOrFutureMonth } from "@/lib/date-utils";
@@ -20,12 +20,15 @@ export function MonthSelector({
   month,
   onPrev,
   onNext,
+  refreshing,
   className,
 }: {
   year: number;
   month: number;
   onPrev: () => void;
   onNext: () => void;
+  /** Shows a quiet spinner while the month's data is in flight. */
+  refreshing?: boolean;
   className?: string;
 }) {
   return (
@@ -62,6 +65,13 @@ export function MonthSelector({
       >
         <ChevronRight className="size-4" />
       </Button>
+      <Loader2
+        aria-hidden={!refreshing}
+        className={cn(
+          "size-3.5 animate-spin text-bento-subtle transition-opacity",
+          refreshing ? "opacity-100" : "opacity-0"
+        )}
+      />
     </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { AnimatedCollapse } from "@/components/animated-collapse";
 import {
@@ -29,6 +29,7 @@ import { type CategoryInfo, UNCATEGORIZED } from "@/lib/lunchmoney/categories";
 import { formatAmount, formatShortDate } from "@/lib/format";
 import { NoTokenPrompt } from "@/components/no-token-prompt";
 import { useMonthNavigation } from "@/hooks/use-month-navigation";
+import { isCurrentOrFutureMonth } from "@/lib/date-utils";
 import { useFetchStatus } from "@/hooks/use-fetch-status";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -97,6 +98,7 @@ function TransactionsPage() {
     month: selectedMonth,
     onPrev,
     onNext,
+    pending,
   } = useMonthNavigation(now.getFullYear(), now.getMonth() + 1);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [categoryMap, setCategoryMap] = useState<Map<number, CategoryInfo>>(
@@ -104,7 +106,14 @@ function TransactionsPage() {
   );
   const [catGroups, setCatGroups] = useState<CategoryGroupEntry[]>([]);
   const [{ loading, error }, setFetchStatus] = useFetchStatus();
+  // A month change keeps the current rows on screen; skeletons are only for
+  // the very first load, when there's nothing to keep.
+  const showSkeletons = loading && transactions.length === 0;
+  const refreshing = loading && transactions.length > 0;
   const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  /** Transaction id whose category picker should take focus once the list settles. */
+  const pendingFocusRef = useRef<number | null>(null);
   const [filterCatId, setFilterCatId] = useState<number | null>(() => {
     const cat = searchParams.get("category");
     return cat !== null ? Number(cat) : null;
@@ -138,6 +147,35 @@ function TransactionsPage() {
       });
   }, [isAuthenticated, selectedYear, selectedMonth, setFetchStatus]);
 
+  // Page-level shortcuts. Ignored while typing so they never eat input.
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      if (
+        target?.isContentEditable ||
+        ["INPUT", "TEXTAREA", "SELECT"].includes(target?.tagName ?? "")
+      ) {
+        return;
+      }
+
+      if (event.key === "/") {
+        event.preventDefault();
+        searchRef.current?.focus();
+      } else if (event.key === "[") {
+        onPrev();
+      } else if (
+        event.key === "]" &&
+        !isCurrentOrFutureMonth(selectedYear, selectedMonth)
+      ) {
+        onNext();
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onPrev, onNext, selectedYear, selectedMonth]);
+
   const filtered = useMemo(() => {
     let result = [...transactions];
     if (query) {
@@ -170,6 +208,30 @@ function TransactionsPage() {
     () => buildCategoryOptions(catGroups),
     [catGroups]
   );
+
+  /*
+    Runs after the list has re-rendered without the categorized row. A ref
+    rather than state: this schedules a DOM side effect, not a render.
+
+    Focus targets a specific transaction rather than a row index, because the
+    categorized row lingers in the DOM for its exit animation — an index would
+    land on the row that is on its way out, and focus would fall to <body> when
+    it finally left.
+  */
+  useEffect(() => {
+    const nextId = pendingFocusRef.current;
+    if (nextId == null) return;
+    pendingFocusRef.current = null;
+
+    const frame = requestAnimationFrame(() => {
+      document
+        .querySelector<HTMLElement>(
+          `[data-tx-id="${nextId}"] [role='combobox']`
+        )
+        ?.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [filtered]);
 
   const totalSpend = useMemo(
     () =>
@@ -232,7 +294,28 @@ function TransactionsPage() {
     }
   }
 
+  /**
+   * When we're advancing to the next uncategorized row, the picker's own
+   * focus restore would aim at the trigger that is about to leave the list,
+   * dropping focus to <body>. Returning false leaves focus alone so the effect
+   * above can place it once the new list is on screen.
+   */
+  function keepFocusWhileAdvancing() {
+    return pendingFocusRef.current == null ? undefined : false;
+  }
+
   function handleCategoryChange(txId: number, newCatId: number | null) {
+    // Clearing the uncategorized queue is the one flow you repeat: the row you
+    // just categorized drops out of the filter, so queue focus for whatever
+    // takes its place and the next one is a keystroke away. Outside that
+    // filter, moving focus would be surprising, so don't.
+    if (filterCatId === -1) {
+      const index = filtered.findIndex((tx) => tx.id === txId);
+      const remaining = filtered.filter((tx) => tx.id !== txId);
+      const next = remaining[index] ?? remaining[remaining.length - 1];
+      pendingFocusRef.current = next?.id ?? null;
+    }
+
     save(txId, { category_id: newCatId }, () =>
       updateTransactionCategory(txId, newCatId)
     );
@@ -260,6 +343,7 @@ function TransactionsPage() {
         month={selectedMonth}
         onPrev={onPrev}
         onNext={onNext}
+        refreshing={refreshing || pending}
       />
 
       {/* Filters */}
@@ -267,11 +351,23 @@ function TransactionsPage() {
         <ButtonGroup className="relative min-w-48 flex-1">
           <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-3.5 -translate-y-1/2 text-bento-subtle" />
           <Input
+            ref={searchRef}
             className="h-8 pl-8 text-sm"
-            placeholder="Search payee or notes..."
+            placeholder="Search descriptions or notes…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setQuery("");
+                e.currentTarget.blur();
+              }
+            }}
           />
+          {!query && (
+            <Kbd className="pointer-events-none absolute top-1/2 right-3 z-10 -translate-y-1/2">
+              /
+            </Kbd>
+          )}
           {query && (
             <Button
               variant="outline"
@@ -344,7 +440,7 @@ function TransactionsPage() {
         </button>
       </div>
 
-      {loading ? (
+      {showSkeletons ? (
         <div className="flex flex-col gap-2">
           {Array.from({ length: 12 }).map((_, i) => (
             <div
@@ -384,6 +480,8 @@ function TransactionsPage() {
                     transition: { duration: DURATION.quick, ease: EASE },
                   }}
                   transition={{ duration: DURATION.collapse, ease: EASE }}
+                  data-tx-row
+                  data-tx-id={tx.id}
                   className="transition-colors hover:bg-bento-raised"
                 >
                   {/* Row */}
@@ -441,6 +539,7 @@ function TransactionsPage() {
                         onChange={(newCatId) =>
                           handleCategoryChange(tx.id, newCatId)
                         }
+                        finalFocus={keepFocusWhileAdvancing}
                       />
                     </div>
 
@@ -477,6 +576,7 @@ function TransactionsPage() {
                           onChange={(newCatId) =>
                             handleCategoryChange(tx.id, newCatId)
                           }
+                          finalFocus={keepFocusWhileAdvancing}
                         />
                       </div>
                       <Textarea
@@ -521,7 +621,7 @@ function TransactionsPage() {
       )}
 
       {/* Footer summary */}
-      {!loading && filtered.length > 0 && (
+      {!showSkeletons && filtered.length > 0 && (
         <div className="mt-3 flex items-center justify-between text-xs text-bento-subtle">
           <span>{filtered.length} transactions</span>
           <span className="font-mono tabular-nums">
