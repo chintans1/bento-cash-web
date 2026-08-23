@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { Transaction, Category, CategoriesResponse } from "../client";
+import type { CategoryInfo } from "../categories";
 import {
   buildCategoryMap,
   buildCategoryData,
@@ -229,6 +230,49 @@ describe("filterSpendTransactions", () => {
   it("excludes negative amounts", () => {
     const tx = makeTx({ amount: "-50.00", category_id: 1 });
     expect(filterSpendTransactions([tx], catMap)).toHaveLength(0);
+  });
+});
+
+// ── filterSpendTransactions ───────────────────────────────────────────────────
+
+describe("filterSpendTransactions", () => {
+  const catMap = new Map<number, CategoryInfo>([
+    [1, { name: "Food", is_income: false, exclude_from_totals: false }],
+    [2, { name: "Transfers", is_income: false, exclude_from_totals: true }],
+  ]);
+
+  it("keeps positive, non-pending, countable transactions", () => {
+    const tx = makeTx({ amount: "25.00", category_id: 1 });
+    expect(filterSpendTransactions([tx], catMap)).toHaveLength(1);
+  });
+
+  it("excludes income", () => {
+    const tx = makeTx({ amount: "-25.00", category_id: 1 });
+    expect(filterSpendTransactions([tx], catMap)).toHaveLength(0);
+  });
+
+  it("excludes exclude_from_totals categories", () => {
+    const tx = makeTx({ amount: "25.00", category_id: 2 });
+    expect(filterSpendTransactions([tx], catMap)).toHaveLength(0);
+  });
+
+  it("excludes pending transactions, like the income and uncategorized filters", () => {
+    const tx = makeTx({ amount: "25.00", category_id: 1, is_pending: true });
+    expect(filterSpendTransactions([tx], catMap)).toHaveLength(0);
+  });
+
+  it("keeps spend totals reconcilable with the category drill-down", () => {
+    // A pending charge used to land in the totals but not in the drill-down.
+    const txs = [
+      makeTx({ id: 1, amount: "10.00", category_id: 1 }),
+      makeTx({ id: 2, amount: "90.00", category_id: 1, is_pending: true }),
+    ];
+    const total = filterSpendTransactions(txs, catMap).reduce(
+      (sum, tx) => sum + parseFloat(tx.amount),
+      0
+    );
+    expect(total).toBe(10);
+    expect(getTransactionsForCategory(txs, 1)).toHaveLength(1);
   });
 });
 
