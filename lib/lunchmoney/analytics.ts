@@ -96,15 +96,22 @@ export function filterExpenses(transactions: Transaction[]): Transaction[] {
 }
 
 /**
- * Filters to expense transactions that should count toward totals —
- * positive amount AND not in an exclude_from_totals category (e.g. Transfers).
+ * Filters to expense transactions that should count toward totals — positive
+ * amount, not pending, and not in an exclude_from_totals category (e.g.
+ * Transfers).
+ *
+ * Pending transactions are excluded to match `filterIncomeTxs` and
+ * `countUncategorized`. They used to be counted here, which inflated every
+ * spend figure — totals, category and merchant breakdowns, the charts — while
+ * the category drill-down (via `filterExpenses`) left them out, so the numbers
+ * didn't reconcile.
  */
 export function filterSpendTransactions(
   transactions: Transaction[],
   catMap: Map<number, CategoryInfo>
 ): Transaction[] {
   return transactions.filter((tx) => {
-    if (parseFloat(tx.amount) <= 0) {
+    if (parseFloat(tx.amount) <= 0 || tx.is_pending) {
       return false;
     }
 

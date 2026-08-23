@@ -16,16 +16,28 @@ import type { CategoryInfo } from "@/lib/lunchmoney/categories";
 import { estimateMonthlyContrib } from "@/lib/lunchmoney/analytics";
 import { cn } from "@/lib/utils";
 
+// Theme tokens rather than fixed hex: the old slate/amber/green were picked
+// for light mode and the slate line all but vanished on dark glass.
 const RATES = [
-  { key: "conservative", label: "5% / yr", rate: 0.05, color: "#64748b" },
-  { key: "moderate", label: "7% / yr", rate: 0.07, color: "#f59e0b" },
-  { key: "optimistic", label: "10% / yr", rate: 0.1, color: "#22c55e" },
+  {
+    key: "conservative",
+    label: "5% / yr",
+    rate: 0.05,
+    color: "var(--bento-subtle)",
+  },
+  { key: "moderate", label: "7% / yr", rate: 0.07, color: "var(--series-1)" },
+  {
+    key: "optimistic",
+    label: "10% / yr",
+    rate: 0.1,
+    color: "var(--bento-positive)",
+  },
 ] as const;
 
 const chartConfig = {
-  conservative: { label: "5% / yr", color: "#64748b" },
-  moderate: { label: "7% / yr", color: "#f59e0b" },
-  optimistic: { label: "10% / yr", color: "#22c55e" },
+  conservative: { label: "5% / yr", color: "var(--bento-subtle)" },
+  moderate: { label: "7% / yr", color: "var(--series-1)" },
+  optimistic: { label: "10% / yr", color: "var(--bento-positive)" },
 } satisfies ChartConfig;
 
 function project(

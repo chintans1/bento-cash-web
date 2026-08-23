@@ -53,6 +53,9 @@ export interface LMClient {
   updateTransactionPayee(transactionId: number, payee: string): Promise<void>;
 }
 
+const TRANSACTION_PAGE_SIZE = 250;
+const MAX_TRANSACTION_PAGES = 40;
+
 // ── Factory ─────────────────────────────────────────────────────────────────
 
 export function createRealClient(token: string): LMClient {
@@ -61,18 +64,38 @@ export function createRealClient(token: string): LMClient {
   return {
     getMe: () => sdk.user.getMe(),
 
+    /**
+     * Every transaction in the month, following LM's pagination.
+     *
+     * A single page used to be fetched and `has_more` thrown away, so any
+     * month past PAGE_SIZE transactions silently lost the rest — and every
+     * total, chart and category breakdown built on it was quietly wrong.
+     */
     async getTransactionsForMonth(year, month) {
       const start = `${year}-${String(month).padStart(2, "0")}-01`;
       const lastDay = new Date(year, month, 0).getDate();
       const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-      const { transactions, hasMore } = await sdk.transactions.getAll({
-        start_date: start,
-        end_date: end,
-        limit: 250,
-        offset: 0,
-      });
+
+      const all: Transaction[] = [];
+      let offset = 0;
+      let hasMore = true;
+
+      // The cap is a guard against a server that never stops saying "more",
+      // not an expected limit: 40 pages is far past any real month.
+      for (let page = 0; page < MAX_TRANSACTION_PAGES && hasMore; page++) {
+        const result = await sdk.transactions.getAll({
+          start_date: start,
+          end_date: end,
+          limit: TRANSACTION_PAGE_SIZE,
+          offset,
+        });
+        all.push(...result.transactions);
+        hasMore = result.hasMore;
+        offset += TRANSACTION_PAGE_SIZE;
+      }
+
       return {
-        transactions: transactions.sort(
+        transactions: all.sort(
           (a, b) =>
             new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
         ),

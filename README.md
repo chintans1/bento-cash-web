@@ -14,11 +14,13 @@ No account needed — hit **Try Demo** from the home screen to explore with samp
 
 ## What it does
 
-**Dashboard** — income vs. spend, daily spend chart, net cash flow, and month-over-month deltas on every category. Expand any category to see individual transactions and reassign them inline.
+**Dashboard** — net worth, cash flow measured against last month, cumulative spending drawn against the previous month, budget progress, upcoming bills, and month-over-month deltas on every category. Expand any category to see the transactions behind it.
 
 <img alt="Spend by category with drill-down" src="screenshots/spend-by-category.png">
 
-**Transactions** — searchable, filterable, sortable list for any month. Category edits write back to Lunch Money immediately.
+**Transactions** — searchable, filterable, sortable list for any month. Click a description to rename it, click a category to pick a new one from a searchable list, and expand a row for notes. Every edit applies immediately and writes back to Lunch Money; a failed write rolls the row back and says so.
+
+Keyboard: `/` focuses search, `[` and `]` step months, `Enter` takes the top match in the category picker. Under the Uncategorized filter, categorizing a row moves focus to the next one, so a queue clears without touching the mouse.
 
 <img alt="Transactions filtered by Food and Dining" src="screenshots/transactions.png">
 
@@ -30,7 +32,7 @@ No account needed — hit **Try Demo** from the home screen to explore with samp
 
 ## Dark and light mode
 
-Press `d` to toggle. Works across all pages.
+Press `d` or use the toggle in the header. Works across all pages.
 
 <div align="center">
   <img src="screenshots/dark-mode.png" width="49%" alt="Dark mode">

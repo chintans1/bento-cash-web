@@ -97,7 +97,11 @@ export function useDashboardData(
   const [recurringItems, setRecurringItems] = useState<RecurringItem[]>([]);
   const [budgetSummary, setBudgetSummary] =
     useState<AlignedSummaryResponse | null>(null);
-  const { accounts, primaryCurrency } = useAccounts(isAuthenticated);
+  const {
+    accounts,
+    primaryCurrency,
+    loading: accountsLoading,
+  } = useAccounts(isAuthenticated);
   /** The month currently on screen, and any failure, both tagged by month. */
   const [loadedMonth, setLoadedMonth] = useState<string | null>(null);
   const [failure, setFailure] = useState<{
@@ -188,10 +192,14 @@ export function useDashboardData(
     [transactions, categoryMap, year, month]
   );
 
-  /** null until the accounts request resolves, so the hero can hold its shape. */
+  /**
+   * null only while the request is out, so the hero can hold its shape. Keyed
+   * on the request rather than on `accounts.length`, or someone with no
+   * accounts at all would sit under a loading skeleton forever.
+   */
   const netWorth = useMemo(
-    () => (accounts.length > 0 ? computeNetWorth(accounts) : null),
-    [accounts]
+    () => (accountsLoading ? null : computeNetWorth(accounts)),
+    [accounts, accountsLoading]
   );
 
   const netFlowSeries = useMemo(

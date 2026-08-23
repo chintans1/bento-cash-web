@@ -56,6 +56,7 @@ export const TransactionRow = memo(function TransactionRow({
   onNotesCancel,
   pickerFinalFocus,
 }: TransactionRowProps) {
+  const payee = tx.payee ?? "";
   const amount = parseFloat(tx.amount);
   const isCredit = amount < 0;
   const color = categoryColor(categoryName);
@@ -105,9 +106,11 @@ export const TransactionRow = memo(function TransactionRow({
           </div>
           <div className="min-w-0 flex-1">
             <EditableText
-              value={tx.payee ?? ""}
+              value={payee}
               placeholder="Add a description…"
-              ariaLabel={`Description: ${tx.payee}. Edit`}
+              ariaLabel={
+                payee ? `Description: ${payee}. Edit` : "Add a description"
+              }
               onCommit={(next) => onPayeeChange(tx.id, next)}
             />
             {!expanded && tx.notes && (

@@ -1,3 +1,4 @@
+import type { Metadata, Viewport } from "next";
 import { Geist_Mono, Public_Sans, Playfair_Display } from "next/font/google";
 
 import "./globals.css";
@@ -19,6 +20,23 @@ const fontMono = Geist_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
 });
+
+export const metadata: Metadata = {
+  title: {
+    default: "Bento Cash",
+    template: "%s · Bento Cash",
+  },
+  description:
+    "A richer analytics interface for Lunch Money — spending insights, net worth and fast transaction editing.",
+};
+
+export const viewport: Viewport = {
+  // Matches --background in each theme, so mobile browser chrome blends in.
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f5f7f7" },
+    { media: "(prefers-color-scheme: dark)", color: "#0d1113" },
+  ],
+};
 
 export default function RootLayout({
   children,
