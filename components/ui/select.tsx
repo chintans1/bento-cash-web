@@ -56,6 +56,35 @@ function SelectTrigger({
   );
 }
 
+/**
+ * Base UI scrolls the typeahead match with `scrollIntoView({ block: "nearest" })`,
+ * which leaves the match flush against the popup's top or bottom edge. Re-center
+ * it so the match sits mid-list with its neighbours visible.
+ */
+function centerHighlightedItem(popup: HTMLDivElement | null) {
+  const item = popup?.querySelector<HTMLElement>("[data-highlighted]");
+  if (!popup || !item) return;
+
+  // Scrolling normally lives on the List, but moves to the popup when the popup
+  // is aligned to the trigger, so find whichever ancestor actually overflows.
+  let scroller: HTMLElement | null = null;
+  for (let el = item.parentElement; el; el = el.parentElement) {
+    if (el.scrollHeight > el.clientHeight) {
+      scroller = el;
+      break;
+    }
+    if (el === popup) break;
+  }
+  if (!scroller) return;
+
+  const scrollerRect = scroller.getBoundingClientRect();
+  const itemRect = item.getBoundingClientRect();
+  scroller.scrollTop +=
+    itemRect.top -
+    scrollerRect.top -
+    (scrollerRect.height - itemRect.height) / 2;
+}
+
 function SelectContent({
   className,
   children,
@@ -64,12 +93,41 @@ function SelectContent({
   align = "center",
   alignOffset = 0,
   alignItemWithTrigger = true,
+  onKeyDown,
   ...props
 }: SelectPrimitive.Popup.Props &
   Pick<
     SelectPrimitive.Positioner.Props,
     "align" | "alignOffset" | "side" | "sideOffset" | "alignItemWithTrigger"
   >) {
+  const popupRef = React.useRef<HTMLDivElement>(null);
+
+  // Set while a typeahead keypress is waiting for Base UI to scroll its match
+  // into view, so the scroll that follows can be corrected to a centered one.
+  const centerPendingRef = React.useRef(false);
+
+  const handleKeyDown: NonNullable<SelectPrimitive.Popup.Props["onKeyDown"]> = (
+    event
+  ) => {
+    onKeyDown?.(event);
+    // Only typeahead re-centers. Arrow keys keep Base UI's minimal scrolling so
+    // stepping through the list doesn't jump the viewport on every press.
+    centerPendingRef.current =
+      event.key.length === 1 &&
+      !event.ctrlKey &&
+      !event.metaKey &&
+      !event.altKey;
+  };
+
+  // Correcting on the scroll itself, rather than on a timer, lands after Base
+  // UI's scroll however that scroll was scheduled. Scroll events don't bubble,
+  // so this is attached to both elements that can be the scroller.
+  const handleScroll = () => {
+    if (!centerPendingRef.current) return;
+    centerPendingRef.current = false;
+    centerHighlightedItem(popupRef.current);
+  };
+
   return (
     <SelectPrimitive.Portal>
       <SelectPrimitive.Positioner
@@ -81,6 +139,9 @@ function SelectContent({
         className="isolate z-50"
       >
         <SelectPrimitive.Popup
+          ref={popupRef}
+          onKeyDown={handleKeyDown}
+          onScroll={handleScroll}
           data-slot="select-content"
           data-align-trigger={alignItemWithTrigger}
           className={cn(
@@ -90,7 +151,9 @@ function SelectContent({
           {...props}
         >
           <SelectScrollUpButton />
-          <SelectPrimitive.List>{children}</SelectPrimitive.List>
+          <SelectPrimitive.List onScroll={handleScroll}>
+            {children}
+          </SelectPrimitive.List>
           <SelectScrollDownButton />
         </SelectPrimitive.Popup>
       </SelectPrimitive.Positioner>

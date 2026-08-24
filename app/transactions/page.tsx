@@ -44,6 +44,13 @@ import { ButtonGroup } from "@/components/ui/button-group";
 type SortKey = "date" | "amount" | "payee";
 type SortDir = "asc" | "desc";
 
+function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
+  if (!active) return null;
+  return (
+    <span className="ml-0.5 text-[10px]">{dir === "asc" ? "↑" : "↓"}</span>
+  );
+}
+
 function CategorySelectItems({
   catGroups,
 }: {
@@ -207,13 +214,6 @@ function TransactionsPage() {
 
   if (!isAuthenticated) return <NoTokenPrompt />;
 
-  const SortIcon = ({ k }: { k: SortKey }) =>
-    sortKey === k ? (
-      <span className="ml-0.5 text-[10px]">
-        {sortDir === "asc" ? "↑" : "↓"}
-      </span>
-    ) : null;
-
   return (
     <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
       <MonthSelector
@@ -286,7 +286,7 @@ function TransactionsPage() {
           className="text-left hover:text-bento-default"
           onClick={() => toggleSort("payee")}
         >
-          Payee <SortIcon k="payee" />
+          Payee <SortIcon active={sortKey === "payee"} dir={sortDir} />
         </button>
         <button className="hidden text-left hover:text-bento-default sm:block">
           Category
@@ -295,13 +295,13 @@ function TransactionsPage() {
           className="hidden text-center hover:text-bento-default sm:block"
           onClick={() => toggleSort("date")}
         >
-          Date <SortIcon k="date" />
+          Date <SortIcon active={sortKey === "date"} dir={sortDir} />
         </button>
         <button
           className="text-right hover:text-bento-default"
           onClick={() => toggleSort("amount")}
         >
-          Amount <SortIcon k="amount" />
+          Amount <SortIcon active={sortKey === "amount"} dir={sortDir} />
         </button>
       </div>
 

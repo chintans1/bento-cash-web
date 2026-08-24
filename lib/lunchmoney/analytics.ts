@@ -257,6 +257,47 @@ export function computeAverageMonthlySpend(
   return totals.reduce((a, b) => a + b, 0) / totals.length;
 }
 
+/** Mirrors computeAverageMonthlySpend but sums income (negative-amount) transactions. */
+export function computeAverageMonthlyIncome(
+  monthlyTxArrays: Transaction[][],
+  catMap: Map<number, CategoryInfo>
+): number {
+  if (monthlyTxArrays.length === 0) return 0;
+  const totals = monthlyTxArrays.map((txs) =>
+    filterIncomeTxs(txs, catMap).reduce(
+      (sum, tx) => sum + Math.abs(parseFloat(tx.amount)),
+      0
+    )
+  );
+  return totals.reduce((a, b) => a + b, 0) / totals.length;
+}
+
+/**
+ * Estimates monthly investable surplus from N months of transaction history.
+ * Returns the average of (income − spend) per month across the window, floored at 0.
+ * monthlyHistories must be ordered oldest-to-newest; windowMonths slices from the end.
+ */
+export function estimateMonthlyContrib(
+  monthlyHistories: Transaction[][],
+  catMap: Map<number, CategoryInfo>,
+  windowMonths: number
+): number {
+  const slice = monthlyHistories.slice(-windowMonths);
+  if (slice.length === 0) return 0;
+  const surpluses = slice.map((txs) => {
+    const income = filterIncomeTxs(txs, catMap).reduce(
+      (sum, tx) => sum + Math.abs(parseFloat(tx.amount)),
+      0
+    );
+    const spend = filterSpendTransactions(txs, catMap).reduce(
+      (sum, tx) => sum + parseFloat(tx.amount),
+      0
+    );
+    return Math.max(0, income - spend);
+  });
+  return surpluses.reduce((a, b) => a + b, 0) / surpluses.length;
+}
+
 /** Given a category id (-1 for uncategorized), returns up to 5 expense transactions sorted by amount descending. */
 export function getTransactionsForCategory(
   transactions: Transaction[],
