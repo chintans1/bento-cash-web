@@ -261,6 +261,15 @@ Rows live in `components/transactions/transaction-row.tsx` and are memoized. The
 
 Shows net worth hero (assets − liabilities), grouped by institution within Asset/Liability sections. Handles Plaid (live-synced) and manual accounts. Revoked Plaid accounts show `—` for balance. Displays `last_update` as relative time.
 
+### `/investments` — Portfolio (`app/investments/page.tsx`)
+
+A portfolio view over the investment accounts: an allocation ring with the total in the middle, a goal card, contributions for the month, a ranked account table, the tax-treatment breakdown and the growth projection.
+
+**What Lunch Money can and can't back here.** The API exposes accounts and balances and nothing below that — no holdings, tickers, share counts, cost basis or price history. So an _account_ is the finest grain this page can honestly show, and per-position rows or a return figure aren't possible. Two consequences worth remembering before adding to this page:
+
+- **Contributions, not returns.** `computeContributions` sums the transactions that land on investment accounts (they carry `plaid_account_id` / `manual_account_id`), so "how much did I put in this month" is real. Growth isn't derivable: without cost basis, a balance change can't be split into contribution and gain.
+- **The goal is local.** `usePortfolioGoal` keeps the target in localStorage — LM has nowhere to put it — following the same `useSyncExternalStore` shape as `useInvestableMonths`.
+
 ### `/settings` — Settings (`app/settings/page.tsx`)
 
 Token entry form. On submit, calls `getMe()` to verify the token, then stores it via `useToken`. Shows user name, budget name, primary currency, and API key label when connected.

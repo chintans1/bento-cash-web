@@ -15,7 +15,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 
 export function AllocationBreakdown({
   accounts,
@@ -88,8 +87,8 @@ export function AllocationBreakdown({
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-bento-hairline">
                   <div
-                    className={cn("h-full rounded-full", bucket.color)}
-                    style={{ width: `${pct}%` }}
+                    className="h-full rounded-full"
+                    style={{ backgroundColor: bucket.color, width: `${pct}%` }}
                   />
                 </div>
               </PopoverTrigger>

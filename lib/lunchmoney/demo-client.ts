@@ -108,7 +108,10 @@ function demoTransaction(
   seed: Pick<
     Transaction,
     "id" | "date" | "payee" | "amount" | "category_id" | "notes"
-  > & { recurring_id?: number | null }
+  > & {
+    recurring_id?: number | null;
+    manual_account_id?: number | null;
+  }
 ): Transaction {
   return {
     currency: "usd",
@@ -155,6 +158,7 @@ const DEMO_CATEGORIES: Category[] = [
   { id: 7, name: "Travel" },
   { id: 8, name: "Personal Care" },
   { id: 9, name: "Housing" },
+  { id: 10, name: "Transfers", exclude_from_totals: true },
 ].map(demoCategory);
 
 const DEMO_ACCOUNTS: ManualAccount[] = [
@@ -187,6 +191,36 @@ const DEMO_ACCOUNTS: ManualAccount[] = [
     subtype: "credit card",
     balance: "2341.50",
     to_base: 2341.5,
+  },
+  {
+    id: 105,
+    name: "Roth IRA",
+    display_name: "Fidelity Roth IRA",
+    institution_name: "Fidelity",
+    type: "investment" as const,
+    subtype: "roth ira",
+    balance: "31840.25",
+    to_base: 31840.25,
+  },
+  {
+    id: 106,
+    name: "Brokerage",
+    display_name: "Schwab Brokerage",
+    institution_name: "Charles Schwab",
+    type: "investment" as const,
+    subtype: "brokerage",
+    balance: "22615.80",
+    to_base: 22615.8,
+  },
+  {
+    id: 107,
+    name: "Crypto",
+    display_name: "Coinbase",
+    institution_name: "Coinbase",
+    type: "investment" as const,
+    subtype: "crypto",
+    balance: "4180.55",
+    to_base: 4180.55,
   },
   {
     id: 1004,
@@ -279,9 +313,31 @@ type TxTemplate = {
   day: number;
   notes: string | null;
   recurring_id?: number;
+  /** Set for transfers into investment accounts, which the portfolio view reads. */
+  manual_account_id?: number;
 };
 
 const TX_TEMPLATES: TxTemplate[] = [
+  // Investment contributions — these land on the investment accounts, so the
+  // portfolio view has real money moving in.
+  {
+    payee: "Vanguard",
+    min: 1200,
+    max: 1200,
+    category_id: 10,
+    day: 2,
+    notes: "401k contribution",
+    manual_account_id: 1004,
+  },
+  {
+    payee: "Charles Schwab",
+    min: 500,
+    max: 500,
+    category_id: 10,
+    day: 15,
+    notes: "Brokerage transfer",
+    manual_account_id: 106,
+  },
   // Housing
   {
     payee: "Landlord",
@@ -542,6 +598,7 @@ export function createDemoClient(): LMClient {
             category_id: tmpl.category_id,
             notes: tmpl.notes,
             recurring_id: tmpl.recurring_id,
+            manual_account_id: tmpl.manual_account_id ?? null,
           }),
         ];
       });

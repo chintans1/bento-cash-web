@@ -41,6 +41,20 @@ popover` could not reach `ui.shadcn.com` from the sandboxed dev environment;
   `useInvestableMonths` exists to avoid, and it will bite if that gate moves.
 - No error boundary. A render error in any card blanks the whole page.
 
+## Portfolio
+
+- **Real returns need snapshots.** The portfolio view shows contributions
+  because Lunch Money has no cost basis or price history. Recording the
+  portfolio total once a month (localStorage, or a file the user exports) would
+  make a genuine time-weighted return possible from then on — but only on the
+  device that recorded it.
+- **Per-holding detail is not possible** through the Lunch Money API: it has no
+  holdings, tickers, share counts or cost basis. Anything at position level
+  would need a second data source (Plaid Investments directly, or a
+  broker/price API), which is a much bigger change than a UI one.
+- The allocation ring colors come from hashing the account name, so two
+  accounts can collide on a color. A per-slice palette walk would avoid it.
+
 ## Features
 
 - **Bulk edit** — select multiple transactions and categorize them in one go.
