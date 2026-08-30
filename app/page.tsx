@@ -10,7 +10,6 @@ import { NetWorthCard } from "@/components/dashboard/net-worth-card";
 import { QuickStatsPanel } from "@/components/dashboard/quick-stats-panel";
 import { NetCashFlowBar } from "@/components/dashboard/net-cash-flow-bar";
 import { SpendingTrendCard } from "@/components/dashboard/spending-trend-card";
-import { DailySpendCard } from "@/components/dashboard/daily-spend-card";
 import { SpendByCategoryCard } from "@/components/dashboard/spend-by-category-card";
 import { TopMerchantsCard } from "@/components/dashboard/top-merchants-card";
 import { BudgetProgressCard } from "@/components/dashboard/budget-progress-card";
@@ -35,14 +34,14 @@ export default function HomePage() {
     recurringItems,
     budgetSummary,
     netWorth,
+    netWorthHistory,
+    netWorthHistoryLoading,
     loading,
     refreshing,
     error,
     categoryTotals,
     momDeltas,
     merchantTotals,
-    dailySpend,
-    netFlowSeries,
     cumulativeSpend,
     prevMonthTotals,
     recentTransactions,
@@ -80,11 +79,11 @@ export default function HomePage() {
         <div className="lg:col-span-2">
           <NetWorthCard
             netWorth={netWorth}
-            netFlowSeries={netFlowSeries}
+            history={netWorthHistory}
+            historyLoading={netWorthHistoryLoading}
             year={selectedYear}
             month={selectedMonth}
             primaryCurrency={primaryCurrency}
-            loading={loading}
           />
         </div>
 
@@ -144,23 +143,11 @@ export default function HomePage() {
             error={error}
           />
 
-          {/*
-            The two shortest cards share a row inside the wide column. Stacked,
-            they left the wide column running far past the narrow one.
-          */}
-          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2">
-            <DailySpendCard
-              data={dailySpend}
-              month={selectedMonth}
-              primaryCurrency={primaryCurrency}
-            />
-
-            <TopMerchantsCard
-              merchantTotals={merchantTotals}
-              primaryCurrency={primaryCurrency}
-              loading={loading}
-            />
-          </div>
+          <TopMerchantsCard
+            merchantTotals={merchantTotals}
+            primaryCurrency={primaryCurrency}
+            loading={loading}
+          />
         </div>
 
         <div className="flex flex-col gap-4">

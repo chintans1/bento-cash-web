@@ -9,8 +9,12 @@ import {
   useState,
 } from "react";
 import { AnimatePresence } from "motion/react";
-import { buildCategoryOptions } from "@/components/transactions/category-picker";
+import {
+  buildCategoryOptions,
+  CategoryFilterPicker,
+} from "@/components/transactions/category-picker";
 import { TransactionRow } from "@/components/transactions/transaction-row";
+import { usePayeeSuggestions } from "@/hooks/use-payee-suggestions";
 import { formatAmount } from "@/lib/format";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToken } from "@/hooks/use-token";
@@ -36,16 +40,6 @@ import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
 import { MonthSelector } from "@/components/dashboard/month-selector";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectSeparator,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ButtonGroup } from "@/components/ui/button-group";
 
 type SortKey = "date" | "amount" | "payee";
@@ -60,28 +54,6 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   if (!active) return null;
   return (
     <span className="ml-0.5 text-[10px]">{dir === "asc" ? "↑" : "↓"}</span>
-  );
-}
-
-function CategorySelectItems({
-  catGroups,
-}: {
-  catGroups: CategoryGroupEntry[];
-}) {
-  return (
-    <>
-      {catGroups.map((group, i) => (
-        <SelectGroup key={group.groupId ?? "standalone"}>
-          {group.groupName && <SelectLabel>{group.groupName}</SelectLabel>}
-          {group.items.map(({ id, name }) => (
-            <SelectItem key={id} value={id.toString()}>
-              {name}
-            </SelectItem>
-          ))}
-          {i < catGroups.length - 1 && <SelectSeparator />}
-        </SelectGroup>
-      ))}
-    </>
   );
 }
 
@@ -227,6 +199,8 @@ function TransactionsPage() {
     () => buildCategoryOptions(catGroups),
     [catGroups]
   );
+
+  const payeeSuggestions = usePayeeSuggestions(isAuthenticated);
 
   /*
     Mirrors `filtered` so the row callbacks below don't have to depend on it.
@@ -433,10 +407,10 @@ function TransactionsPage() {
           )}
         </ButtonGroup>
 
-        <Select
-          value={filterCatId === null ? "" : filterCatId.toString()}
-          onValueChange={(val) => {
-            const newId = val === "" ? null : Number(val);
+        <CategoryFilterPicker
+          categoryId={filterCatId}
+          options={categoryOptions}
+          onChange={(newId) => {
             setFilterCatId(newId);
             const params = new URLSearchParams(searchParams.toString());
             if (newId === null) {
@@ -446,25 +420,7 @@ function TransactionsPage() {
             }
             router.replace(`/transactions?${params.toString()}`);
           }}
-        >
-          <SelectTrigger size="sm" className="w-44">
-            <SelectValue className="!block truncate">
-              {filterCatId === null
-                ? "All categories"
-                : filterCatId === -1
-                  ? "Uncategorized"
-                  : (categoryMap.get(filterCatId)?.name ?? "All categories")}
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent className="min-w-max">
-            <SelectGroup>
-              <SelectItem value="">All categories</SelectItem>
-              <SelectItem value="-1">Uncategorized</SelectItem>
-            </SelectGroup>
-            <SelectSeparator />
-            <CategorySelectItems catGroups={catGroups} />
-          </SelectContent>
-        </Select>
+        />
       </div>
 
       {/* Table header */}
@@ -521,6 +477,7 @@ function TransactionsPage() {
                   )?.name ?? UNCATEGORIZED.name
                 }
                 categoryOptions={categoryOptions}
+                payeeSuggestions={payeeSuggestions}
                 expanded={expandedTxId === tx.id}
                 saving={savingIds.has(tx.id)}
                 failed={failedId === tx.id}

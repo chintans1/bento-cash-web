@@ -38,3 +38,14 @@ export function nextMonthOf(
     ? { year: year + 1, month: 1 }
     : { year, month: month + 1 };
 }
+
+/** "2026-08" for August 2026 — the key format LM's balance history uses. */
+export function monthKeyOf(year: number, month: number): string {
+  return `${year}-${String(month).padStart(2, "0")}`;
+}
+
+/** "Aug 2026" from a YYYY-MM key. */
+export function formatMonthKey(key: string): string {
+  const [year, month] = key.split("-");
+  return `${MONTH_NAMES[Number(month) - 1].slice(0, 3)} ${year}`;
+}

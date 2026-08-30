@@ -12,8 +12,8 @@ importers:
         specifier: ^1.5.0
         version: 1.5.0(@date-fns/tz@1.4.1)(@types/react@19.2.14)(date-fns@4.2.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       '@lunch-money/lunch-money-js-v2':
-        specifier: ^2.9.0
-        version: 2.9.0
+        specifier: ^2.11.0
+        version: 2.11.0
       '@vercel/analytics':
         specifier: ^2.0.1
         version: 2.0.1(next@16.2.6(@babel/core@7.29.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(react@19.2.6)
@@ -580,8 +580,8 @@ packages:
   '@jridgewell/trace-mapping@0.3.31':
     resolution: {integrity: sha512-zzNR+SdQSDJzc8joaeP8QQoCQr8NuYx2dIIytl1QeBEZHJ9uW6hebsrYgbz8hJwUQao3TWCMtmfV8Nu1twOLAw==}
 
-  '@lunch-money/lunch-money-js-v2@2.9.0':
-    resolution: {integrity: sha512-fpSC97Frv2BLj6WFMWIiN/27OoIpPcAt2TDpZpZ+94sjoRH1Bsc+ru0P5TsgFLOnjFFl9ontd1Fx6oPKz65p2w==}
+  '@lunch-money/lunch-money-js-v2@2.11.0':
+    resolution: {integrity: sha512-NA3ecC910bD8K2j9MYfnCrdwzfcIH8vZgEtzZZZLeFI4S3ddieXuKnHx/o6iYY3xF+2EMeU4mBLvzNbIv6aNGA==}
     engines: {node: '>=18.0.0'}
 
   '@modelcontextprotocol/sdk@1.29.0':
@@ -4193,7 +4193,7 @@ snapshots:
       '@jridgewell/resolve-uri': 3.1.2
       '@jridgewell/sourcemap-codec': 1.5.5
 
-  '@lunch-money/lunch-money-js-v2@2.9.0':
+  '@lunch-money/lunch-money-js-v2@2.11.0':
     dependencies:
       openapi-fetch: 0.15.2
 

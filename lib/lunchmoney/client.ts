@@ -9,6 +9,7 @@ import type {
   RecurringItem,
   AlignedSummaryResponse,
   UpdateManualAccountBody,
+  components,
 } from "@lunch-money/lunch-money-js-v2";
 export type {
   Transaction,
@@ -19,6 +20,10 @@ export type {
   RecurringItem,
   AlignedSummaryResponse,
 } from "@lunch-money/lunch-money-js-v2";
+
+/** One account's monthly balance snapshots, as `/balance_history` groups them. */
+export type BalanceHistoryAccount =
+  components["schemas"]["balanceHistoryAccountObject"];
 
 export type CategoriesResponse = { categories: Category[] };
 export type TransactionsResponse = {
@@ -37,6 +42,7 @@ export interface LMClient {
   getCategories(): Promise<CategoriesResponse>;
   getAccounts(): Promise<{ manual: ManualAccount[]; plaid: PlaidAccount[] }>;
   getRecurringItems(): Promise<RecurringItem[]>;
+  getBalanceHistory(): Promise<BalanceHistoryAccount[]>;
   getBudgetSummary(
     year: number,
     month: number
@@ -118,6 +124,24 @@ export function createRealClient(token: string): LMClient {
 
     getRecurringItems: () => sdk.recurringItems.getAll(),
 
+    /**
+     * Every month of balance history LM holds, for every account.
+     *
+     * The SDK has no wrapper for this endpoint yet, so it goes through the raw
+     * openapi-fetch client — which is generated from the same spec, so the
+     * response is still typed. Passing no range asks for all of it, including
+     * the ephemeral entry for the current month; one request then answers for
+     * any month the user navigates to, rather than one per month on screen.
+     */
+    async getBalanceHistory() {
+      const { data, error } = await sdk.rawClient.GET("/balance_history");
+      // openapi-fetch reports failures in the result rather than throwing, so
+      // this is where a non-2xx becomes an error the callers can catch.
+      if (!data)
+        throw new Error(error?.message ?? "Couldn't load balance history");
+      return data.balance_history;
+    },
+
     async getBudgetSummary(year, month) {
       const start = `${year}-${String(month).padStart(2, "0")}-01`;
       const lastDay = new Date(year, month, 0).getDate();
@@ -184,6 +208,9 @@ export const getAccounts = (): Promise<{
 export const getRecurringItems = (): Promise<RecurringItem[]> =>
   cached("recurring", () => activeClient().getRecurringItems());
 
+export const getBalanceHistory = (): Promise<BalanceHistoryAccount[]> =>
+  cached("balance-history", () => activeClient().getBalanceHistory());
+
 export const getBudgetSummary = (
   year: number,
   month: number
@@ -198,6 +225,8 @@ export const updateManualAccount = async (
 ): Promise<void> => {
   await activeClient().updateManualAccount(id, data);
   invalidate("accounts");
+  // Editing a balance moves the current month's snapshot too.
+  invalidate("balance-history");
 };
 
 /** A transaction edit can move month totals and budget actuals, so drop both. */

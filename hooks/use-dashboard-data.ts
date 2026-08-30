@@ -12,11 +12,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  getBalanceHistory,
   getBudgetSummary,
   getCategories,
   getRecurringItems,
   getTransactionsForMonth,
   type AlignedSummaryResponse,
+  type BalanceHistoryAccount,
   type RecurringItem,
   type Transaction,
 } from "@/lib/lunchmoney/client";
@@ -24,7 +26,6 @@ import {
   buildCategoryMap,
   computeCategoryTotals,
   computeCumulativeSpendComparison,
-  computeNetFlowSeries,
   computeDailySpend,
   computeMerchantTotals,
   computeMonthTotals,
@@ -37,17 +38,23 @@ import {
   getSortedSpendTxs,
   type CategoryTotal,
   type CumulativeSpendPoint,
-  type DailySpend,
   type MerchantTotal,
   type MonthTotals,
   type MoMDelta,
-  type NetFlowPoint,
   type QuickStats,
 } from "@/lib/lunchmoney/analytics";
 import { type CategoryInfo } from "@/lib/lunchmoney/categories";
 import { computeNetWorth, type NetWorth } from "@/lib/account-utils";
+import {
+  computeNetWorthHistory,
+  trailingMonths,
+  type NetWorthPoint,
+} from "@/lib/lunchmoney/net-worth-history";
 import { useAccounts } from "@/hooks/use-accounts";
-import { prevMonthOf } from "@/lib/date-utils";
+import { monthKeyOf, prevMonthOf } from "@/lib/date-utils";
+
+/** How much of the net worth curve the hero shows. */
+const NET_WORTH_MONTHS = 12;
 
 export type DashboardData = {
   // Raw data
@@ -58,6 +65,10 @@ export type DashboardData = {
   budgetSummary: AlignedSummaryResponse | null;
   /** null until the accounts request resolves — it loads after the main render. */
   netWorth: NetWorth | null;
+  /** Month-end net worth for the year ending at the selected month. */
+  netWorthHistory: NetWorthPoint[];
+  /** True while the balance history request is still out. */
+  netWorthHistoryLoading: boolean;
   /** True only when there's nothing to show yet. A month change keeps the previous month on screen instead of flashing skeletons. */
   loading: boolean;
   /** True while a month change is in flight over already-rendered content. */
@@ -68,8 +79,6 @@ export type DashboardData = {
   categoryTotals: CategoryTotal[];
   momDeltas: Map<number, MoMDelta>;
   merchantTotals: MerchantTotal[];
-  dailySpend: DailySpend[];
-  netFlowSeries: NetFlowPoint[];
   cumulativeSpend: CumulativeSpendPoint[];
   prevMonthTotals: MonthTotals;
   recentTransactions: Transaction[];
@@ -97,6 +106,10 @@ export function useDashboardData(
   const [recurringItems, setRecurringItems] = useState<RecurringItem[]>([]);
   const [budgetSummary, setBudgetSummary] =
     useState<AlignedSummaryResponse | null>(null);
+  /** null while the request is out; [] once it has resolved or failed. */
+  const [balanceHistory, setBalanceHistory] = useState<
+    BalanceHistoryAccount[] | null
+  >(null);
   const {
     accounts,
     primaryCurrency,
@@ -163,6 +176,28 @@ export function useDashboardData(
     };
   }, [isAuthenticated, year, month, monthKey]);
 
+  /**
+   * All of LM's balance history, fetched once — it doesn't depend on the month
+   * on screen, so stepping through months reads from what's already here.
+   * A failure resolves to an empty series and the hero just drops its chart.
+   */
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    let cancelled = false;
+    getBalanceHistory()
+      .then((history) => {
+        if (!cancelled) setBalanceHistory(history);
+      })
+      .catch(() => {
+        if (!cancelled) setBalanceHistory([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
   // ── Derived data ────────────────────────────────────────────────────────────
   // useMemo means "only recompute when the listed dependencies change". Without
   // it, these expensive calculations would re-run on every render.
@@ -202,9 +237,16 @@ export function useDashboardData(
     [accounts, accountsLoading]
   );
 
-  const netFlowSeries = useMemo(
-    () => computeNetFlowSeries(transactions, categoryMap, year, month),
-    [transactions, categoryMap, year, month]
+  const netWorthHistory = useMemo(
+    () =>
+      balanceHistory
+        ? trailingMonths(
+            computeNetWorthHistory(balanceHistory, accounts),
+            monthKeyOf(year, month),
+            NET_WORTH_MONTHS
+          )
+        : [],
+    [balanceHistory, accounts, year, month]
   );
 
   const cumulativeSpend = useMemo(
@@ -276,14 +318,14 @@ export function useDashboardData(
     recurringItems,
     budgetSummary,
     netWorth,
+    netWorthHistory,
+    netWorthHistoryLoading: isAuthenticated && balanceHistory === null,
     loading: isLoading && transactions.length === 0,
     refreshing: isLoading && transactions.length > 0,
     error,
     categoryTotals,
     momDeltas,
     merchantTotals,
-    dailySpend,
-    netFlowSeries,
     cumulativeSpend,
     prevMonthTotals,
     recentTransactions,

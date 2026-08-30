@@ -19,6 +19,8 @@ export type TransactionRowProps = {
   transaction: Transaction;
   categoryName: string;
   categoryOptions: CategoryOption[];
+  /** Existing payee names, offered as suggestions while editing. */
+  payeeSuggestions: string[];
   expanded: boolean;
   saving: boolean;
   failed: boolean;
@@ -44,6 +46,7 @@ export const TransactionRow = memo(function TransactionRow({
   transaction: tx,
   categoryName,
   categoryOptions,
+  payeeSuggestions,
   expanded,
   saving,
   failed,
@@ -108,6 +111,7 @@ export const TransactionRow = memo(function TransactionRow({
             <EditableText
               value={payee}
               placeholder="Add a description…"
+              suggestions={payeeSuggestions}
               ariaLabel={
                 payee ? `Description: ${payee}. Edit` : "Add a description"
               }

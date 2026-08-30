@@ -572,16 +572,23 @@ describe("getSortedIncomeTxs", () => {
     { name: string; is_income: boolean; exclude_from_totals: boolean }
   >();
 
-  it("sorts by amount ascending (largest credit first)", () => {
+  it("sorts by date descending (newest first)", () => {
     const txs = [
-      makeTx({ id: 1, amount: "-100.00" }),
-      makeTx({ id: 2, amount: "-3000.00" }),
-      makeTx({ id: 3, amount: "-500.00" }),
+      makeTx({ id: 1, amount: "-100.00", date: "2026-01-05" }),
+      makeTx({ id: 2, amount: "-3000.00", date: "2026-01-20" }),
+      makeTx({ id: 3, amount: "-500.00", date: "2026-01-12" }),
     ];
     const result = getSortedIncomeTxs(txs, catMap);
-    expect(result[0].id).toBe(2);
-    expect(result[1].id).toBe(3);
-    expect(result[2].id).toBe(1);
+    expect(result.map((t) => t.id)).toEqual([2, 3, 1]);
+  });
+
+  it("puts the largest credit first within a day", () => {
+    const txs = [
+      makeTx({ id: 1, amount: "-100.00", date: "2026-01-10" }),
+      makeTx({ id: 2, amount: "-3000.00", date: "2026-01-10" }),
+    ];
+    const result = getSortedIncomeTxs(txs, catMap);
+    expect(result.map((t) => t.id)).toEqual([2, 1]);
   });
 });
 
@@ -592,16 +599,23 @@ describe("getSortedSpendTxs", () => {
     [1, { name: "Food", is_income: false, exclude_from_totals: false }],
   ]);
 
-  it("sorts by amount descending (largest spend first)", () => {
+  it("sorts by date descending (newest first)", () => {
     const txs = [
-      makeTx({ id: 1, amount: "10.00" }),
-      makeTx({ id: 2, amount: "80.00" }),
-      makeTx({ id: 3, amount: "40.00" }),
+      makeTx({ id: 1, amount: "10.00", date: "2026-01-05" }),
+      makeTx({ id: 2, amount: "80.00", date: "2026-01-20" }),
+      makeTx({ id: 3, amount: "40.00", date: "2026-01-12" }),
     ];
     const result = getSortedSpendTxs(txs, catMap);
-    expect(result[0].id).toBe(2);
-    expect(result[1].id).toBe(3);
-    expect(result[2].id).toBe(1);
+    expect(result.map((t) => t.id)).toEqual([2, 3, 1]);
+  });
+
+  it("puts the largest spend first within a day", () => {
+    const txs = [
+      makeTx({ id: 1, amount: "10.00", date: "2026-01-10" }),
+      makeTx({ id: 2, amount: "80.00", date: "2026-01-10" }),
+    ];
+    const result = getSortedSpendTxs(txs, catMap);
+    expect(result.map((t) => t.id)).toEqual([2, 1]);
   });
 
   it("excludes income and exclude_from_totals transactions", () => {

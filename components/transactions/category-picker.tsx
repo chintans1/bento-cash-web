@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, ListFilter } from "lucide-react";
 import {
   Combobox,
   ComboboxContent,
@@ -17,7 +17,10 @@ import { cn } from "@/lib/utils";
 import type { CategoryGroupEntry } from "@/lib/lunchmoney/analytics";
 
 export type CategoryOption = {
-  /** -1 is the "Uncategorized" sentinel, which saves as null. */
+  /**
+   * -1 is the "Uncategorized" sentinel, which saves as null; -2 is the filter's
+   * "All categories" row, which clears the filter.
+   */
   id: number;
   name: string;
   group: string | null;
@@ -39,12 +42,17 @@ export function buildCategoryOptions(
 }
 
 /**
- * The category cell: a chip that opens a searchable list.
- *
- * A flat searchable list rather than a grouped dropdown — with a few dozen
- * categories, typing three letters beats scrolling to the right group. The
- * group name rides along on each row so the context isn't lost.
+ * Matches on the group name as well as the category name — "Food & Drink"
+ * should surface everything under it, not just a category spelled that way.
  */
+function filterByNameOrGroup(option: CategoryOption, query: string) {
+  const q = query.toLocaleLowerCase();
+  return (
+    option.name.toLocaleLowerCase().includes(q) ||
+    (option.group?.toLocaleLowerCase().includes(q) ?? false)
+  );
+}
+
 /**
  * Base UI only commits Enter when an item is highlighted, which happens on
  * arrow-key navigation. After typing a filter nothing is highlighted, so Enter
@@ -70,6 +78,68 @@ function commitTopMatchOnEnter(event: React.KeyboardEvent<HTMLInputElement>) {
   }
 }
 
+const ALL_CATEGORIES: CategoryOption = {
+  id: -2,
+  name: "All categories",
+  group: null,
+};
+
+/**
+ * The popup: search box over the flat category list. Shared so the row picker
+ * and the list filter search the same way and read the same way.
+ */
+function CategoryComboboxPopup({
+  finalFocus,
+}: {
+  finalFocus?: () => HTMLElement | boolean | null | void;
+}) {
+  return (
+    <ComboboxContent finalFocus={finalFocus}>
+      <div className="border-b border-bento-hairline/60 p-1.5">
+        <ComboboxInput
+          placeholder="Search categories…"
+          onKeyDown={commitTopMatchOnEnter}
+        />
+      </div>
+      <ComboboxEmpty>No categories match.</ComboboxEmpty>
+      <ComboboxList>
+        {(option: CategoryOption) => (
+          <ComboboxItem key={option.id} value={option}>
+            {option.id === ALL_CATEGORIES.id ? (
+              <ListFilter className="size-3.5 shrink-0 text-bento-subtle" />
+            ) : (
+              <CategoryIcon
+                name={option.name}
+                className="size-3.5 shrink-0"
+                style={{
+                  color:
+                    option.id === -1
+                      ? "var(--cat-3)"
+                      : categoryColor(option.name),
+                }}
+              />
+            )}
+            <span className="truncate">{option.name}</span>
+            {option.group && (
+              <span className="ml-auto truncate text-[11px] text-muted-foreground">
+                {option.group}
+              </span>
+            )}
+          </ComboboxItem>
+        )}
+      </ComboboxList>
+    </ComboboxContent>
+  );
+}
+
+/**
+ * The category cell: a chip that opens a searchable list.
+ *
+ * A flat searchable list rather than a grouped dropdown — with a few dozen
+ * categories, typing three letters beats scrolling to the right group. The
+ * group name rides along on each row so the context isn't lost, and typing it
+ * matches every category under it.
+ */
 export function CategoryPicker({
   categoryId,
   categoryName,
@@ -97,12 +167,12 @@ export function CategoryPicker({
   );
 
   const isUncategorized = categoryId == null;
-  const color = categoryColor(categoryName);
 
   return (
     <Combobox
       items={options}
       itemToStringLabel={(option: CategoryOption) => option.name}
+      filter={filterByNameOrGroup}
       value={selected}
       onValueChange={(option: CategoryOption | null) => {
         if (!option || option.id === (categoryId ?? -1)) return;
@@ -119,10 +189,6 @@ export function CategoryPicker({
         )}
       >
         <span
-          className="size-2 shrink-0 rounded-full"
-          style={{ backgroundColor: isUncategorized ? "var(--cat-3)" : color }}
-        />
-        <span
           className={cn(
             "truncate",
             isUncategorized ? "text-cat-3" : "text-bento-subtle"
@@ -133,37 +199,64 @@ export function CategoryPicker({
         <ChevronDown className="ml-auto size-3 shrink-0 text-bento-subtle opacity-0 transition-opacity group-hover/cat:opacity-100" />
       </ComboboxTrigger>
 
-      <ComboboxContent finalFocus={finalFocus}>
-        <div className="border-b border-bento-hairline/60 p-1.5">
-          <ComboboxInput
-            placeholder="Search categories…"
-            onKeyDown={commitTopMatchOnEnter}
-          />
-        </div>
-        <ComboboxEmpty>No categories match.</ComboboxEmpty>
-        <ComboboxList>
-          {(option: CategoryOption) => (
-            <ComboboxItem key={option.id} value={option}>
-              <CategoryIcon
-                name={option.name}
-                className="size-3.5 shrink-0"
-                style={{
-                  color:
-                    option.id === -1
-                      ? "var(--cat-3)"
-                      : categoryColor(option.name),
-                }}
-              />
-              <span className="truncate">{option.name}</span>
-              {option.group && (
-                <span className="ml-auto truncate text-[11px] text-muted-foreground">
-                  {option.group}
-                </span>
-              )}
-            </ComboboxItem>
+      <CategoryComboboxPopup finalFocus={finalFocus} />
+    </Combobox>
+  );
+}
+
+/**
+ * The list's category filter — the same searchable picker as the row cell, with
+ * an "All categories" row on top. Every category is offered, not just the ones
+ * this month happens to contain, so filtering to an empty month is possible.
+ *
+ * Styled to match `SelectTrigger size="sm"`, which is what it replaced.
+ */
+export function CategoryFilterPicker({
+  categoryId,
+  options,
+  onChange,
+}: {
+  /** null = no filter; -1 = uncategorized only. */
+  categoryId: number | null;
+  options: CategoryOption[];
+  onChange: (categoryId: number | null) => void;
+}) {
+  const filterOptions = useMemo(() => [ALL_CATEGORIES, ...options], [options]);
+
+  const selected = useMemo(
+    () =>
+      filterOptions.find((o) => o.id === (categoryId ?? ALL_CATEGORIES.id)) ??
+      ALL_CATEGORIES,
+    [filterOptions, categoryId]
+  );
+
+  return (
+    <Combobox
+      items={filterOptions}
+      itemToStringLabel={(option: CategoryOption) => option.name}
+      filter={filterByNameOrGroup}
+      value={selected}
+      onValueChange={(option: CategoryOption | null) => {
+        if (!option) return;
+        onChange(option.id === ALL_CATEGORIES.id ? null : option.id);
+      }}
+    >
+      <ComboboxTrigger
+        aria-label={`Filter by category: ${selected.name}. Change`}
+        className="flex h-8 w-44 items-center justify-between gap-1.5 rounded-3xl border border-transparent bg-input/50 px-3 text-sm whitespace-nowrap transition-[color,box-shadow,background-color] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
+      >
+        <span
+          className={cn(
+            "truncate",
+            categoryId === null && "text-muted-foreground"
           )}
-        </ComboboxList>
-      </ComboboxContent>
+        >
+          {selected.name}
+        </span>
+        <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+      </ComboboxTrigger>
+
+      <CategoryComboboxPopup />
     </Combobox>
   );
 }

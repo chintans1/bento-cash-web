@@ -4,6 +4,20 @@ import type { AccountType } from "@lunch-money/lunch-money-js-v2";
 // TODO: should vehicle, real estate be considered liabilities?
 const LIABILITY_TYPES = new Set(["credit", "loan", "other liability"]);
 
+/** Whether an LM account type counts against net worth. */
+export function isLiabilityType(type: string): boolean {
+  return LIABILITY_TYPES.has(type);
+}
+
+/**
+ * The key a normalized account is identified by. Anything joining LM data back
+ * to an account — balance history, most of all — builds its lookup key here,
+ * so the format has one definition rather than one per caller.
+ */
+export function accountKey(source: "manual" | "plaid", id: number): string {
+  return `${source}-${id}`;
+}
+
 const ALL_CAPS_SUBTYPES = new Set([
   "ira",
   "tfsa",
@@ -34,7 +48,7 @@ export type NormalizedAccount = {
 
 export function normalizeManual(a: ManualAccount): NormalizedAccount {
   return {
-    id: `manual-${a.id}`,
+    id: accountKey("manual", a.id),
     rawId: a.id,
     name: a.display_name ?? a.name,
     institution: a.institution_name,
@@ -44,7 +58,7 @@ export function normalizeManual(a: ManualAccount): NormalizedAccount {
     currency: a.currency,
     toBase: a.to_base,
     balanceValid: true,
-    isLiability: LIABILITY_TYPES.has(a.type),
+    isLiability: isLiabilityType(a.type),
     lastUpdated: a.balance_as_of,
     source: "manual",
     status: a.status,
@@ -54,7 +68,7 @@ export function normalizeManual(a: ManualAccount): NormalizedAccount {
 export function normalizePlaid(a: PlaidAccount): NormalizedAccount {
   const revoked = a.status === "revoked";
   return {
-    id: `plaid-${a.id}`,
+    id: accountKey("plaid", a.id),
     rawId: a.id,
     name: a.display_name ?? a.name,
     institution: a.institution_name,
@@ -64,7 +78,7 @@ export function normalizePlaid(a: PlaidAccount): NormalizedAccount {
     currency: a.currency,
     toBase: a.to_base,
     balanceValid: !revoked,
-    isLiability: LIABILITY_TYPES.has(a.type),
+    isLiability: isLiabilityType(a.type),
     lastUpdated: a.balance_last_update,
     source: "plaid",
     status: a.status,
