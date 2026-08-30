@@ -7,6 +7,7 @@ import {
   ChartTooltip,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/format";
 import { MONTH_NAMES, prevMonthOf } from "@/lib/date-utils";
 import type { CumulativeSpendPoint } from "@/lib/lunchmoney/analytics";
@@ -98,7 +99,7 @@ export function SpendingTrendCard({
         </div>
 
         {loading ? (
-          <div className="h-48 animate-pulse rounded-xl bg-bento-raised" />
+          <Skeleton className="h-48 rounded-xl" />
         ) : (
           <ChartContainer config={chartConfig} className="h-48 w-full">
             <AreaChart

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { type InvestableState } from "@/lib/investable-utils";
 import { formatCurrency } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 export function InvestableCashCard({
@@ -29,9 +30,9 @@ export function InvestableCashCard({
       <CardContent className="space-y-4">
         {state.status === "idle" || state.status === "loading" ? (
           <div className="space-y-3">
-            <div className="h-9 w-40 animate-pulse rounded-lg bg-bento-raised" />
-            <div className="h-5 w-full animate-pulse rounded bg-bento-raised" />
-            <div className="h-5 w-full animate-pulse rounded bg-bento-raised" />
+            <Skeleton className="h-9 w-40 rounded-lg" />
+            <Skeleton className="h-5 w-full rounded" />
+            <Skeleton className="h-5 w-full rounded" />
           </div>
         ) : state.status === "error" ? (
           <p className="text-sm text-bento-subtle">

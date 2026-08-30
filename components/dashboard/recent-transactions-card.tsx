@@ -6,6 +6,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatShortDate } from "@/lib/format";
 import { CategoryIcon } from "@/lib/lunchmoney/category-icons";
@@ -34,10 +35,7 @@ export function RecentTransactionsCard({
         {loading ? (
           <div className="flex flex-col gap-2">
             {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="h-10 animate-pulse rounded-xl bg-bento-raised"
-              />
+              <Skeleton key={i} className="h-10 rounded-xl" />
             ))}
           </div>
         ) : transactions.length === 0 ? (

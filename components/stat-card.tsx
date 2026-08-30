@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type StatCardProps = {
   label: string;
@@ -43,7 +44,7 @@ export function StatCard({
     >
       <div className="px-4 py-4">
         {loading ? (
-          <div className="h-10 w-24 animate-pulse rounded-md bg-bento-muted" />
+          <Skeleton className="h-10 w-24 rounded-md" />
         ) : (
           <p className={cn("font-heading tabular-nums", valueClassName)}>
             {value}

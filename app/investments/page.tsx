@@ -20,6 +20,7 @@ import { GrowthProjection } from "@/components/investments/growth-projection";
 import { CashOverview } from "@/components/investments/cash-overview";
 import { StatsStrip } from "@/components/investments/stats-strip";
 import { NoTokenPrompt } from "@/components/no-token-prompt";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/format";
 import {
   Card,
@@ -114,10 +115,7 @@ export default function InvestmentsPage() {
       return (
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
           {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-64 animate-pulse rounded-xl bg-bento-raised"
-            />
+            <Skeleton key={i} className="h-64 rounded-xl" />
           ))}
         </div>
       );
@@ -283,7 +281,7 @@ export default function InvestmentsPage() {
       <div className="mb-6 text-center">
         <p className="mb-1 text-sm text-bento-subtle">Portfolio Value</p>
         {loading ? (
-          <div className="mx-auto h-12 w-56 animate-pulse rounded-lg bg-bento-raised" />
+          <Skeleton className="mx-auto h-12 w-56 rounded-lg" />
         ) : (
           <p className="font-heading text-4xl font-bold sm:text-5xl">
             {formatCurrency(totalPortfolio, primaryCurrency, true)}

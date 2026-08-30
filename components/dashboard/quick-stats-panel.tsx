@@ -9,6 +9,7 @@ import { MONTH_NAMES } from "@/lib/date-utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { Transaction } from "@/lib/lunchmoney/client";
 import type { CategoryInfo } from "@/lib/lunchmoney/categories";
 import type { QuickStats } from "@/lib/lunchmoney/analytics";
@@ -104,10 +105,7 @@ export function QuickStatsPanel({
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-24 animate-pulse rounded-4xl bg-bento-raised"
-            />
+            <Skeleton key={i} className="h-24 rounded-4xl" />
           ))
         ) : quickStats ? (
           <>
