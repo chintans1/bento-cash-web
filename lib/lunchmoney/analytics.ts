@@ -329,23 +329,27 @@ export function filterIncomeTxs(
   });
 }
 
-/** Income transactions sorted by amount ascending (largest credit first). */
+/** Income transactions, newest first; same-day ties put the largest credit on top. */
 export function getSortedIncomeTxs(
   transactions: Transaction[],
   catMap: Map<number, CategoryInfo>
 ): Transaction[] {
   return filterIncomeTxs(transactions, catMap).sort(
-    (a, b) => parseFloat(a.amount) - parseFloat(b.amount)
+    (a, b) =>
+      b.date.localeCompare(a.date) ||
+      parseFloat(a.amount) - parseFloat(b.amount)
   );
 }
 
-/** Spend transactions sorted by amount descending (largest spend first). */
+/** Spend transactions, newest first; same-day ties put the largest spend on top. */
 export function getSortedSpendTxs(
   transactions: Transaction[],
   catMap: Map<number, CategoryInfo>
 ): Transaction[] {
   return filterSpendTransactions(transactions, catMap).sort(
-    (a, b) => parseFloat(b.amount) - parseFloat(a.amount)
+    (a, b) =>
+      b.date.localeCompare(a.date) ||
+      parseFloat(b.amount) - parseFloat(a.amount)
   );
 }
 
@@ -399,49 +403,6 @@ export function computeQuickStats(
 }
 
 // ── Trend series ─────────────────────────────────────────────────────────────
-
-export type NetFlowPoint = {
-  date: string; // YYYY-MM-DD
-  /** Running income − spend from the first of the month through this day. */
-  net: number;
-};
-
-/**
- * Running net cash flow (income − spend) for every day of the given month.
- *
- * The dashboard's net worth chart anchors this series to today's account
- * balances: net worth on day N = net worth today − (net at end of series − net
- * on day N). Transfers are excluded (they carry exclude_from_totals), so money
- * moving between the user's own accounts doesn't show up as a swing.
- */
-export function computeNetFlowSeries(
-  transactions: Transaction[],
-  catMap: Map<number, CategoryInfo>,
-  year: number,
-  month: number
-): NetFlowPoint[] {
-  const daysInMonth = new Date(year, month, 0).getDate();
-  const perDay = new Map<string, number>();
-
-  for (const tx of filterSpendTransactions(transactions, catMap)) {
-    perDay.set(tx.date, (perDay.get(tx.date) ?? 0) - parseFloat(tx.amount));
-  }
-  for (const tx of filterIncomeTxs(transactions, catMap)) {
-    perDay.set(
-      tx.date,
-      (perDay.get(tx.date) ?? 0) + Math.abs(parseFloat(tx.amount))
-    );
-  }
-
-  const series: NetFlowPoint[] = [];
-  let running = 0;
-  for (let d = 1; d <= daysInMonth; d++) {
-    const date = `${year}-${String(month).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
-    running += perDay.get(date) ?? 0;
-    series.push({ date, net: running });
-  }
-  return series;
-}
 
 export type CumulativeSpendPoint = {
   day: number;

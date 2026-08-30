@@ -6,13 +6,12 @@ Running list of what's next. Roughly ordered by value within each section.
 
 Things that are working as designed but worth revisiting.
 
-- **Net worth history is derived, not real.** Lunch Money has no historical
-  balance endpoint, so the hero's curve walks today's balances back through the
-  month's cash flow. It ignores market movement on investment accounts, and a
-  past month has no balance to anchor to (it plots cumulative cash flow
-  instead). Storing a monthly balance snapshot in `localStorage` would build
-  real history going forward, at the cost of only working on the device that
-  recorded it.
+- **Net worth history only goes back as far as LM's.** The hero now draws real
+  month-end net worth from `/balance_history`, but an account LM never
+  snapshotted contributes nothing to the months before its first entry, so a
+  recently-added account makes the early curve read low. LM's own upsert
+  endpoint (`PUT /balance_history/...`) could backfill it; nothing in the app
+  writes balance history today.
 - **`components/ui/combobox.tsx` is a hand-rolled exception** to the
   "shadcn components only" rule, because `npx shadcn add command popover`
   cannot reach `ui.shadcn.com` from the sandboxed dev environment. Replace it
@@ -44,6 +43,15 @@ Things that are working as designed but worth revisiting.
 - **Bulk edit** — select multiple transactions and categorize them in one go.
   The single-row flow is fast now; the queue-clearing case is where volume
   lives.
+- **Reviewed / unreviewed transactions** — the API returns
+  `status: "reviewed" | "unreviewed" | "delete_pending"` on every transaction
+  and `getTransactionsForMonth` already fetches it unfiltered, but nothing in
+  the app reads or writes it. Showing a badge on unreviewed rows and filtering
+  to them is free from data we hold; marking a row reviewed needs a new
+  `updateTransactionStatus` in the client plus the optimistic-update and
+  rollback path the category edit uses. Note pending transactions always come
+  back `unreviewed`, so a review queue needs to decide whether to include them
+  — everywhere else the app excludes `is_pending`.
 - **Rules** — "always categorize Whole Foods as Groceries". LM has a rules API;
   applying one from a transaction row is the natural entry point.
 - **Split transactions** — LM supports children; the app treats every

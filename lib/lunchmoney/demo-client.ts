@@ -7,6 +7,7 @@ import type {
 } from "@lunch-money/lunch-money-js-v2";
 import type {
   LMClient,
+  BalanceHistoryAccount,
   CategoriesResponse,
   TransactionsResponse,
 } from "./client";
@@ -401,6 +402,57 @@ const TX_TEMPLATES: TxTemplate[] = [
   { payee: "Sephora", min: 25, max: 140, category_id: 8, day: 26, notes: null },
 ];
 
+const DEMO_HISTORY_MONTHS = 24;
+
+/**
+ * Two years of month-end balances for the demo accounts, walked backwards from
+ * the balances above: each account drifts by a fixed monthly trend plus a
+ * seeded wobble, so the net worth curve rises the way a real one does without
+ * being a straight line. Generated relative to today, so the demo always has
+ * history right up to the current month.
+ */
+function demoBalanceHistory(): BalanceHistoryAccount[] {
+  // Monthly drift as a fraction of the account's current balance. Savings and
+  // the 401k grow, the card balance stays roughly flat.
+  const TREND: Record<number, number> = {
+    1001: 0.004,
+    1002: 0.012,
+    1003: 0.0,
+    1004: 0.018,
+  };
+
+  const now = new Date();
+  const months: string[] = [];
+  for (let back = DEMO_HISTORY_MONTHS - 1; back >= 0; back--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - back, 1);
+    months.push(
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`
+    );
+  }
+
+  return DEMO_ACCOUNTS.map((account) => ({
+    source: { type: "manual" as const, manual_account_id: account.id },
+    balances: months.map((month, i) => {
+      const back = months.length - 1 - i;
+      const trend = (1 + TREND[account.id]) ** -back;
+      const wobble = 0.97 + seededRandom(account.id, i, 3) * 0.06;
+      const balance = account.to_base * trend * (back === 0 ? 1 : wobble);
+      return {
+        // The newest month is the API's ephemeral "current" snapshot: today's
+        // balance, with no stored entry — and so no id — behind it.
+        ...(back === 0
+          ? { type: "current" as const }
+          : { type: "historical" as const, id: account.id * 100 + i }),
+        month,
+        balance: balance.toFixed(4),
+        currency: "usd" as const,
+        to_base: Number(balance.toFixed(2)),
+        crypto_balance: null,
+      };
+    }),
+  })) as unknown as BalanceHistoryAccount[];
+}
+
 // ── Factory ──────────────────────────────────────────────────────────────────
 
 export function createDemoClient(): LMClient {
@@ -447,6 +499,8 @@ export function createDemoClient(): LMClient {
     getAccounts: () => Promise.resolve({ manual: DEMO_ACCOUNTS, plaid: [] }),
 
     getRecurringItems: () => Promise.resolve(DEMO_RECURRING),
+
+    getBalanceHistory: () => Promise.resolve(demoBalanceHistory()),
 
     getBudgetSummary: () => Promise.resolve(DEMO_BUDGET_SUMMARY),
 
