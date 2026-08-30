@@ -3,6 +3,8 @@
 import { Area, AreaChart, ReferenceLine, YAxis } from "recharts";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   ChartContainer,
   ChartTooltip,
@@ -15,7 +17,7 @@ import type { NetWorthPoint } from "@/lib/lunchmoney/net-worth-history";
 import type { NetWorth } from "@/lib/account-utils";
 
 const chartConfig = {
-  netWorth: { label: "Net worth" },
+  netWorth: { label: "Net worth", color: "var(--series-1)" },
 } satisfies ChartConfig;
 
 /**
@@ -73,7 +75,6 @@ export function NetWorthCard({
       ? (change / Math.abs(previous.netWorth)) * 100
       : null;
 
-  const color = up ? "var(--bento-positive)" : "var(--bento-negative)";
   const crossesZero = history.some((p) => p.netWorth < 0);
   const charted = history.length >= 2;
 
@@ -84,8 +85,14 @@ export function NetWorthCard({
           Net worth
         </p>
 
+        {/* One skeleton group, sized to the loaded layout, so the hero holds
+            its height instead of growing under the cards below it. */}
         {pending ? (
-          <div className="mt-2 h-11 w-56 animate-pulse rounded-lg bg-bento-raised" />
+          <div aria-hidden>
+            <Skeleton className="mt-1 h-10 w-56 rounded-lg sm:h-12" />
+            <Skeleton className="mt-3 h-5 w-52 rounded-md" />
+            <Skeleton className="mt-5 h-8 w-44 rounded-md" />
+          </div>
         ) : shown ? (
           <p className="mt-1 font-heading text-4xl font-bold tracking-tight tabular-nums sm:text-5xl">
             {formatCurrency(shown.netWorth, primaryCurrency, true)}
@@ -128,7 +135,7 @@ export function NetWorthCard({
                 {formatCurrency(shown.totalAssets, primaryCurrency)}
               </p>
             </div>
-            <div className="h-8 w-px bg-bento-hairline" />
+            <Separator orientation="vertical" className="h-8" />
             <div>
               <p className="text-bento-subtle">Liabilities</p>
               <p className="font-medium tabular-nums">
@@ -138,7 +145,7 @@ export function NetWorthCard({
           </div>
         )}
 
-        <p className="mt-4 text-[11px] text-bento-subtle">
+        <p className="mt-4 text-[11px] text-pretty text-bento-subtle">
           {charted && latest ? (
             <>
               Month-end balances, {formatMonthKey(history[0].month)} –{" "}
@@ -162,8 +169,16 @@ export function NetWorthCard({
             >
               <defs>
                 <linearGradient id="net-worth-fill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor={color} stopOpacity={0.35} />
-                  <stop offset="100%" stopColor={color} stopOpacity={0} />
+                  <stop
+                    offset="0%"
+                    stopColor="var(--series-1)"
+                    stopOpacity={0.35}
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor="var(--series-1)"
+                    stopOpacity={0}
+                  />
                 </linearGradient>
               </defs>
               <YAxis hide domain={["auto", "auto"]} />
@@ -191,10 +206,10 @@ export function NetWorthCard({
               <Area
                 dataKey="netWorth"
                 type="monotone"
-                stroke={color}
+                stroke="var(--series-1)"
                 strokeWidth={2}
                 fill="url(#net-worth-fill)"
-                activeDot={{ r: 3, strokeWidth: 0 }}
+                activeDot={{ r: 4, strokeWidth: 0 }}
               />
             </AreaChart>
           </ChartContainer>

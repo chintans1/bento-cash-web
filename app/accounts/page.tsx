@@ -17,6 +17,7 @@ import { InvestableCashCard } from "@/components/accounts/investable-cash-card";
 import { AccountSection } from "@/components/accounts/account-section";
 import { AnimatedCollapse } from "@/components/animated-collapse";
 import { NoTokenPrompt } from "@/components/no-token-prompt";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -115,7 +116,7 @@ export default function AccountsPage() {
       <div className="mb-6 text-center">
         <p className="mb-1 text-sm text-bento-subtle">Net Worth</p>
         {loading ? (
-          <div className="h-12 animate-pulse rounded-lg bg-bento-raised" />
+          <Skeleton className="h-12 rounded-lg" />
         ) : (
           <p
             className={cn(
@@ -149,10 +150,7 @@ export default function AccountsPage() {
       {loading ? (
         <div className="flex flex-col gap-4">
           {[1, 2].map((i) => (
-            <div
-              key={i}
-              className="h-40 animate-pulse rounded-xl bg-bento-raised"
-            />
+            <Skeleton key={i} className="h-40 rounded-xl" />
           ))}
         </div>
       ) : error ? (

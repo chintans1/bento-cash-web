@@ -258,15 +258,16 @@ Token entry form. On submit, calls `getMe()` to verify the token, then stores it
 
 Only shadcn-installed components are used. No custom UI primitive files should be created — install via `npx shadcn add <component>` instead.
 
-One exception: `components/ui/combobox.tsx`. The category picker needs a searchable select, and `npx shadcn add command popover` cannot reach the registry from the sandboxed dev environment (the proxy 403s `ui.shadcn.com`). It wraps `@base-ui/react`'s Combobox — the same primitive the generated `select.tsx` uses — and mirrors that file's popup styling. If the registry becomes reachable, replacing it with the generated component is the better path.
+One exception: `components/ui/combobox.tsx`. The category picker needs a searchable select, and at the time it was written `npx shadcn add command popover` could not reach the registry from the sandboxed dev environment (the proxy 403s `ui.shadcn.com`). It wraps `@base-ui/react`'s Combobox — the same primitive the generated `select.tsx` uses — and mirrors that file's popup styling. The registry _is_ reachable from a normal dev machine, so replacing it with the generated component is still the better path; it's tracked in TODO.md.
 
 Current installed components in `components/ui/`:
 
-- `button` — includes `icon-sm` size variant
-- `card` — `Card`, `CardHeader`, `CardTitle`, `CardContent`, `CardFooter`, `CardDescription`
-- `input`
-- `kbd`
-- `combobox` — see the exception noted above
+`alert`, `badge`, `button` (includes an `icon-sm` size variant), `button-group`, `calendar`, `card` (`Card`, `CardHeader`, `CardTitle`, `CardContent`, `CardFooter`, `CardDescription`), `chart`, `hover-card`, `input`, `kbd`, `popover`, `select`, `separator`, `skeleton`, `table`, `textarea`, and `combobox` (see the exception above).
+
+Two of these are deliberately not used the way the registry ships them:
+
+- **`skeleton`** defaults to `bg-bento-raised` instead of `bg-muted`. An opaque fill on a translucent pane reads as a patch stuck to it, so the divergence is in the component rather than repeated at every call site.
+- **`ChartTooltipContent` is not used.** It renders an opaque `bg-popover` surface with a ring and shadow. Chart tooltips are one of the two places that legitimately earn `glass glass-blur`, so cards pass their own `content={...}` to `ChartTooltip`. This is the house pattern — see `net-worth-card.tsx` and `spending-trend-card.tsx`, which render the same `rounded-xl glass px-2.5 py-1.5 text-xs` shell.
 
 Theme is defined in `app/globals.css` using CSS custom properties (oklch color space). Dark mode via `next-themes` with class strategy. Toggle: press `d` or use the header button.
 

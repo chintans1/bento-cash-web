@@ -41,6 +41,7 @@ import { Search, X } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
 import { MonthSelector } from "@/components/dashboard/month-selector";
 import { ButtonGroup } from "@/components/ui/button-group";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type SortKey = "date" | "amount" | "payee";
 type SortDir = "asc" | "desc";
@@ -451,10 +452,7 @@ function TransactionsPage() {
       {showSkeletons ? (
         <div className="flex flex-col gap-2">
           {Array.from({ length: 12 }).map((_, i) => (
-            <div
-              key={i}
-              className="h-12 animate-pulse rounded-lg bg-bento-raised"
-            />
+            <Skeleton key={i} className="h-12 rounded-lg" />
           ))}
         </div>
       ) : error ? (

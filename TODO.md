@@ -13,9 +13,12 @@ Things that are working as designed but worth revisiting.
   endpoint (`PUT /balance_history/...`) could backfill it; nothing in the app
   writes balance history today.
 - **`components/ui/combobox.tsx` is a hand-rolled exception** to the
-  "shadcn components only" rule, because `npx shadcn add command popover`
-  cannot reach `ui.shadcn.com` from the sandboxed dev environment. Replace it
-  with the generated component wherever the registry is reachable.
+  "shadcn components only" rule. It was written when `npx shadcn add command
+popover` could not reach `ui.shadcn.com` from the sandboxed dev environment;
+  the registry _is_ reachable from a normal dev machine, so the swap is now
+  actionable rather than blocked. It isn't mechanical: `category-picker.tsx`
+  is built on this component and is the flow most worth not regressing, so it
+  wants its own pass with the editing flows exercised by hand.
 - **Failed saves can't be exercised in demo mode.** The demo client always
   resolves, so the optimistic rollback path on the transactions page only ever
   runs against the real API. Either give the demo client an opt-in failure mode
