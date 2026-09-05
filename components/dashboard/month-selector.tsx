@@ -32,11 +32,17 @@ export function MonthSelector({
       <Button variant="ghost" size="icon-sm" onClick={onPrev}>
         <ChevronLeft className="size-4" />
       </Button>
-      <div className="relative text-center">
+      {/*
+        The type is set here, not on the children: the label is positioned off
+        this box's static position, so if this div fell back to the inherited
+        16px/1.5 strut its line box would sit lower than the label's own and the
+        label would render a few pixels above the caption and chevrons.
+      */}
+      <div className="relative text-center text-sm leading-5 font-medium">
         <AnimatePresence mode="wait" initial={false}>
           <motion.span
             key={`${year}-${month}`}
-            className="absolute inset-x-0 text-sm font-medium"
+            className="absolute inset-x-0"
             initial={{ opacity: 0, y: 4 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
@@ -46,7 +52,7 @@ export function MonthSelector({
           </motion.span>
         </AnimatePresence>
         {/* invisible placeholder holds the container width for the widest label */}
-        <span className="invisible text-sm font-medium" aria-hidden="true">
+        <span className="invisible" aria-hidden="true">
           September 2025
         </span>
       </div>
