@@ -24,7 +24,7 @@ const NAV_LINKS = [
 export function Header() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { isDemo, isAuthenticated, exitDemo } = useToken();
+  const { isDemo, isAuthenticated, signOut } = useToken();
 
   const visibleLinks = isAuthenticated ? NAV_LINKS : [];
 
@@ -93,7 +93,7 @@ export function Header() {
               Connect your account
             </Link>
           </span>
-          <Button variant="ghost" size="sm" onClick={exitDemo}>
+          <Button variant="ghost" size="sm" onClick={signOut}>
             Exit demo
           </Button>
         </div>

@@ -17,7 +17,7 @@ import { useAppData } from "@/hooks/use-app-data";
 import { useInvestableMonths } from "@/hooks/use-investable-months";
 
 export default function SettingsPage() {
-  const { clearToken } = useToken();
+  const { signOut } = useToken();
   const { user, loading } = useAppData();
 
   const { months: floorMonths, setMonths } = useInvestableMonths();
@@ -73,7 +73,7 @@ export default function SettingsPage() {
               </dl>
             </CardContent>
             <CardFooter>
-              <Button variant="outline" onClick={clearToken}>
+              <Button variant="outline" onClick={signOut}>
                 Change token
               </Button>
             </CardFooter>

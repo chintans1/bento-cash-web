@@ -102,7 +102,7 @@ All data fetching is **client-side only** — there is no server component, API 
 ```
 localStorage["lm_token"]
        ↓
-hooks/use-token.ts          # reads/writes the token
+hooks/use-token.tsx         # reads/writes the token, points the client at it
        ↓
 lib/lunchmoney/client.ts    # thin wrapper around LunchMoneyClient
        ↓
@@ -117,13 +117,19 @@ The LM API token lives in `localStorage`. There is no `.env`, no server, no prox
 
 ## Key Files
 
-### `hooks/use-token.ts`
+### `hooks/use-token.tsx`
 
-SSR-safe hook that reads `localStorage["lm_token"]` in a `useEffect` (avoids hydration mismatch). Exposes `{ token, setToken, clearToken }`. Every page gates rendering on `if (!token)` and shows a link to `/settings`.
+Owns `localStorage["lm_token"]` and the demo flag, and is the only thing that calls `setActiveClient`. Exposes `{ token, isDemo, isAuthenticated, setToken, signOut, enterDemo }`; every page gates rendering on `isAuthenticated` and otherwise shows `<NoTokenPrompt />`.
 
-### `hooks/use-accounts.ts`
+One `sync()` decides which client the current localStorage state implies — demo, real, or none — and every mutator writes storage then calls it, so the rule lives in one place. It also runs at module load, before any render, so an API call can never go out without a client. `signOut` covers both exits: leaving the demo and dropping a real token are the same operation, since `enterDemo` already clears the token.
 
-Account balances plus the user's primary currency — the pair the dashboard, accounts and investments pages all need. Each page used to fetch both for itself; both requests are cached at the client boundary, so mounting this in several places costs one round-trip per session.
+Backed by `useSyncExternalStore` rather than an effect: the server snapshot is null/false and the client snapshot reads localStorage, so there's no hydration mismatch and no first-render flash.
+
+### `hooks/use-app-data.tsx`
+
+The app-wide fetch — user, accounts, and categories — mounted once in `layout.tsx`. These depend on the account, not on the month on screen, so every page reads them from here instead of fetching for itself; `useDashboardData` included.
+
+Results are tagged with the session (`"demo"`, or the token) they were fetched for and `data` is only used when that tag matches, so signing out or switching accounts drops the previous account's data without a reset step — and `loading` falls out of the same check rather than being a flag.
 
 ### `hooks/use-investable-months.ts`
 

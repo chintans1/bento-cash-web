@@ -1,20 +1,9 @@
 "use client";
 
-/**
- * useDashboardData
- *
- * A custom hook is just a plain function whose name starts with "use". React
- * lets you call other hooks (useState, useEffect, useMemo) inside it. By
- * putting all the data-fetching and number-crunching here, the page component
- * itself only needs to call one function and get back everything it needs —
- * no clutter.
- */
-
 import { useEffect, useMemo, useState } from "react";
 import {
   getBalanceHistory,
   getBudgetSummary,
-  getCategories,
   getRecurringItems,
   getTransactionsForMonth,
   type AlignedSummaryResponse,
@@ -23,7 +12,6 @@ import {
   type Transaction,
 } from "@/lib/lunchmoney/client";
 import {
-  buildCategoryMap,
   computeCategoryTotals,
   computeCumulativeSpendComparison,
   computeDailySpend,
@@ -50,7 +38,7 @@ import {
   trailingMonths,
   type NetWorthPoint,
 } from "@/lib/lunchmoney/net-worth-history";
-import { useAccounts } from "@/hooks/use-accounts";
+import { useAppData } from "@/hooks/use-app-data";
 import { monthKeyOf, prevMonthOf } from "@/lib/date-utils";
 
 /** How much of the net worth curve the hero shows. */
@@ -95,14 +83,12 @@ export function useDashboardData(
   year: number,
   month: number
 ): DashboardData {
-  // "now" is only computed once (empty dependency array = run once on mount)
+  /** One Date for the hook's lifetime — a fresh one each render would churn
+   * every memo keyed on it. */
   const now = useMemo(() => new Date(), []);
 
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [prevTransactions, setPrevTransactions] = useState<Transaction[]>([]);
-  const [categoryMap, setCategoryMap] = useState<Map<number, CategoryInfo>>(
-    new Map()
-  );
   const [recurringItems, setRecurringItems] = useState<RecurringItem[]>([]);
   const [budgetSummary, setBudgetSummary] =
     useState<AlignedSummaryResponse | null>(null);
@@ -113,8 +99,9 @@ export function useDashboardData(
   const {
     accounts,
     primaryCurrency,
-    loading: accountsLoading,
-  } = useAccounts(isAuthenticated);
+    categoryMap,
+    loading: appLoading,
+  } = useAppData();
   /** The month currently on screen, and any failure, both tagged by month. */
   const [loadedMonth, setLoadedMonth] = useState<string | null>(null);
   const [failure, setFailure] = useState<{
@@ -141,13 +128,11 @@ export function useDashboardData(
     Promise.all([
       getTransactionsForMonth(year, month),
       getTransactionsForMonth(prev.year, prev.month),
-      getCategories(),
     ])
-      .then(([txRes, prevTxRes, catRes]) => {
+      .then(([txRes, prevTxRes]) => {
         if (cancelled) return;
         setTransactions(txRes.transactions);
         setPrevTransactions(prevTxRes.transactions);
-        setCategoryMap(buildCategoryMap(catRes));
         setLoadedMonth(monthKey);
       })
       .catch((err: unknown) => {
@@ -199,8 +184,6 @@ export function useDashboardData(
   }, [isAuthenticated]);
 
   // ── Derived data ────────────────────────────────────────────────────────────
-  // useMemo means "only recompute when the listed dependencies change". Without
-  // it, these expensive calculations would re-run on every render.
 
   const categoryTotals = useMemo(
     () => computeCategoryTotals(transactions, categoryMap),
@@ -233,8 +216,8 @@ export function useDashboardData(
    * accounts at all would sit under a loading skeleton forever.
    */
   const netWorth = useMemo(
-    () => (accountsLoading ? null : computeNetWorth(accounts)),
-    [accounts, accountsLoading]
+    () => (appLoading ? null : computeNetWorth(accounts)),
+    [accounts, appLoading]
   );
 
   const netWorthHistory = useMemo(
@@ -320,7 +303,7 @@ export function useDashboardData(
     netWorth,
     netWorthHistory,
     netWorthHistoryLoading: isAuthenticated && balanceHistory === null,
-    loading: isLoading && transactions.length === 0,
+    loading: (isLoading || appLoading) && transactions.length === 0,
     refreshing: isLoading && transactions.length > 0,
     error,
     categoryTotals,

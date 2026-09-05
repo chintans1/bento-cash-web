@@ -1,23 +1,15 @@
 "use client";
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useSyncExternalStore } from "react";
 
 const STORAGE_KEY = "investable_months";
 const DEFAULT_MONTHS = 3;
 
-/**
- * How many months of expenses savings should cover before cash counts as
- * investable. Read on both the settings and accounts pages, so the parsing,
- * the default and the storage key live here rather than being repeated.
- *
- * useSyncExternalStore keeps the two pages in agreement and gives SSR a
- * defined snapshot — reading localStorage during render would mismatch the
- * prerendered HTML.
- */
 const listeners = new Set<() => void>();
 
 function subscribe(listener: () => void) {
   listeners.add(listener);
+  // The storage event only fires in *other* tabs; same-tab writes notify below.
   window.addEventListener("storage", listener);
   return () => {
     listeners.delete(listener);
@@ -30,6 +22,21 @@ function readMonths(): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MONTHS;
 }
 
+function setMonths(value: number) {
+  if (!Number.isFinite(value) || value <= 0) return;
+  localStorage.setItem(STORAGE_KEY, String(value));
+  listeners.forEach((listener) => listener());
+}
+
+/**
+ * How many months of expenses savings should cover before cash counts as
+ * investable. Read on both the settings and accounts pages, so the parsing,
+ * the default and the storage key live here rather than being repeated.
+ *
+ * useSyncExternalStore keeps the two pages in agreement and gives SSR a
+ * defined snapshot — reading localStorage during render would mismatch the
+ * prerendered HTML.
+ */
 export function useInvestableMonths(): {
   months: number;
   setMonths: (value: number) => void;
@@ -39,12 +46,5 @@ export function useInvestableMonths(): {
     readMonths,
     () => DEFAULT_MONTHS
   );
-
-  const setMonths = useCallback((value: number) => {
-    if (!Number.isFinite(value) || value <= 0) return;
-    localStorage.setItem(STORAGE_KEY, String(value));
-    listeners.forEach((listener) => listener());
-  }, []);
-
   return { months, setMonths };
 }
