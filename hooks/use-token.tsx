@@ -7,94 +7,77 @@ import { createDemoClient } from "@/lib/lunchmoney/demo-client";
 const STORAGE_KEY = "lm_token";
 const DEMO_KEY = "lm_demo";
 
-// Initialize the active client from localStorage when this module first loads on
-// the client. Must happen before any React rendering so API calls are never made
-// without a client set.
-if (typeof window !== "undefined") {
-  const storedDemo = localStorage.getItem(DEMO_KEY) === "true";
-  const storedToken = localStorage.getItem(STORAGE_KEY);
-  if (storedDemo) setActiveClient(createDemoClient());
-  else if (storedToken) setActiveClient(createRealClient(storedToken));
+const listeners = new Set<() => void>();
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  return () => {
+    listeners.delete(listener);
+  };
 }
 
-// ── External store ────────────────────────────────────────────────────────────
+const readDemo = () => localStorage.getItem(DEMO_KEY) === "true";
+const readToken = () => (readDemo() ? null : localStorage.getItem(STORAGE_KEY));
 
-const listeners = new Set<() => void>();
-const subscribe = (l: () => void) => {
-  listeners.add(l);
-  return () => listeners.delete(l);
-};
-const notify = () => listeners.forEach((l) => l());
+/** Points the API client at whatever localStorage currently says, then re-renders. */
+function sync() {
+  if (readDemo()) setActiveClient(createDemoClient());
+  else {
+    const token = localStorage.getItem(STORAGE_KEY);
+    setActiveClient(token ? createRealClient(token) : null);
+  }
+  listeners.forEach((l) => l());
+}
 
-// ── Context ───────────────────────────────────────────────────────────────────
+// The client must be set before any React rendering, so an API call can never
+// go out without one.
+if (typeof window !== "undefined") sync();
+
+function setToken(value: string) {
+  localStorage.setItem(STORAGE_KEY, value);
+  localStorage.removeItem(DEMO_KEY);
+  sync();
+}
+
+/** Leaves both a real session and the demo — they are the same exit. */
+function signOut() {
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem(DEMO_KEY);
+  sync();
+}
+
+function enterDemo() {
+  localStorage.setItem(DEMO_KEY, "true");
+  localStorage.removeItem(STORAGE_KEY);
+  sync();
+}
 
 interface TokenContextValue {
   token: string | null;
   isDemo: boolean;
   isAuthenticated: boolean;
   setToken: (value: string) => void;
-  clearToken: () => void;
+  signOut: () => void;
   enterDemo: () => void;
-  exitDemo: () => void;
 }
 
 const TokenContext = createContext<TokenContextValue | null>(null);
 
 export function TokenProvider({ children }: { children: React.ReactNode }) {
-  // useSyncExternalStore: server snapshot (SSR) is null/false; client snapshot
-  // reads localStorage. React reconciles the difference after hydration.
-  const token = useSyncExternalStore(
-    subscribe,
-    () => {
-      const storedDemo = localStorage.getItem(DEMO_KEY) === "true";
-      return storedDemo ? null : localStorage.getItem(STORAGE_KEY);
-    },
-    () => null
-  );
-  const isDemo = useSyncExternalStore(
-    subscribe,
-    () => localStorage.getItem(DEMO_KEY) === "true",
-    () => false
-  );
-
-  function setToken(value: string) {
-    localStorage.setItem(STORAGE_KEY, value);
-    localStorage.removeItem(DEMO_KEY);
-    setActiveClient(createRealClient(value));
-    notify();
-  }
-
-  function clearToken() {
-    localStorage.removeItem(STORAGE_KEY);
-    setActiveClient(null);
-    notify();
-  }
-
-  function enterDemo() {
-    localStorage.setItem(DEMO_KEY, "true");
-    localStorage.removeItem(STORAGE_KEY);
-    setActiveClient(createDemoClient());
-    notify();
-  }
-
-  function exitDemo() {
-    localStorage.removeItem(DEMO_KEY);
-    setActiveClient(null);
-    notify();
-  }
-
-  const isAuthenticated = token !== null || isDemo;
+  // Server snapshot (SSR) is null/false; the client snapshot reads
+  // localStorage. React reconciles the difference after hydration.
+  const token = useSyncExternalStore(subscribe, readToken, () => null);
+  const isDemo = useSyncExternalStore(subscribe, readDemo, () => false);
 
   return (
     <TokenContext.Provider
       value={{
         token,
         isDemo,
-        isAuthenticated,
+        isAuthenticated: token !== null || isDemo,
         setToken,
-        clearToken,
+        signOut,
         enterDemo,
-        exitDemo,
       }}
     >
       {children}
