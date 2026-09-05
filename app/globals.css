@@ -265,13 +265,18 @@
     pointer-events: none;
     background:
       radial-gradient(
-        90% 60% at 0% -15%,
-        color-mix(in oklab, var(--primary) 10%, transparent),
+        58% 42% at 12% -5%,
+        color-mix(in oklab, var(--primary) 14%, transparent),
         transparent 70%
       ),
       radial-gradient(
-        85% 55% at 100% 115%,
-        color-mix(in oklab, var(--chart-5) 7%, transparent),
+        52% 38% at 88% 8%,
+        color-mix(in oklab, var(--chart-4) 18%, transparent),
+        transparent 70%
+      ),
+      radial-gradient(
+        70% 45% at 50% 105%,
+        color-mix(in oklab, var(--chart-5) 8%, transparent),
         transparent 70%
       );
   }
