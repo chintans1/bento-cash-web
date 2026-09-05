@@ -1,6 +1,21 @@
+/**
+ * Pure analytics over already-fetched transactions. No API calls here.
+ *
+ * Every figure is summed in `to_base` — the transaction's amount converted to
+ * the user's primary currency — not the raw `amount` string, which is in the
+ * transaction's own currency. Adding those raw would quietly mix currencies
+ * for anyone with a foreign account, and `to_base` is already a number, so the
+ * sign convention (positive = expense, negative = income) survives without a
+ * parse at every call site. It is the same basis `net-worth-history.ts` and
+ * `account-utils.ts` sum on.
+ */
 import { prevMonthOf } from "../date-utils";
 import type { CategoriesResponse, Transaction } from "./client";
-import type { CategoryInfo } from "./categories";
+import {
+  UNCATEGORIZED,
+  UNCATEGORIZED_ID,
+  type CategoryInfo,
+} from "./categories";
 
 export type CategoryGroupEntry = {
   /** null = ungrouped standalone categories */
@@ -88,11 +103,9 @@ export function buildCategoryMap(
   return buildCategoryData(res).categoryMap;
 }
 
-/** Filters to non-pending expense transactions: amount > 0 and not is_pending. */
+/** Filters to non-pending expense transactions: to_base > 0 and not is_pending. */
 export function filterExpenses(transactions: Transaction[]): Transaction[] {
-  return transactions.filter(
-    (tx) => parseFloat(tx.amount) > 0 && !tx.is_pending
-  );
+  return transactions.filter((tx) => tx.to_base > 0 && !tx.is_pending);
 }
 
 /**
@@ -111,7 +124,7 @@ export function filterSpendTransactions(
   catMap: Map<number, CategoryInfo>
 ): Transaction[] {
   return transactions.filter((tx) => {
-    if (parseFloat(tx.amount) <= 0 || tx.is_pending) {
+    if (tx.to_base <= 0 || tx.is_pending) {
       return false;
     }
 
@@ -125,7 +138,7 @@ export function filterSpendTransactions(
   });
 }
 
-/** Groups filtered spend transactions by category, sorted by spend descending; up to limit entries. Uncategorized transactions use id -1. */
+/** Groups filtered spend transactions by category, sorted by spend descending; up to limit entries. Uncategorized transactions use UNCATEGORIZED_ID. */
 export function computeCategoryTotals(
   transactions: Transaction[],
   catMap: Map<number, CategoryInfo>,
@@ -133,13 +146,13 @@ export function computeCategoryTotals(
 ): CategoryTotal[] {
   const map = new Map<number, CategoryTotal>();
   for (const tx of filterSpendTransactions(transactions, catMap)) {
-    const catId = tx.category_id ?? -1;
+    const catId = tx.category_id ?? UNCATEGORIZED_ID;
     const cat = catMap.get(catId);
-    const name = cat?.name ?? "Uncategorized";
+    const name = cat?.name ?? UNCATEGORIZED.name;
     const prev = map.get(catId) ?? { id: catId, name, spend: 0, txCount: 0 };
     map.set(catId, {
       ...prev,
-      spend: prev.spend + parseFloat(tx.amount),
+      spend: prev.spend + tx.to_base,
       txCount: prev.txCount + 1,
     });
   }
@@ -160,7 +173,7 @@ export function computeMerchantTotals(
     const prev = map.get(payee) ?? { payee, spend: 0, txCount: 0 };
     map.set(payee, {
       payee,
-      spend: prev.spend + parseFloat(tx.amount),
+      spend: prev.spend + tx.to_base,
       txCount: prev.txCount + 1,
     });
   }
@@ -186,7 +199,7 @@ export function computeDailySpend(
   }
   for (const tx of filterSpendTransactions(transactions, catMap)) {
     const prev = map.get(tx.date) ?? { amount: 0, recurring: 0 };
-    const amt = parseFloat(tx.amount);
+    const amt = tx.to_base;
     if (tx.recurring_id != null) {
       map.set(tx.date, { ...prev, recurring: prev.recurring + amt });
     } else {
@@ -220,7 +233,7 @@ export function computeMoMDeltas(
   return result;
 }
 
-/** Counts uncategorized transactions (matches the ?category=-1 filter on the transactions page). */
+/** Counts uncategorized transactions (matches the UNCATEGORIZED_ID filter on the transactions page). */
 export function countUncategorized(transactions: Transaction[]): number {
   return transactions.filter((tx) => !tx.is_pending && tx.category_id == null)
     .length;
@@ -240,7 +253,7 @@ export function computeAverageMonthlySpend(
 
   const totals = monthlyTxArrays.map((txs) =>
     filterSpendTransactions(txs, catMap).reduce(
-      (sum, tx) => sum + parseFloat(tx.amount),
+      (sum, tx) => sum + tx.to_base,
       0
     )
   );
@@ -255,7 +268,7 @@ export function computeAverageMonthlyIncome(
   if (monthlyTxArrays.length === 0) return 0;
   const totals = monthlyTxArrays.map((txs) =>
     filterIncomeTxs(txs, catMap).reduce(
-      (sum, tx) => sum + Math.abs(parseFloat(tx.amount)),
+      (sum, tx) => sum + Math.abs(tx.to_base),
       0
     )
   );
@@ -276,11 +289,11 @@ export function estimateMonthlyContrib(
   if (slice.length === 0) return 0;
   const surpluses = slice.map((txs) => {
     const income = filterIncomeTxs(txs, catMap).reduce(
-      (sum, tx) => sum + Math.abs(parseFloat(tx.amount)),
+      (sum, tx) => sum + Math.abs(tx.to_base),
       0
     );
     const spend = filterSpendTransactions(txs, catMap).reduce(
-      (sum, tx) => sum + parseFloat(tx.amount),
+      (sum, tx) => sum + tx.to_base,
       0
     );
     return Math.max(0, income - spend);
@@ -288,16 +301,18 @@ export function estimateMonthlyContrib(
   return surpluses.reduce((a, b) => a + b, 0) / surpluses.length;
 }
 
-/** Given a category id (-1 for uncategorized), returns up to 5 expense transactions sorted by amount descending. */
+/** Given a category id (UNCATEGORIZED_ID for uncategorized), returns up to 5 expense transactions sorted by amount descending. */
 export function getTransactionsForCategory(
   transactions: Transaction[],
   categoryId: number
 ): Transaction[] {
   return filterExpenses(transactions)
     .filter((tx) =>
-      categoryId === -1 ? tx.category_id == null : tx.category_id === categoryId
+      categoryId === UNCATEGORIZED_ID
+        ? tx.category_id == null
+        : tx.category_id === categoryId
     )
-    .sort((a, b) => parseFloat(b.amount) - parseFloat(a.amount))
+    .sort((a, b) => b.to_base - a.to_base)
     .slice(0, 5);
 }
 
@@ -320,7 +335,7 @@ export function filterIncomeTxs(
   catMap: Map<number, CategoryInfo>
 ): Transaction[] {
   return transactions.filter((tx) => {
-    if (parseFloat(tx.amount) >= 0 || tx.is_pending) return false;
+    if (tx.to_base >= 0 || tx.is_pending) return false;
     if (tx.category_id != null) {
       const cat = catMap.get(tx.category_id);
       if (cat?.exclude_from_totals) return false;
@@ -335,9 +350,7 @@ export function getSortedIncomeTxs(
   catMap: Map<number, CategoryInfo>
 ): Transaction[] {
   return filterIncomeTxs(transactions, catMap).sort(
-    (a, b) =>
-      b.date.localeCompare(a.date) ||
-      parseFloat(a.amount) - parseFloat(b.amount)
+    (a, b) => b.date.localeCompare(a.date) || a.to_base - b.to_base
   );
 }
 
@@ -347,9 +360,7 @@ export function getSortedSpendTxs(
   catMap: Map<number, CategoryInfo>
 ): Transaction[] {
   return filterSpendTransactions(transactions, catMap).sort(
-    (a, b) =>
-      b.date.localeCompare(a.date) ||
-      parseFloat(b.amount) - parseFloat(a.amount)
+    (a, b) => b.date.localeCompare(a.date) || b.to_base - a.to_base
   );
 }
 
@@ -438,7 +449,7 @@ export function computeCumulativeSpendComparison(
     const totals = new Map<number, number>();
     for (const tx of filterSpendTransactions(txs, catMap)) {
       const day = parseInt(tx.date.slice(8, 10), 10);
-      totals.set(day, (totals.get(day) ?? 0) + parseFloat(tx.amount));
+      totals.set(day, (totals.get(day) ?? 0) + tx.to_base);
     }
     return totals;
   };
@@ -482,11 +493,11 @@ export function computeMonthTotals(
   catMap: Map<number, CategoryInfo>
 ): MonthTotals {
   const income = filterIncomeTxs(transactions, catMap).reduce(
-    (sum, tx) => sum + Math.abs(parseFloat(tx.amount)),
+    (sum, tx) => sum + Math.abs(tx.to_base),
     0
   );
   const spend = filterSpendTransactions(transactions, catMap).reduce(
-    (sum, tx) => sum + parseFloat(tx.amount),
+    (sum, tx) => sum + tx.to_base,
     0
   );
   return { income, spend };

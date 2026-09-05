@@ -1,5 +1,5 @@
 import { LunchMoneyClient } from "@lunch-money/lunch-money-js-v2";
-import { cached, clearCache, invalidate } from "./cache";
+import { cached, clearCache, invalidate, KEY } from "./cache";
 import type {
   Category,
   Transaction,
@@ -146,8 +146,7 @@ export function createRealClient(token: string): LMClient {
       const start = `${year}-${String(month).padStart(2, "0")}-01`;
       const lastDay = new Date(year, month, 0).getDate();
       const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-      const res = await sdk.summary.get({ start_date: start, end_date: end });
-      return res as AlignedSummaryResponse;
+      return sdk.summary.get({ start_date: start, end_date: end });
     },
 
     updateManualAccount: (id, data) =>
@@ -187,35 +186,35 @@ function activeClient(): LMClient {
 // ── Public API (no token param — baked in at factory time) ──────────────────
 
 export const getMe = (): Promise<User> =>
-  cached("me", () => activeClient().getMe());
+  cached(KEY.me, () => activeClient().getMe());
 
 export const getTransactionsForMonth = (
   year: number,
   month: number
 ): Promise<TransactionsResponse> =>
-  cached(`tx:${year}-${month}`, () =>
+  cached(KEY.tx(year, month), () =>
     activeClient().getTransactionsForMonth(year, month)
   );
 
 export const getCategories = (): Promise<CategoriesResponse> =>
-  cached("categories", () => activeClient().getCategories());
+  cached(KEY.categories, () => activeClient().getCategories());
 
 export const getAccounts = (): Promise<{
   manual: ManualAccount[];
   plaid: PlaidAccount[];
-}> => cached("accounts", () => activeClient().getAccounts());
+}> => cached(KEY.accounts, () => activeClient().getAccounts());
 
 export const getRecurringItems = (): Promise<RecurringItem[]> =>
-  cached("recurring", () => activeClient().getRecurringItems());
+  cached(KEY.recurring, () => activeClient().getRecurringItems());
 
 export const getBalanceHistory = (): Promise<BalanceHistoryAccount[]> =>
-  cached("balance-history", () => activeClient().getBalanceHistory());
+  cached(KEY.balanceHistory, () => activeClient().getBalanceHistory());
 
 export const getBudgetSummary = (
   year: number,
   month: number
 ): Promise<AlignedSummaryResponse> =>
-  cached(`budget:${year}-${month}`, () =>
+  cached(KEY.budget(year, month), () =>
     activeClient().getBudgetSummary(year, month)
   );
 
@@ -224,16 +223,16 @@ export const updateManualAccount = async (
   data: UpdateManualAccountBody
 ): Promise<void> => {
   await activeClient().updateManualAccount(id, data);
-  invalidate("accounts");
+  invalidate(KEY.accounts);
   // Editing a balance moves the current month's snapshot too.
-  invalidate("balance-history");
+  invalidate(KEY.balanceHistory);
 };
 
 /** A transaction edit can move month totals and budget actuals, so drop both. */
 async function afterTransactionWrite(write: Promise<void>): Promise<void> {
   await write;
-  invalidate("tx:");
-  invalidate("budget:");
+  invalidate(KEY.allTx);
+  invalidate(KEY.allBudgets);
 }
 
 export const updateTransactionCategory = (
