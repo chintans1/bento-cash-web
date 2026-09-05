@@ -4,6 +4,7 @@ import type {
   ManualAccount,
   RecurringItem,
   AlignedSummaryResponse,
+  Transaction,
 } from "@lunch-money/lunch-money-js-v2";
 import type {
   LMClient,
@@ -12,54 +13,149 @@ import type {
   TransactionsResponse,
 } from "./client";
 
+// ── Fixture builders ─────────────────────────────────────────────────────────
+
+/**
+ * Demo objects are assembled from complete defaults plus a checked partial,
+ * rather than cast into shape with `as unknown as T`.
+ *
+ * The casts switched the type checker off in the one place the app fabricates
+ * LM-shaped data, so a field that didn't exist compiled without complaint —
+ * the old DEMO_USER carried `user_id` and `user_name`, which `User` has never
+ * had, and demo transactions were missing `to_base` entirely. A builder keeps
+ * the fixtures as short as the casts did while checking what they supply
+ * against the real schema.
+ */
+const TS = "2025-01-01T00:00:00.000Z";
+
+function demoCategory(seed: Pick<Category, "id" | "name">): Category {
+  return {
+    description: null,
+    is_income: false,
+    exclude_from_budget: false,
+    exclude_from_totals: false,
+    created_at: TS,
+    updated_at: TS,
+    group_id: null,
+    is_group: false,
+    archived: false,
+    archived_at: null,
+    order: null,
+    collapsed: false,
+    ...seed,
+  };
+}
+
+function demoAccount(
+  seed: Pick<
+    ManualAccount,
+    | "id"
+    | "name"
+    | "display_name"
+    | "institution_name"
+    | "type"
+    | "subtype"
+    | "balance"
+    | "to_base"
+  >
+): ManualAccount {
+  return {
+    currency: "usd",
+    balance_as_of: "2025-01-20",
+    status: "active",
+    closed_on: null,
+    external_id: null,
+    exclude_from_transactions: false,
+    created_by_name: "Alex Demo",
+    created_at: TS,
+    updated_at: TS,
+    ...seed,
+  };
+}
+
+function demoRecurring(seed: {
+  id: number;
+  payee: string;
+  amount: string;
+}): RecurringItem {
+  return {
+    id: seed.id,
+    description: null,
+    status: "reviewed",
+    transaction_criteria: {
+      start_date: null,
+      end_date: null,
+      granularity: "month",
+      quantity: 1,
+      anchor_date: "2025-01-01",
+      payee: seed.payee,
+      amount: seed.amount,
+      to_base: parseFloat(seed.amount),
+      currency: "usd",
+      plaid_account_id: null,
+      manual_account_id: null,
+    },
+    overrides: {},
+    matches: null,
+    created_by: 99999,
+    created_at: TS,
+    updated_at: TS,
+    source: "manual",
+  };
+}
+
+function demoTransaction(
+  seed: Pick<
+    Transaction,
+    "id" | "date" | "payee" | "amount" | "category_id" | "notes"
+  > & { recurring_id?: number | null }
+): Transaction {
+  return {
+    currency: "usd",
+    // Every analytics figure sums `to_base`, so a demo transaction without one
+    // would contribute nothing at all to the numbers it is meant to populate.
+    to_base: parseFloat(seed.amount),
+    recurring_id: null,
+    original_name: null,
+    plaid_account_id: null,
+    manual_account_id: null,
+    external_id: null,
+    tag_ids: [],
+    status: "reviewed",
+    is_pending: false,
+    created_at: `${seed.date}T12:00:00.000Z`,
+    updated_at: `${seed.date}T12:00:00.000Z`,
+    split_parent_id: null,
+    is_group_parent: false,
+    group_parent_id: null,
+    source: "manual",
+    ...seed,
+  };
+}
+
 // ── Static demo data ─────────────────────────────────────────────────────────
 
 const DEMO_USER: User = {
-  user_id: 99999,
-  user_name: "alex_demo",
+  id: 99999,
+  account_id: 99999,
   name: "Alex Demo",
   email: "demo@bentocash.app",
   primary_currency: "usd",
   api_key_label: "Demo Mode",
   budget_name: "Demo Budget",
-} as unknown as User;
+};
 
 const DEMO_CATEGORIES: Category[] = [
-  {
-    id: 1,
-    name: "Food & Dining",
-    is_income: false,
-    exclude_from_totals: false,
-  },
-  { id: 2, name: "Shopping", is_income: false, exclude_from_totals: false },
-  {
-    id: 3,
-    name: "Transportation",
-    is_income: false,
-    exclude_from_totals: false,
-  },
-  {
-    id: 4,
-    name: "Entertainment",
-    is_income: false,
-    exclude_from_totals: false,
-  },
-  {
-    id: 5,
-    name: "Health & Fitness",
-    is_income: false,
-    exclude_from_totals: false,
-  },
-  { id: 6, name: "Utilities", is_income: false, exclude_from_totals: false },
-  { id: 7, name: "Travel", is_income: false, exclude_from_totals: false },
-  {
-    id: 8,
-    name: "Personal Care",
-    is_income: false,
-    exclude_from_totals: false,
-  },
-  { id: 9, name: "Housing", is_income: false, exclude_from_totals: false },
-] as unknown as Category[];
+  { id: 1, name: "Food & Dining" },
+  { id: 2, name: "Shopping" },
+  { id: 3, name: "Transportation" },
+  { id: 4, name: "Entertainment" },
+  { id: 5, name: "Health & Fitness" },
+  { id: 6, name: "Utilities" },
+  { id: 7, name: "Travel" },
+  { id: 8, name: "Personal Care" },
+  { id: 9, name: "Housing" },
+].map(demoCategory);
 
 const DEMO_ACCOUNTS: ManualAccount[] = [
   {
@@ -67,122 +163,84 @@ const DEMO_ACCOUNTS: ManualAccount[] = [
     name: "Total Checking",
     display_name: "Chase Total Checking",
     institution_name: "Chase",
-    type: "depository",
+    type: "cash" as const,
     subtype: "checking",
     balance: "8347.62",
-    currency: "usd",
     to_base: 8347.62,
-    balance_as_of: "2025-01-20",
-    status: "active",
   },
   {
     id: 1002,
     name: "High-Yield Savings",
     display_name: "Ally High-Yield Savings",
     institution_name: "Ally",
-    type: "depository",
+    type: "cash" as const,
     subtype: "savings",
     balance: "15200.00",
-    currency: "usd",
     to_base: 15200.0,
-    balance_as_of: "2025-01-20",
-    status: "active",
   },
   {
     id: 1003,
     name: "Sapphire Preferred",
     display_name: "Chase Sapphire Preferred",
     institution_name: "Chase",
-    type: "credit",
+    type: "credit" as const,
     subtype: "credit card",
     balance: "2341.50",
-    currency: "usd",
     to_base: 2341.5,
-    balance_as_of: "2025-01-20",
-    status: "active",
   },
   {
     id: 1004,
     name: "401k",
     display_name: "Vanguard 401k",
     institution_name: "Vanguard",
-    type: "investment",
+    type: "investment" as const,
     subtype: "401k",
     balance: "48250.00",
-    currency: "usd",
     to_base: 48250.0,
-    balance_as_of: "2025-01-20",
-    status: "active",
   },
-] as unknown as ManualAccount[];
+].map(demoAccount);
 
 const DEMO_RECURRING: RecurringItem[] = [
-  {
-    id: 2001,
-    status: "reviewed",
-    transaction_criteria: {
-      amount: "2100.00",
-      granularity: "month",
-      currency: "usd",
-      payee: "Landlord",
-    },
-  },
-  {
-    id: 2002,
-    status: "reviewed",
-    transaction_criteria: {
-      amount: "15.99",
-      granularity: "month",
-      currency: "usd",
-      payee: "Netflix",
-    },
-  },
-  {
-    id: 2003,
-    status: "reviewed",
-    transaction_criteria: {
-      amount: "9.99",
-      granularity: "month",
-      currency: "usd",
-      payee: "Spotify",
-    },
-  },
-  {
-    id: 2004,
-    status: "reviewed",
-    transaction_criteria: {
-      amount: "145.00",
-      granularity: "month",
-      currency: "usd",
-      payee: "Con Edison",
-    },
-  },
-  {
-    id: 2005,
-    status: "reviewed",
-    transaction_criteria: {
-      amount: "24.99",
-      granularity: "month",
-      currency: "usd",
-      payee: "Planet Fitness",
-    },
-  },
-] as unknown as RecurringItem[];
+  { id: 2001, payee: "Landlord", amount: "2100.00" },
+  { id: 2002, payee: "Netflix", amount: "15.99" },
+  { id: 2003, payee: "Spotify", amount: "9.99" },
+  { id: 2004, payee: "Con Edison", amount: "145.00" },
+  { id: 2005, payee: "Planet Fitness", amount: "24.99" },
+].map(demoRecurring);
 
 // Budget amounts: [budgeted, other_activity]. Food and Shopping are over budget.
 const DEMO_BUDGET_SUMMARY: AlignedSummaryResponse = {
+  aligned: true,
   categories: [
     {
       category_id: 1,
-      totals: { budgeted: 600, other_activity: 654.11, recurring_activity: 0 },
+      totals: {
+        budgeted: 600,
+        other_activity: 654.11,
+        recurring_activity: 0,
+        recurring_expected: 0,
+        recurring_remaining: 0,
+      },
     },
     {
       category_id: 2,
-      totals: { budgeted: 350, other_activity: 773.43, recurring_activity: 0 },
+      totals: {
+        budgeted: 350,
+        other_activity: 773.43,
+        recurring_activity: 0,
+        recurring_expected: 0,
+        recurring_remaining: 0,
+      },
     },
     {
       category_id: 4,
-      totals: { budgeted: 40, other_activity: 35.97, recurring_activity: 0 },
+      totals: {
+        budgeted: 40,
+        other_activity: 35.97,
+        recurring_activity: 0,
+        recurring_expected: 0,
+        recurring_remaining: 0,
+      },
     },
     {
       category_id: 6,
@@ -190,10 +248,12 @@ const DEMO_BUDGET_SUMMARY: AlignedSummaryResponse = {
         budgeted: 200,
         other_activity: 156.0,
         recurring_activity: 89.0,
+        recurring_expected: 89.0,
+        recurring_remaining: 0,
       },
     },
   ],
-} as unknown as AlignedSummaryResponse;
+};
 
 // Deterministic per-(year, month, index) so navigation is consistent.
 function seededRandom(year: number, month: number, index: number): number {
@@ -430,8 +490,8 @@ function demoBalanceHistory(): BalanceHistoryAccount[] {
     );
   }
 
-  return DEMO_ACCOUNTS.map((account) => ({
-    source: { type: "manual" as const, manual_account_id: account.id },
+  return DEMO_ACCOUNTS.map<BalanceHistoryAccount>((account) => ({
+    source: { type: "manual", manual_account_id: account.id },
     balances: months.map((month, i) => {
       const back = months.length - 1 - i;
       const trend = (1 + TREND[account.id]) ** -back;
@@ -445,12 +505,12 @@ function demoBalanceHistory(): BalanceHistoryAccount[] {
           : { type: "historical" as const, id: account.id * 100 + i }),
         month,
         balance: balance.toFixed(4),
-        currency: "usd" as const,
+        currency: "usd",
         to_base: Number(balance.toFixed(2)),
         crypto_balance: null,
       };
     }),
-  })) as unknown as BalanceHistoryAccount[];
+  }));
 }
 
 // ── Factory ──────────────────────────────────────────────────────────────────
@@ -468,33 +528,28 @@ export function createDemoClient(): LMClient {
         const day = Math.min(tmpl.day, maxDay);
         const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
         return [
-          {
+          demoTransaction({
             id: 10000 + i,
             date,
             payee: tmpl.payee,
             amount,
-            currency: "usd",
             category_id: tmpl.category_id,
             notes: tmpl.notes,
-            status: "cleared",
-            is_pending: false,
-            created_at: `${date}T12:00:00.000Z`,
-          },
+          }),
         ];
       });
       transactions.sort(
         (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
       );
-      return Promise.resolve({
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        transactions: transactions as any,
+      return Promise.resolve<TransactionsResponse>({
+        transactions,
         has_more: false,
-      } as TransactionsResponse);
+      });
     },
 
     getCategories: () =>
-      Promise.resolve({ categories: DEMO_CATEGORIES } as CategoriesResponse),
+      Promise.resolve<CategoriesResponse>({ categories: DEMO_CATEGORIES }),
 
     getAccounts: () => Promise.resolve({ manual: DEMO_ACCOUNTS, plaid: [] }),
 

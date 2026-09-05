@@ -10,6 +10,30 @@
  * for the same month at once (the dashboard fetches the previous month
  * alongside the current one) share a single request.
  */
+const TX = "tx:";
+const BUDGET = "budget:";
+
+/**
+ * Every cache key the app uses, plus the prefixes a write invalidates.
+ *
+ * Keys used to be built inline at both ends — `cached(`tx:${year}-${month}`)`
+ * in one function, `invalidate("tx:")` in another — so a typo in either
+ * silently opened a second cache entry rather than failing. Building both from
+ * here keeps a key and the prefix that drops it in one place.
+ */
+export const KEY = {
+  me: "me",
+  categories: "categories",
+  accounts: "accounts",
+  recurring: "recurring",
+  balanceHistory: "balance-history",
+  tx: (year: number, month: number) => `${TX}${year}-${month}`,
+  budget: (year: number, month: number) => `${BUDGET}${year}-${month}`,
+  /** Whole month-keyed families, for `invalidate`. */
+  allTx: TX,
+  allBudgets: BUDGET,
+} as const;
+
 const TTL_MS = 5 * 60_000;
 
 type Entry = { at: number; value: Promise<unknown> };

@@ -7,7 +7,7 @@
  * list position, so a category doesn't change color when the spend ranking
  * reshuffles between months.
  */
-export const CAT_COLOR_VARS = [
+const CAT_COLOR_VARS = [
   "var(--cat-1)",
   "var(--cat-2)",
   "var(--cat-3)",

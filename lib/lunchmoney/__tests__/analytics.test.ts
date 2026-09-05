@@ -13,6 +13,7 @@ import {
   computeQuickStats,
   computeCategoryTotals,
   computeMerchantTotals,
+  computeMonthTotals,
   computeDailySpend,
   computeMoMDeltas,
   countUncategorized,
@@ -23,15 +24,18 @@ import {
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
 function makeTx(
-  overrides: { amount: string } & Record<string, unknown>
+  overrides: { amount: string } & Partial<Transaction>
 ): Transaction {
   return {
     id: 1,
     date: "2026-01-15",
     currency: "usd",
+    // Defaults to the amount, so a test that doesn't care about currency
+    // conversion can keep passing only `amount`.
     to_base: parseFloat(overrides.amount),
     recurring_id: null,
     payee: "Test Payee",
+    original_name: null,
     category_id: null,
     plaid_account_id: null,
     manual_account_id: null,
@@ -42,8 +46,12 @@ function makeTx(
     is_pending: false,
     created_at: "2026-01-15T12:00:00Z",
     updated_at: "2026-01-15T12:00:00Z",
+    split_parent_id: null,
+    is_group_parent: false,
+    group_parent_id: null,
+    source: "manual",
     ...overrides,
-  } as unknown as Transaction;
+  };
 }
 
 const CAT_DEFAULTS = {
@@ -322,6 +330,29 @@ describe("computeCategoryTotals", () => {
 });
 
 // ── computeMerchantTotals ─────────────────────────────────────────────────────
+
+describe("currency basis", () => {
+  const catMap = new Map<number, CategoryInfo>();
+
+  // `amount` is in the transaction's own currency; `to_base` is the same
+  // amount in the user's primary currency. Summing `amount` mixed currencies
+  // together for anyone with a foreign account, so every total reads to_base.
+  const foreign = makeTx({ amount: "100.00", to_base: 12.5, category_id: 1 });
+
+  it("totals spend in to_base, not the raw amount", () => {
+    expect(computeMonthTotals([foreign], catMap).spend).toBe(12.5);
+  });
+
+  it("groups category spend by to_base", () => {
+    expect(computeCategoryTotals([foreign], catMap)[0].spend).toBe(12.5);
+  });
+
+  it("classifies income by to_base sign", () => {
+    const credit = makeTx({ amount: "100.00", to_base: -12.5 });
+    expect(filterIncomeTxs([credit], catMap)).toHaveLength(1);
+    expect(computeMonthTotals([credit], catMap).income).toBe(12.5);
+  });
+});
 
 describe("computeMerchantTotals", () => {
   const catMap = new Map([
