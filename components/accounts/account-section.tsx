@@ -3,6 +3,7 @@
 import {
   type NormalizedAccount,
   groupByInstitution,
+  sumBalances,
 } from "@/lib/account-utils";
 import { formatCurrency } from "@/lib/format";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,10 +37,7 @@ export function AccountSection({
       </CardHeader>
       <CardContent className="p-0">
         {groups.map(([institution, groupAccounts], i) => {
-          const groupTotal = groupAccounts.reduce(
-            (sum, a) => sum + (a.balanceValid ? a.toBase : 0),
-            0
-          );
+          const groupTotal = sumBalances(groupAccounts);
           return (
             <div
               key={institution}

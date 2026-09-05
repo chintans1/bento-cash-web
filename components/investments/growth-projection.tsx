@@ -5,7 +5,6 @@ import { Line, LineChart, XAxis, YAxis } from "recharts";
 import {
   ChartContainer,
   ChartTooltip,
-  ChartTooltipContent,
   type ChartConfig,
 } from "@/components/ui/chart";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -34,11 +33,9 @@ const RATES = [
   },
 ] as const;
 
-const chartConfig = {
-  conservative: { label: "5% / yr", color: "var(--bento-subtle)" },
-  moderate: { label: "7% / yr", color: "var(--series-1)" },
-  optimistic: { label: "10% / yr", color: "var(--bento-positive)" },
-} satisfies ChartConfig;
+const chartConfig: ChartConfig = Object.fromEntries(
+  RATES.map(({ key, label, color }) => [key, { label, color }])
+);
 
 function project(
   initial: number,
@@ -149,17 +146,19 @@ export function GrowthProjection({
     return Number.isFinite(n) && n >= 0 ? n : 0;
   }, [monthlyInput]);
 
-  const hasHistory =
-    !!monthlyHistories && monthlyHistories.length > 0 && !!catMap;
-
   const estimatedContrib = useMemo(() => {
-    if (!hasHistory || !monthlyHistories || !catMap) return null;
-    const available = Math.min(contribWindow, monthlyHistories.length);
-    if (available === 0) return null;
-    return estimateMonthlyContrib(monthlyHistories, catMap, available);
-  }, [hasHistory, monthlyHistories, catMap, contribWindow]);
+    if (!monthlyHistories?.length || !catMap) return null;
+    const months = Math.min(contribWindow, monthlyHistories.length);
+    return estimateMonthlyContrib(monthlyHistories, catMap, months);
+  }, [monthlyHistories, catMap, contribWindow]);
 
-  function handleChange(raw: string) {
+  const goal = useMemo(() => {
+    const n = parseFloat(goalInput);
+    return Number.isFinite(n) && n > 0 ? n : null;
+  }, [goalInput]);
+
+  // A half-typed value stays on screen but isn't persisted.
+  function changeMonthly(raw: string) {
     setMonthlyInput(raw);
     const n = parseFloat(raw);
     if (Number.isFinite(n) && n >= 0) {
@@ -167,30 +166,12 @@ export function GrowthProjection({
     }
   }
 
-  function applyEstimate() {
-    if (estimatedContrib !== null) {
-      const rounded = String(Math.round(estimatedContrib));
-      setMonthlyInput(rounded);
-      localStorage.setItem("monthly_contribution", rounded);
-    }
-  }
-
-  const goal = useMemo(() => {
-    const n = parseFloat(goalInput);
-    return Number.isFinite(n) && n > 0 ? n : null;
-  }, [goalInput]);
-
-  function handleGoalChange(raw: string) {
+  function changeGoal(raw: string) {
     setGoalInput(raw);
     const n = parseFloat(raw);
     if (Number.isFinite(n) && n > 0) {
       localStorage.setItem("investment_goal", String(n));
     }
-  }
-
-  function applyGoalPreset(value: number) {
-    setGoalInput(String(value));
-    localStorage.setItem("investment_goal", String(value));
   }
 
   const currentYear = new Date().getFullYear();
@@ -236,12 +217,12 @@ export function GrowthProjection({
                 onFocus={() => setMonthlyFocused(true)}
                 onBlur={() => setMonthlyFocused(false)}
                 onChange={(e) =>
-                  handleChange(e.target.value.replace(/[^0-9.]/g, ""))
+                  changeMonthly(e.target.value.replace(/[^0-9.]/g, ""))
                 }
                 className="h-8 w-28 text-right font-mono text-sm tabular-nums"
               />
             </div>
-            {hasHistory && estimatedContrib !== null && (
+            {estimatedContrib !== null && (
               <div className="flex items-center gap-1.5">
                 <span className="text-xs text-bento-subtle">
                   Est.{" "}
@@ -271,7 +252,9 @@ export function GrowthProjection({
                   ))}
                 </div>
                 <button
-                  onClick={applyEstimate}
+                  onClick={() =>
+                    changeMonthly(String(Math.round(estimatedContrib)))
+                  }
                   className="rounded px-1 py-0.5 text-xs text-bento-brand transition-colors hover:underline active:scale-[0.96]"
                 >
                   Use
@@ -301,34 +284,39 @@ export function GrowthProjection({
               width={44}
             />
             <ChartTooltip
-              content={
-                <ChartTooltipContent
-                  labelFormatter={(v) => (v === 0 ? "Today" : `Year ${v}`)}
-                  formatter={(value, name) => {
-                    const rate = RATES.find((r) => r.key === name);
-                    return (
-                      <>
-                        <div
-                          className="h-2 w-2 shrink-0 rounded-[2px]"
-                          style={{ backgroundColor: rate?.color }}
-                        />
-                        <div className="flex flex-1 justify-between gap-4">
-                          <span className="text-muted-foreground">
-                            {rate?.label}
-                          </span>
-                          <span className="font-mono font-medium tabular-nums">
+              cursor={{ stroke: "var(--bento-hairline)" }}
+              content={({ active, payload, label }) => {
+                if (!active || !payload?.length) return null;
+                return (
+                  <div className="rounded-xl glass px-2.5 py-1.5 text-xs">
+                    <p className="mb-1 text-bento-subtle">
+                      {label === 0 ? "Today" : `Year ${label}`}
+                    </p>
+                    {RATES.map(({ key, label: rateLabel, color }) => {
+                      const entry = payload.find((p) => p.dataKey === key);
+                      if (!entry) return null;
+                      return (
+                        <p
+                          key={key}
+                          className="flex items-center gap-2 tabular-nums"
+                        >
+                          <span
+                            className="size-1.5 shrink-0 rounded-full"
+                            style={{ backgroundColor: color }}
+                          />
+                          <span className="text-bento-subtle">{rateLabel}</span>
+                          <span className="ml-auto font-medium">
                             {formatCurrency(
-                              Number(value),
-                              primaryCurrency,
-                              false
+                              Number(entry.value),
+                              primaryCurrency
                             )}
                           </span>
-                        </div>
-                      </>
-                    );
-                  }}
-                />
-              }
+                        </p>
+                      );
+                    })}
+                  </div>
+                );
+              }}
             />
             {RATES.map(({ key, color }) => (
               <Line
@@ -395,7 +383,7 @@ export function GrowthProjection({
                   onFocus={() => setGoalFocused(true)}
                   onBlur={() => setGoalFocused(false)}
                   onChange={(e) =>
-                    handleGoalChange(e.target.value.replace(/[^0-9.]/g, ""))
+                    changeGoal(e.target.value.replace(/[^0-9.]/g, ""))
                   }
                   className="h-7 w-28 text-right font-mono text-xs tabular-nums"
                 />
@@ -405,7 +393,7 @@ export function GrowthProjection({
               {GOAL_PRESETS.map(({ label, value }) => (
                 <button
                   key={value}
-                  onClick={() => applyGoalPreset(value)}
+                  onClick={() => changeGoal(String(value))}
                   className={cn(
                     "rounded px-1.5 py-0.5 text-xs transition-colors",
                     goal === value

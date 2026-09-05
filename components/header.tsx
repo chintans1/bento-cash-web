@@ -15,7 +15,6 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const NAV_LINKS = [
   { href: "/", label: "Home" },
   { href: "/transactions", label: "Transactions" },
-  { href: "/budget", label: "Budget" },
   { href: "/accounts", label: "Accounts" },
   { href: "/investments", label: "Investments" },
   { href: "/settings", label: "Settings" },
@@ -25,8 +24,6 @@ export function Header() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const { isDemo, isAuthenticated, signOut } = useToken();
-
-  const visibleLinks = isAuthenticated ? NAV_LINKS : [];
 
   return (
     <header className="sticky top-0 z-10 border-b border-bento-hairline/60 bg-bento-base/60 backdrop-blur-xl backdrop-saturate-150">
@@ -39,33 +36,34 @@ export function Header() {
         <div className="flex items-center gap-1">
           {/* Desktop nav */}
           <nav className="hidden items-center gap-1 sm:flex">
-            {visibleLinks.map(({ href, label }) => (
-              <Link
-                key={href}
-                href={href}
-                className={cn(
-                  "relative rounded-4xl px-4 py-1.5 text-sm font-medium transition-colors",
-                  pathname === href
-                    ? "text-bento-brand-fg"
-                    : "text-bento-subtle hover:bg-bento-raised hover:text-bento-default"
-                )}
-              >
-                {pathname === href && (
-                  <motion.span
-                    layoutId="nav-pill"
-                    className="absolute inset-0 rounded-4xl bg-bento-brand"
-                    transition={{ duration: DURATION.expand, ease: EASE }}
-                  />
-                )}
-                <span className="relative z-10">{label}</span>
-              </Link>
-            ))}
+            {isAuthenticated &&
+              NAV_LINKS.map(({ href, label }) => (
+                <Link
+                  key={href}
+                  href={href}
+                  className={cn(
+                    "relative rounded-4xl px-4 py-1.5 text-sm font-medium transition-colors",
+                    pathname === href
+                      ? "text-bento-brand-fg"
+                      : "text-bento-subtle hover:bg-bento-raised hover:text-bento-default"
+                  )}
+                >
+                  {pathname === href && (
+                    <motion.span
+                      layoutId="nav-pill"
+                      className="absolute inset-0 rounded-4xl bg-bento-brand"
+                      transition={{ duration: DURATION.expand, ease: EASE }}
+                    />
+                  )}
+                  <span className="relative z-10">{label}</span>
+                </Link>
+              ))}
           </nav>
 
           <ThemeToggle />
 
           {/* Mobile hamburger */}
-          {visibleLinks.length > 0 && (
+          {isAuthenticated && (
             <button
               className="flex size-9 items-center justify-center rounded-lg text-bento-subtle transition-colors hover:bg-bento-raised hover:text-bento-default sm:hidden"
               onClick={() => setMenuOpen((o) => !o)}
@@ -100,9 +98,9 @@ export function Header() {
       )}
 
       {/* Mobile dropdown menu */}
-      <AnimatedCollapse open={menuOpen && visibleLinks.length > 0}>
+      <AnimatedCollapse open={menuOpen && isAuthenticated}>
         <nav className="border-t border-bento-hairline/60 px-4 pb-4 sm:hidden">
-          {visibleLinks.map(({ href, label }) => (
+          {NAV_LINKS.map(({ href, label }) => (
             <Link
               key={href}
               href={href}

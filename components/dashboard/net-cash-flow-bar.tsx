@@ -44,10 +44,6 @@ function Delta({
 /**
  * Income vs. spend for the month: the surplus/deficit headline, each side
  * measured against last month, and a split bar showing their proportion.
- *
- * No "use client" needed — this component has no state or event handlers.
- * It receives numbers and renders them. React can render it on the server
- * (or as part of a client tree) without any special treatment.
  */
 export function NetCashFlowBar({
   income,

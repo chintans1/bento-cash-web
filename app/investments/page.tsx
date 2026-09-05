@@ -134,7 +134,6 @@ export default function InvestmentsPage() {
           primaryCurrency={primaryCurrency}
           avgMonthlyIncome={avgMonthlyIncome}
           avgMonthlySpend={avgMonthlySpend}
-          txHistoryReady={txHistoryReady}
         />
         <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2">
           {/* Left column: allocation + cash */}
