@@ -1,24 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { formatAmount, formatCurrency, formatShortDate } from "../format";
-
-// ── formatAmount ──────────────────────────────────────────────────────────────
-
-describe("formatAmount", () => {
-  it("formats as whole dollars by default", () => {
-    expect(formatAmount(1000)).toBe("$1,000");
-    expect(formatAmount(50)).toBe("$50");
-  });
-
-  it("formats with 2 decimal places when exact=true", () => {
-    expect(formatAmount(1000, true)).toBe("$1,000.00");
-    expect(formatAmount(0, true)).toBe("$0.00");
-    expect(formatAmount(1.5, true)).toBe("$1.50");
-  });
-
-  it("formats with thousands separator", () => {
-    expect(formatAmount(1234567)).toBe("$1,234,567");
-  });
-});
+import { formatCurrency, formatShortDate } from "../format";
 
 // ── formatCurrency ────────────────────────────────────────────────────────────
 

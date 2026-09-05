@@ -1,6 +1,6 @@
 "use client";
 
-import { type NormalizedAccount } from "@/lib/account-utils";
+import { type NormalizedAccount, sumBalances } from "@/lib/account-utils";
 import { BUCKETS } from "@/lib/investment-utils";
 import { formatCurrency } from "@/lib/format";
 import {
@@ -24,32 +24,21 @@ export function AllocationBreakdown({
   accounts: NormalizedAccount[];
   primaryCurrency: string;
 }) {
-  const total = accounts.reduce(
-    (sum, a) => sum + (a.balanceValid ? a.toBase : 0),
-    0
-  );
-
+  const total = sumBalances(accounts);
   if (total === 0) return null;
 
   const bucketRows = BUCKETS.map((bucket) => {
     const bucketAccounts = accounts.filter((a) =>
       bucket.subtypes.has((a.subtype ?? "").toLowerCase())
     );
-    const amount = bucketAccounts.reduce(
-      (sum, a) => sum + (a.balanceValid ? a.toBase : 0),
-      0
-    );
-    return { bucket, bucketAccounts, amount };
+    return { bucket, bucketAccounts, amount: sumBalances(bucketAccounts) };
   }).filter((r) => r.amount > 0);
 
   const matchedIds = new Set(
     bucketRows.flatMap((r) => r.bucketAccounts.map((a) => a.id))
   );
   const otherAccounts = accounts.filter((a) => !matchedIds.has(a.id));
-  const otherAmount = otherAccounts.reduce(
-    (sum, a) => sum + (a.balanceValid ? a.toBase : 0),
-    0
-  );
+  const otherAmount = sumBalances(otherAccounts);
 
   const rows = [
     ...bucketRows,
@@ -76,7 +65,7 @@ export function AllocationBreakdown({
       </CardHeader>
       <CardContent className="space-y-3">
         {rows.map(({ bucket, bucketAccounts, amount }) => {
-          const pct = total > 0 ? (amount / total) * 100 : 0;
+          const pct = (amount / total) * 100;
           return (
             <HoverCard key={bucket.label}>
               <HoverCardTrigger

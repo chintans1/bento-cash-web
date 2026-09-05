@@ -14,6 +14,13 @@ export function InvestableCashCard({
   state: InvestableState;
   primaryCurrency: string;
 }) {
+  const ready = state.status === "ready" ? state : null;
+  const checkingOk =
+    !!ready && ready.totalCheckingBalance >= ready.checkingFloor;
+  const checkingSurplus = ready
+    ? Math.max(0, ready.totalCheckingBalance - ready.checkingFloor)
+    : 0;
+
   return (
     <Card className="mb-6">
       <CardHeader className="pb-2">
@@ -61,52 +68,39 @@ export function InvestableCashCard({
             </div>
 
             <div className="space-y-2 border-t border-bento-hairline pt-3">
-              {(() => {
-                const surplus = Math.max(
-                  0,
-                  state.totalCheckingBalance - state.checkingFloor
-                );
-                const ok = state.totalCheckingBalance >= state.checkingFloor;
-                return (
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span
-                        className={cn(
-                          "text-sm",
-                          ok ? "text-bento-positive" : "text-bento-brand"
-                        )}
-                      >
-                        {ok ? "✓" : "✗"}
-                      </span>
-                      <span className="truncate text-sm text-bento-subtle">
-                        Checking buffer (1mo)
-                      </span>
-                    </div>
-                    <span className="shrink-0 font-mono text-sm text-bento-subtle tabular-nums">
-                      {formatCurrency(
-                        state.totalCheckingBalance,
-                        primaryCurrency,
-                        true
-                      )}
-                      {" − "}
-                      {formatCurrency(
-                        state.checkingFloor,
-                        primaryCurrency,
-                        true
-                      )}
-                      {" = "}
-                      <span
-                        className={cn(
-                          "font-medium",
-                          ok ? "text-bento-default" : "text-bento-brand"
-                        )}
-                      >
-                        {formatCurrency(surplus, primaryCurrency, true)}
-                      </span>
-                    </span>
-                  </div>
-                );
-              })()}
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span
+                    className={cn(
+                      "text-sm",
+                      checkingOk ? "text-bento-positive" : "text-bento-brand"
+                    )}
+                  >
+                    {checkingOk ? "✓" : "✗"}
+                  </span>
+                  <span className="truncate text-sm text-bento-subtle">
+                    Checking buffer (1mo)
+                  </span>
+                </div>
+                <span className="shrink-0 font-mono text-sm text-bento-subtle tabular-nums">
+                  {formatCurrency(
+                    state.totalCheckingBalance,
+                    primaryCurrency,
+                    true
+                  )}
+                  {" − "}
+                  {formatCurrency(state.checkingFloor, primaryCurrency, true)}
+                  {" = "}
+                  <span
+                    className={cn(
+                      "font-medium",
+                      checkingOk ? "text-bento-default" : "text-bento-brand"
+                    )}
+                  >
+                    {formatCurrency(checkingSurplus, primaryCurrency, true)}
+                  </span>
+                </span>
+              </div>
 
               <div className="flex items-center justify-between gap-4">
                 <div className="flex min-w-0 items-center gap-2">

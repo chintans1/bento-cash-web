@@ -1,6 +1,6 @@
 "use client";
 
-import { type NormalizedAccount } from "@/lib/account-utils";
+import { type NormalizedAccount, sumBalances } from "@/lib/account-utils";
 import { formatCurrency } from "@/lib/format";
 import {
   Card,
@@ -21,18 +21,13 @@ export function CashOverview({
   primaryCurrency: string;
   avgMonthlySpend: number | null;
 }) {
-  const checkingTotal = checkingAccounts.reduce(
-    (sum, a) => sum + (a.balanceValid ? a.toBase : 0),
-    0
-  );
-  const savingsTotal = savingsAccounts.reduce(
-    (sum, a) => sum + (a.balanceValid ? a.toBase : 0),
-    0
-  );
-  const totalCash = checkingTotal + savingsTotal;
-
-  if (checkingAccounts.length === 0 && savingsAccounts.length === 0)
+  if (checkingAccounts.length === 0 && savingsAccounts.length === 0) {
     return null;
+  }
+
+  const checkingTotal = sumBalances(checkingAccounts);
+  const savingsTotal = sumBalances(savingsAccounts);
+  const totalCash = checkingTotal + savingsTotal;
 
   const checkingPct = totalCash > 0 ? (checkingTotal / totalCash) * 100 : 50;
   const savingsPct = 100 - checkingPct;
@@ -58,11 +53,11 @@ export function CashOverview({
         {checkingTotal > 0 && savingsTotal > 0 && (
           <div className="flex h-2 w-full overflow-hidden rounded-full">
             <div
-              className="h-full bg-sky-500 transition-[width]"
+              className="h-full bg-cat-1 transition-[width]"
               style={{ width: `${checkingPct}%` }}
             />
             <div
-              className="h-full bg-teal-500 transition-[width]"
+              className="h-full bg-cat-2 transition-[width]"
               style={{ width: `${savingsPct}%` }}
             />
           </div>
@@ -72,7 +67,7 @@ export function CashOverview({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 shrink-0 rounded-full bg-sky-500" />
+                <div className="h-2 w-2 shrink-0 rounded-full bg-cat-1" />
                 <span className="text-sm text-bento-subtle">Checking</span>
               </div>
               <span className="font-mono text-sm font-medium tabular-nums">
@@ -103,7 +98,7 @@ export function CashOverview({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 shrink-0 rounded-full bg-teal-500" />
+                <div className="h-2 w-2 shrink-0 rounded-full bg-cat-2" />
                 <span className="text-sm text-bento-subtle">Savings</span>
               </div>
               <span className="font-mono text-sm font-medium tabular-nums">

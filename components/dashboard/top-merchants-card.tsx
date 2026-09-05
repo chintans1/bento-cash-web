@@ -19,6 +19,9 @@ export function TopMerchantsCard({
   primaryCurrency: string;
   loading: boolean;
 }) {
+  // Sorted desc by spend, so the first row is the bar's full width.
+  const maxSpend = merchantTotals[0]?.spend ?? 0;
+
   return (
     <Card>
       <CardHeader>
@@ -32,14 +35,14 @@ export function TopMerchantsCard({
         ) : (
           <ul className="flex flex-col gap-3">
             {merchantTotals.map((m) => {
-              const maxMerchant = merchantTotals[0].spend;
+              const color = categoryColor(m.payee);
               return (
                 <li key={m.payee} className="flex items-center gap-3">
                   <span
                     className="flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
                     style={{
-                      backgroundColor: `color-mix(in oklab, ${categoryColor(m.payee)} var(--chip-tint), transparent)`,
-                      color: `color-mix(in oklab, ${categoryColor(m.payee)} 80%, var(--foreground))`,
+                      backgroundColor: `color-mix(in oklab, ${color} var(--chip-tint), transparent)`,
+                      color: `color-mix(in oklab, ${color} 80%, var(--foreground))`,
                     }}
                     aria-hidden="true"
                   >
@@ -57,12 +60,7 @@ export function TopMerchantsCard({
                     <div className="h-1.5 overflow-hidden rounded-full bg-bento-hairline">
                       <div
                         className="h-full rounded-full bg-[var(--series-1)]"
-                        style={{
-                          width:
-                            maxMerchant > 0
-                              ? `${(m.spend / maxMerchant) * 100}%`
-                              : "0%",
-                        }}
+                        style={{ width: `${(m.spend / maxSpend) * 100}%` }}
                       />
                     </div>
                     <p className="mt-0.5 text-[10px] text-bento-subtle">

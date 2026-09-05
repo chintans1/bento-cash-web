@@ -17,19 +17,6 @@ import type { QuickStats } from "@/lib/lunchmoney/analytics";
 type StatPanel = "income" | "spend" | "peak";
 
 /**
- * The four summary stat cards (Income, Spend, Avg/Day, Peak Day) plus the
- * drill-down panel that appears when you click one of them.
- *
- * "use client" is needed because this component manages openPanel state and
- * handles click events.
- *
- * Note: the parent passes a `key` prop equal to `${year}-${month}`. When the
- * month changes, React sees a different key and completely remounts this
- * component — which automatically resets openPanel back to null. This is the
- * idiomatic React way to reset component state in response to a prop change,
- * without adding a useEffect.
- */
-/**
  * One stat tile. Clickable tiles open the drill-down panel below the grid;
  * Avg/day has nothing to drill into, so it renders without a click handler.
  */
@@ -98,6 +85,14 @@ export function QuickStatsPanel({
   loading: boolean;
 }) {
   const [openPanel, setOpenPanel] = useState<StatPanel | null>(null);
+  const toggle = (panel: StatPanel) =>
+    setOpenPanel((open) => (open === panel ? null : panel));
+
+  const panelTxs: Record<StatPanel, Transaction[]> = {
+    income: incomePanelTxs,
+    spend: sortedSpendTxs,
+    peak: peakDayPanelTxs,
+  };
 
   return (
     <>
@@ -115,9 +110,7 @@ export function QuickStatsPanel({
               hint={`${incomePanelTxs.length} deposits`}
               accent="var(--bento-positive)"
               open={openPanel === "income"}
-              onClick={() =>
-                setOpenPanel((p) => (p === "income" ? null : "income"))
-              }
+              onClick={() => toggle("income")}
             />
             <StatTile
               label="Spend"
@@ -125,9 +118,7 @@ export function QuickStatsPanel({
               hint={`${sortedSpendTxs.length} transactions`}
               accent="var(--series-1)"
               open={openPanel === "spend"}
-              onClick={() =>
-                setOpenPanel((p) => (p === "spend" ? null : "spend"))
-              }
+              onClick={() => toggle("spend")}
             />
             <StatTile
               label="Avg / day"
@@ -143,9 +134,7 @@ export function QuickStatsPanel({
               } · excl. recurring`}
               accent="var(--cat-2)"
               open={openPanel === "peak"}
-              onClick={() =>
-                setOpenPanel((p) => (p === "peak" ? null : "peak"))
-              }
+              onClick={() => toggle("peak")}
             />
           </>
         ) : null}
@@ -176,12 +165,7 @@ export function QuickStatsPanel({
             </div>
             <Table>
               <TableBody>
-                {(openPanel === "income"
-                  ? incomePanelTxs
-                  : openPanel === "spend"
-                    ? sortedSpendTxs
-                    : peakDayPanelTxs
-                ).map((tx) => {
+                {panelTxs[openPanel].map((tx) => {
                   const catName =
                     tx.category_id != null
                       ? (categoryMap.get(tx.category_id)?.name ??

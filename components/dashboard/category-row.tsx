@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { formatAmount, formatCurrency } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 import { CategoryIcon } from "@/lib/lunchmoney/category-icons";
 import { getTransactionsForCategory } from "@/lib/lunchmoney/analytics";
 import { type Transaction } from "@/lib/lunchmoney/client";
@@ -89,21 +89,18 @@ export function CategoryRow({
               className="flex items-center justify-between gap-2 rounded py-1 text-xs"
             >
               <span className="truncate text-bento-subtle">{tx.payee}</span>
-              <div className="flex shrink-0 items-center gap-2">
-                <span className="font-mono tabular-nums">
-                  {formatAmount(parseFloat(tx.amount), true)}
-                </span>
-              </div>
+              <span className="shrink-0 font-mono tabular-nums">
+                {formatCurrency(parseFloat(tx.amount), primaryCurrency, true)}
+              </span>
             </li>
           ))}
-          {cat.txCount > 5 && (
+          {cat.txCount > topTxs.length && (
             <li className="pt-1">
               <Link
                 href="/transactions"
                 className="text-[11px] text-bento-subtle hover:text-bento-default hover:underline"
-                onClick={(e) => e.stopPropagation()}
               >
-                +{cat.txCount - 5} more →
+                +{cat.txCount - topTxs.length} more →
               </Link>
             </li>
           )}

@@ -7,14 +7,7 @@ import { MONTH_NAMES, isCurrentOrFutureMonth } from "@/lib/date-utils";
 import { cn } from "@/lib/utils";
 import { DURATION, EASE } from "@/lib/motion";
 
-/**
- * The prev/next month navigation bar.
- *
- * This component owns no state — it just calls onPrev/onNext when clicked.
- * The parent (page.tsx) owns the actual year/month values. This pattern is
- * called "lifting state up": the component that needs to share state with
- * siblings keeps it, and passes callbacks down to children.
- */
+/** The prev/next month navigation bar. */
 export function MonthSelector({
   year,
   month,

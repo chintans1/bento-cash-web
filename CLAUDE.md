@@ -205,7 +205,6 @@ Maps lowercase category name keywords → Lucide icon components. `getCategoryIc
 
 | Function                              | Purpose                                                                                                     |
 | ------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| `formatAmount(n, exact?)`             | Always USD; `exact=true` shows cents                                                                        |
 | `formatCurrency(n, currency, exact?)` | Uses `Intl.NumberFormat` with the given ISO currency code; falls back to `"N.NN CUR"` for unsupported codes |
 | `formatShortDate(dateStr)`            | `"Apr 3"` format; uses noon UTC to avoid timezone-off-by-one                                                |
 

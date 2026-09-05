@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Kbd } from "@/components/ui/kbd";
 import { CategoryIcon } from "@/lib/lunchmoney/category-icons";
 import { categoryColor } from "@/lib/lunchmoney/category-colors";
-import { formatAmount, formatShortDate } from "@/lib/format";
+import { formatCurrency, formatShortDate } from "@/lib/format";
 import { DURATION, EASE } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/lib/lunchmoney/client";
@@ -18,6 +18,7 @@ import type { Transaction } from "@/lib/lunchmoney/client";
 export type TransactionRowProps = {
   transaction: Transaction;
   categoryName: string;
+  primaryCurrency: string;
   categoryOptions: CategoryOption[];
   /** Existing payee names, offered as suggestions while editing. */
   payeeSuggestions: string[];
@@ -45,6 +46,7 @@ export type TransactionRowProps = {
 export const TransactionRow = memo(function TransactionRow({
   transaction: tx,
   categoryName,
+  primaryCurrency,
   categoryOptions,
   payeeSuggestions,
   expanded,
@@ -151,7 +153,7 @@ export const TransactionRow = memo(function TransactionRow({
           )}
         >
           {isCredit ? "+" : "−"}
-          {formatAmount(Math.abs(amount), true)}
+          {formatCurrency(Math.abs(amount), primaryCurrency, true)}
         </span>
       </div>
 

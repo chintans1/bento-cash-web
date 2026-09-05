@@ -55,10 +55,6 @@ export function AccountRow({
     setEditing(true);
   }
 
-  function cancelEdit() {
-    setEditing(false);
-  }
-
   async function saveEdit() {
     setSaving(true);
     try {
@@ -145,7 +141,7 @@ export function AccountRow({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={cancelEdit}
+                  onClick={() => setEditing(false)}
                   disabled={saving}
                 >
                   <X className="h-3 w-3" />

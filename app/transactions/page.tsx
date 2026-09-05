@@ -15,9 +15,10 @@ import {
 } from "@/components/transactions/category-picker";
 import { TransactionRow } from "@/components/transactions/transaction-row";
 import { usePayeeSuggestions } from "@/hooks/use-payee-suggestions";
-import { formatAmount } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToken } from "@/hooks/use-token";
+import { useAppData } from "@/hooks/use-app-data";
 import {
   getCategories,
   getTransactionsForMonth,
@@ -60,6 +61,7 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
 
 function TransactionsPage() {
   const { isAuthenticated } = useToken();
+  const { primaryCurrency } = useAppData();
   const router = useRouter();
   const searchParams = useSearchParams();
   const now = new Date();
@@ -474,6 +476,7 @@ function TransactionsPage() {
                     : undefined
                   )?.name ?? UNCATEGORIZED.name
                 }
+                primaryCurrency={primaryCurrency}
                 categoryOptions={categoryOptions}
                 payeeSuggestions={payeeSuggestions}
                 expanded={expandedTxId === tx.id}
@@ -500,7 +503,7 @@ function TransactionsPage() {
           <span className="font-mono tabular-nums">
             Total spend:{" "}
             <span className="font-semibold text-bento-default">
-              {formatAmount(totalSpend)}
+              {formatCurrency(totalSpend, primaryCurrency)}
             </span>
           </span>
         </div>

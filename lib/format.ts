@@ -1,13 +1,3 @@
-/** Formats a number as USD. exact=true → 2 decimal places; exact=false → rounded to whole dollars. */
-export function formatAmount(n: number, exact = false): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    minimumFractionDigits: exact ? 2 : 0,
-    maximumFractionDigits: exact ? 2 : 0,
-  }).format(n);
-}
-
 /** Formats n with the given ISO currency code. Falls back to "1234 USD" style if the code is unsupported. */
 export function formatCurrency(
   n: number,

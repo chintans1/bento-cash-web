@@ -142,6 +142,14 @@ export function groupByInstitution(
   );
 }
 
+/** Totals balances in the primary currency, skipping accounts with no valid balance. */
+export function sumBalances(accounts: NormalizedAccount[]): number {
+  return accounts.reduce(
+    (total, a) => total + (a.balanceValid ? a.toBase : 0),
+    0
+  );
+}
+
 export type NetWorth = {
   totalAssets: number;
   totalLiabilities: number;
@@ -151,11 +159,8 @@ export type NetWorth = {
 /** Sums open accounts into assets, liabilities and net worth (all in the primary currency). */
 export function computeNetWorth(accounts: NormalizedAccount[]): NetWorth {
   const open = accounts.filter((a) => a.status !== "closed");
-  const sum = (accs: NormalizedAccount[]) =>
-    accs.reduce((total, a) => total + (a.balanceValid ? a.toBase : 0), 0);
-
-  const totalAssets = sum(open.filter((a) => !a.isLiability));
-  const totalLiabilities = sum(open.filter((a) => a.isLiability));
+  const totalAssets = sumBalances(open.filter((a) => !a.isLiability));
+  const totalLiabilities = sumBalances(open.filter((a) => a.isLiability));
 
   return {
     totalAssets,

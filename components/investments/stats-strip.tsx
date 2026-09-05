@@ -3,21 +3,15 @@
 import { formatCurrency } from "@/lib/format";
 import { StatCard } from "@/components/stat-card";
 
-// ── Props ─────────────────────────────────────────────────────────────────────
-
-export type StatsStripProps = {
+type StatsStripProps = {
   investmentTotal: number;
   cashTotal: number;
   liabilityTotal: number;
   primaryCurrency: string;
-  /** null = transaction history not yet loaded */
+  /** Both null until the transaction history loads. */
   avgMonthlyIncome: number | null;
-  /** null = transaction history not yet loaded */
   avgMonthlySpend: number | null;
-  txHistoryReady: boolean;
 };
-
-// ── Component ─────────────────────────────────────────────────────────────────
 
 export function StatsStrip({
   investmentTotal,
@@ -26,7 +20,6 @@ export function StatsStrip({
   primaryCurrency,
   avgMonthlyIncome,
   avgMonthlySpend,
-  txHistoryReady,
 }: StatsStripProps) {
   const netWorth = investmentTotal + cashTotal - liabilityTotal;
 
@@ -34,9 +27,9 @@ export function StatsStrip({
   const pctInvested =
     liquidTotal > 0 ? Math.round((investmentTotal / liquidTotal) * 100) : null;
 
-  // Savings rate = (income − spend) / income. Can be negative if spending > earning.
+  // Savings rate = (income − spend) / income. Negative when spending > earning.
   const savingsRate =
-    txHistoryReady && avgMonthlyIncome != null && avgMonthlyIncome > 0
+    avgMonthlyIncome != null && avgMonthlyIncome > 0
       ? ((avgMonthlyIncome - (avgMonthlySpend ?? 0)) / avgMonthlyIncome) * 100
       : null;
 
@@ -63,14 +56,14 @@ export function StatsStrip({
         }
         sub="6-month average"
         valueClassName="text-xl"
-        loading={!txHistoryReady}
+        loading={avgMonthlyIncome == null}
       />
       <StatCard
         label="Savings Rate"
         value={savingsRate != null ? `${savingsRate.toFixed(0)}%` : "—"}
         sub="of income → surplus"
         valueClassName="text-xl"
-        loading={!txHistoryReady}
+        loading={avgMonthlyIncome == null}
       />
     </div>
   );
