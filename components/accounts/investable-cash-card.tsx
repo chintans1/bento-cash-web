@@ -35,7 +35,7 @@ export function InvestableCashCard({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {state.status === "idle" || state.status === "loading" ? (
+        {state.status === "loading" ? (
           <div className="space-y-3">
             <Skeleton className="h-9 w-40 rounded-lg" />
             <Skeleton className="h-5 w-full rounded" />

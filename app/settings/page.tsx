@@ -30,12 +30,6 @@ export default function SettingsPage() {
     setMonths(Number.parseInt(raw, 10));
   }
 
-  const hint = (
-    <p className="font-mono text-sm text-bento-subtle">
-      Press <Kbd>d</Kbd> to toggle dark mode
-    </p>
-  );
-
   return (
     <div className="flex flex-col items-center gap-5 p-6 pt-12">
       {/* User Card */}
@@ -111,7 +105,9 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
-      {hint}
+      <p className="font-mono text-sm text-bento-subtle">
+        Press <Kbd>d</Kbd> to toggle dark mode
+      </p>
     </div>
   );
 }

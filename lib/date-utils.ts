@@ -49,3 +49,14 @@ export function formatMonthKey(key: string): string {
   const [year, month] = key.split("-");
   return `${MONTH_NAMES[Number(month) - 1].slice(0, 3)} ${year}`;
 }
+
+/** The `count` complete months before the current one, oldest first. */
+export function lastFullMonths(
+  count: number
+): { year: number; month: number }[] {
+  const now = new Date();
+  return Array.from({ length: count }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - count + i, 1);
+    return { year: d.getFullYear(), month: d.getMonth() + 1 };
+  });
+}

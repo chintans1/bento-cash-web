@@ -131,6 +131,14 @@ The app-wide fetch — user, accounts, and categories — mounted once in `layou
 
 Results are tagged with the session (`"demo"`, or the token) they were fetched for and `data` is only used when that tag matches, so signing out or switching accounts drops the previous account's data without a reset step — and `loading` falls out of the same check rather than being a flag.
 
+### `hooks/use-month-transactions.ts`
+
+One month of transactions plus the optimistic edits the transactions page makes on them (`setCategory`, `setPayee`, `setNotes`). Each edit patches local state, then persists; a failure rolls that row back and flags it. The mutators are stable identities and read the pre-edit row from a ref rather than from `transactions`, because the page hands them to memoized rows where a new identity per edit would defeat the memo.
+
+### `hooks/use-transaction-history.ts`
+
+The last N complete months of transactions, oldest first — what the accounts page averages spend over and the investments page runs its averages and projection on. Anchored to today rather than a selected month, so the fixed window is served from the request cache instead of refetched per page.
+
 ### `hooks/use-investable-months.ts`
 
 The `investable_months` setting, shared by the settings and accounts pages. Backed by `useSyncExternalStore` so the two stay in agreement and SSR gets a defined snapshot — reading localStorage during render would mismatch the prerendered HTML.
