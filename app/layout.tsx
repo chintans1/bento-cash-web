@@ -9,17 +9,14 @@ import { Header } from "@/components/header";
 import { cn } from "@/lib/utils";
 import { Analytics } from "@vercel/analytics/react";
 
-const playfairDisplayHeading = Playfair_Display({
+const fontHeading = Playfair_Display({
   subsets: ["latin"],
   variable: "--font-heading",
 });
 
-const publicSans = Public_Sans({ subsets: ["latin"], variable: "--font-sans" });
+const fontSans = Public_Sans({ subsets: ["latin"], variable: "--font-sans" });
 
-const fontMono = Geist_Mono({
-  subsets: ["latin"],
-  variable: "--font-mono",
-});
+const fontMono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
   title: {
@@ -40,19 +37,18 @@ export const viewport: Viewport = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
     <html
       lang="en"
       suppressHydrationWarning
       className={cn(
         "antialiased",
+        fontSans.variable,
         fontMono.variable,
-        "font-sans",
-        publicSans.variable,
-        playfairDisplayHeading.variable
+        fontHeading.variable
       )}
     >
       <body>

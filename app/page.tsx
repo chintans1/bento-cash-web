@@ -25,7 +25,7 @@ export default function HomePage() {
     onPrev,
     onNext,
     pending,
-  } = useMonthNavigation(new Date().getFullYear(), new Date().getMonth() + 1);
+  } = useMonthNavigation();
 
   const {
     transactions,

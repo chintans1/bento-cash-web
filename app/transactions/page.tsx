@@ -19,20 +19,9 @@ import { formatCurrency } from "@/lib/format";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useToken } from "@/hooks/use-token";
 import { useAppData } from "@/hooks/use-app-data";
-import {
-  getCategories,
-  getTransactionsForMonth,
-  updateTransactionCategory,
-  updateTransactionNotes,
-  updateTransactionPayee,
-  type Transaction,
-} from "@/lib/lunchmoney/client";
-import {
-  buildCategoryData,
-  filterSpendTransactions,
-  type CategoryGroupEntry,
-} from "@/lib/lunchmoney/analytics";
-import { type CategoryInfo, UNCATEGORIZED } from "@/lib/lunchmoney/categories";
+import { useMonthTransactions } from "@/hooks/use-month-transactions";
+import { filterSpendTransactions } from "@/lib/lunchmoney/analytics";
+import { UNCATEGORIZED } from "@/lib/lunchmoney/categories";
 import { NoTokenPrompt } from "@/components/no-token-prompt";
 import { useMonthNavigation } from "@/hooks/use-month-navigation";
 import { isCurrentOrFutureMonth } from "@/lib/date-utils";
@@ -46,6 +35,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 type SortKey = "date" | "amount" | "payee";
 type SortDir = "asc" | "desc";
+
+/** The "Uncategorized" option in the category filter. */
+const UNCATEGORIZED_FILTER = -1;
 
 /**
  * Arrow next to the active sort column. Declared at module scope rather than
@@ -61,38 +53,37 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
 
 function TransactionsPage() {
   const { isAuthenticated } = useToken();
-  const { primaryCurrency } = useAppData();
+  const {
+    primaryCurrency,
+    categoryMap,
+    catGroups,
+    loading: appLoading,
+  } = useAppData();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const now = new Date();
   const {
     year: selectedYear,
     month: selectedMonth,
     onPrev,
     onNext,
     pending,
-  } = useMonthNavigation(now.getFullYear(), now.getMonth() + 1);
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [categoryMap, setCategoryMap] = useState<Map<number, CategoryInfo>>(
-    new Map()
-  );
-  const [catGroups, setCatGroups] = useState<CategoryGroupEntry[]>([]);
-  /** The month currently on screen, and any failure, both tagged by month. */
-  const [loadedMonth, setLoadedMonth] = useState<string | null>(null);
-  const [failure, setFailure] = useState<{
-    month: string;
-    message: string;
-  } | null>(null);
+  } = useMonthNavigation();
+  const {
+    transactions,
+    loading: monthLoading,
+    refreshing,
+    error,
+    savingIds,
+    failedId,
+    setCategory,
+    setPayee,
+    setNotes,
+  } = useMonthTransactions(selectedYear, selectedMonth, isAuthenticated);
 
-  const monthKey = `${selectedYear}-${selectedMonth}`;
-  // Derived: we're loading whenever what's rendered isn't the month selected
-  // and that month hasn't already failed. No flag to keep in sync.
-  const loading = loadedMonth !== monthKey && failure?.month !== monthKey;
-  const error = failure?.month === monthKey ? failure.message : null;
-  // A month change keeps the current rows on screen; skeletons are only for
-  // the very first load, when there's nothing to keep.
-  const showSkeletons = loading && transactions.length === 0;
-  const refreshing = loading && transactions.length > 0;
+  // Categories come from the app-level fetch, so rows wait on them too — a row
+  // rendered before they land would read "Uncategorized".
+  const loading = monthLoading || appLoading;
+
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   /** Transaction id whose category picker should take focus once the list settles. */
@@ -103,43 +94,9 @@ function TransactionsPage() {
   });
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [savingIds, setSavingIds] = useState<Set<number>>(new Set());
-  const [failedId, setFailedId] = useState<number | null>(null);
   const [expandedTxId, setExpandedTxId] = useState<number | null>(null);
   // Only one row is open at a time, so one draft is all that's needed.
   const [notesDraft, setNotesDraft] = useState("");
-
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    // Guards against a slow response for a month the user has already left
-    // overwriting the month they're now looking at.
-    let cancelled = false;
-
-    Promise.all([
-      getTransactionsForMonth(selectedYear, selectedMonth),
-      getCategories(),
-    ])
-      .then(([txRes, catRes]) => {
-        if (cancelled) return;
-        const { categoryMap, catGroups } = buildCategoryData(catRes);
-        setTransactions(txRes.transactions);
-        setCategoryMap(categoryMap);
-        setCatGroups(catGroups);
-        setLoadedMonth(monthKey);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setFailure({
-          month: monthKey,
-          message: err instanceof Error ? err.message : "Something went wrong",
-        });
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated, selectedYear, selectedMonth, monthKey]);
 
   // Page-level shortcuts. Ignored while typing so they never eat input.
   useEffect(() => {
@@ -171,28 +128,28 @@ function TransactionsPage() {
   }, [onPrev, onNext, selectedYear, selectedMonth]);
 
   const filtered = useMemo(() => {
-    let result = [...transactions];
-    if (query) {
-      const q = query.toLowerCase();
-      result = result.filter(
-        (tx) =>
-          tx.payee?.toLowerCase().includes(q) ||
-          tx.notes?.toLowerCase().includes(q)
-      );
-    }
-    if (filterCatId !== null) {
-      result = result.filter((tx) =>
-        filterCatId === -1
-          ? tx.category_id == null
-          : tx.category_id === filterCatId
-      );
-    }
+    const q = query.toLowerCase();
+    const result = transactions.filter((tx) => {
+      if (
+        q &&
+        !tx.payee?.toLowerCase().includes(q) &&
+        !tx.notes?.toLowerCase().includes(q)
+      ) {
+        return false;
+      }
+      if (filterCatId === null) return true;
+      return filterCatId === UNCATEGORIZED_FILTER
+        ? tx.category_id == null
+        : tx.category_id === filterCatId;
+    });
+
     result.sort((a, b) => {
-      let cmp = 0;
-      if (sortKey === "date") cmp = a.date.localeCompare(b.date);
-      else if (sortKey === "amount")
-        cmp = parseFloat(a.amount) - parseFloat(b.amount);
-      else cmp = (a.payee ?? "").localeCompare(b.payee ?? "");
+      const cmp =
+        sortKey === "date"
+          ? a.date.localeCompare(b.date)
+          : sortKey === "amount"
+            ? parseFloat(a.amount) - parseFloat(b.amount)
+            : (a.payee ?? "").localeCompare(b.payee ?? "");
       return sortDir === "asc" ? cmp : -cmp;
     });
     return result;
@@ -256,53 +213,12 @@ function TransactionsPage() {
     }
   }
 
-  const handleToggleExpand = useCallback(
-    (txId: number) => {
-      setExpandedTxId((prev) => (prev === txId ? null : txId));
-      setNotesDraft(transactions.find((tx) => tx.id === txId)?.notes ?? "");
-    },
-    [transactions]
-  );
-
-  /**
-   * Applies an edit to local state immediately, then persists it. The UI never
-   * waits on the network; if the request fails the row snaps back to its
-   * previous values and says so, so an edit is never silently lost.
-   */
-  const save = useCallback(
-    async (
-      txId: number,
-      patch: Partial<Transaction>,
-      persist: () => Promise<void>
-    ) => {
-      if (!isAuthenticated) return;
-
-      const before = transactions.find((t) => t.id === txId);
-      if (!before) return;
-
-      setFailedId(null);
-      setTransactions((prev) =>
-        prev.map((t) => (t.id === txId ? { ...t, ...patch } : t))
-      );
-      setSavingIds((prev) => new Set(prev).add(txId));
-
-      try {
-        await persist();
-      } catch {
-        setTransactions((prev) =>
-          prev.map((t) => (t.id === txId ? before : t))
-        );
-        setFailedId(txId);
-      } finally {
-        setSavingIds((prev) => {
-          const next = new Set(prev);
-          next.delete(txId);
-          return next;
-        });
-      }
-    },
-    [isAuthenticated, transactions]
-  );
+  const handleToggleExpand = useCallback((txId: number) => {
+    setExpandedTxId((prev) => (prev === txId ? null : txId));
+    setNotesDraft(
+      filteredRef.current.find((tx) => tx.id === txId)?.notes ?? ""
+    );
+  }, []);
 
   /**
    * When we're advancing to the next uncategorized row, the picker's own focus
@@ -321,47 +237,30 @@ function TransactionsPage() {
       // you just categorized drops out of the filter, so queue focus for
       // whatever takes its place and the next one is a keystroke away. Outside
       // that filter, moving focus would be surprising, so don't.
-      if (filterCatId === -1) {
+      if (filterCatId === UNCATEGORIZED_FILTER) {
         const current = filteredRef.current;
         const index = current.findIndex((tx) => tx.id === txId);
         const remaining = current.filter((tx) => tx.id !== txId);
-        const next = remaining[index] ?? remaining.at(-1);
-        pendingFocusRef.current = next?.id ?? null;
+        pendingFocusRef.current =
+          (remaining[index] ?? remaining.at(-1))?.id ?? null;
       }
 
-      save(txId, { category_id: newCatId }, () =>
-        updateTransactionCategory(txId, newCatId)
-      );
+      setCategory(txId, newCatId);
     },
-    [filterCatId, save]
-  );
-
-  const handlePayeeChange = useCallback(
-    (txId: number, payee: string) => {
-      save(txId, { payee }, () => updateTransactionPayee(txId, payee));
-    },
-    [save]
+    [filterCatId, setCategory]
   );
 
   const handleNotesCommit = useCallback(
-    (txId: number) => {
-      const tx = transactions.find((t) => t.id === txId);
-      const draft = notesDraft.trim();
-      if (!tx || draft === (tx.notes ?? "")) return;
-      save(txId, { notes: draft || null }, () =>
-        updateTransactionNotes(txId, draft || null)
-      );
-    },
-    [notesDraft, save, transactions]
+    (txId: number) => setNotes(txId, notesDraft.trim() || null),
+    [notesDraft, setNotes]
   );
 
-  const handleNotesCancel = useCallback(
-    (txId: number) => {
-      setNotesDraft(transactions.find((tx) => tx.id === txId)?.notes ?? "");
-      setExpandedTxId(null);
-    },
-    [transactions]
-  );
+  const handleNotesCancel = useCallback((txId: number) => {
+    setNotesDraft(
+      filteredRef.current.find((tx) => tx.id === txId)?.notes ?? ""
+    );
+    setExpandedTxId(null);
+  }, []);
 
   if (!isAuthenticated) return <NoTokenPrompt />;
 
@@ -392,21 +291,19 @@ function TransactionsPage() {
               }
             }}
           />
-          {!query && (
-            <Kbd className="pointer-events-none absolute top-1/2 right-3 z-10 -translate-y-1/2">
-              /
-            </Kbd>
-          )}
-          {query && (
+          {query ? (
             <Button
               variant="outline"
               size="icon-sm"
               className="h-8"
-              disabled={!query}
               onClick={() => setQuery("")}
             >
               <X className="size-3.5" />
             </Button>
+          ) : (
+            <Kbd className="pointer-events-none absolute top-1/2 right-3 z-10 -translate-y-1/2">
+              /
+            </Kbd>
           )}
         </ButtonGroup>
 
@@ -416,11 +313,8 @@ function TransactionsPage() {
           onChange={(newId) => {
             setFilterCatId(newId);
             const params = new URLSearchParams(searchParams.toString());
-            if (newId === null) {
-              params.delete("category");
-            } else {
-              params.set("category", newId.toString());
-            }
+            if (newId === null) params.delete("category");
+            else params.set("category", newId.toString());
             router.replace(`/transactions?${params.toString()}`);
           }}
         />
@@ -434,9 +328,7 @@ function TransactionsPage() {
         >
           Payee <SortIcon active={sortKey === "payee"} dir={sortDir} />
         </button>
-        <button className="hidden text-left hover:text-bento-default sm:block">
-          Category
-        </button>
+        <span className="hidden sm:block">Category</span>
         <button
           className="hidden text-center hover:text-bento-default sm:block"
           onClick={() => toggleSort("date")}
@@ -451,7 +343,7 @@ function TransactionsPage() {
         </button>
       </div>
 
-      {showSkeletons ? (
+      {loading ? (
         <div className="flex flex-col gap-2">
           {Array.from({ length: 12 }).map((_, i) => (
             <Skeleton key={i} className="h-12 rounded-lg" />
@@ -464,49 +356,49 @@ function TransactionsPage() {
           No transactions match.
         </p>
       ) : (
-        <div className="relative divide-y divide-bento-hairline/50 overflow-hidden rounded-4xl glass">
-          <AnimatePresence mode="popLayout" initial={false}>
-            {filtered.map((tx) => (
-              <TransactionRow
-                key={tx.id}
-                transaction={tx}
-                categoryName={
-                  (tx.category_id != null
-                    ? categoryMap.get(tx.category_id)
-                    : undefined
-                  )?.name ?? UNCATEGORIZED.name
-                }
-                primaryCurrency={primaryCurrency}
-                categoryOptions={categoryOptions}
-                payeeSuggestions={payeeSuggestions}
-                expanded={expandedTxId === tx.id}
-                saving={savingIds.has(tx.id)}
-                failed={failedId === tx.id}
-                notesDraft={notesDraft}
-                onToggleExpand={handleToggleExpand}
-                onPayeeChange={handlePayeeChange}
-                onCategoryChange={handleCategoryChange}
-                onNotesDraftChange={setNotesDraft}
-                onNotesCommit={handleNotesCommit}
-                onNotesCancel={handleNotesCancel}
-                pickerFinalFocus={keepFocusWhileAdvancing}
-              />
-            ))}
-          </AnimatePresence>
-        </div>
-      )}
+        <>
+          <div className="relative divide-y divide-bento-hairline/50 overflow-hidden rounded-4xl glass">
+            <AnimatePresence mode="popLayout" initial={false}>
+              {filtered.map((tx) => (
+                <TransactionRow
+                  key={tx.id}
+                  transaction={tx}
+                  categoryName={
+                    (tx.category_id != null
+                      ? categoryMap.get(tx.category_id)
+                      : undefined
+                    )?.name ?? UNCATEGORIZED.name
+                  }
+                  primaryCurrency={primaryCurrency}
+                  categoryOptions={categoryOptions}
+                  payeeSuggestions={payeeSuggestions}
+                  expanded={expandedTxId === tx.id}
+                  saving={savingIds.has(tx.id)}
+                  failed={failedId === tx.id}
+                  notesDraft={notesDraft}
+                  onToggleExpand={handleToggleExpand}
+                  onPayeeChange={setPayee}
+                  onCategoryChange={handleCategoryChange}
+                  onNotesDraftChange={setNotesDraft}
+                  onNotesCommit={handleNotesCommit}
+                  onNotesCancel={handleNotesCancel}
+                  pickerFinalFocus={keepFocusWhileAdvancing}
+                />
+              ))}
+            </AnimatePresence>
+          </div>
 
-      {/* Footer summary */}
-      {!showSkeletons && filtered.length > 0 && (
-        <div className="mt-3 flex items-center justify-between text-xs text-bento-subtle">
-          <span>{filtered.length} transactions</span>
-          <span className="font-mono tabular-nums">
-            Total spend:{" "}
-            <span className="font-semibold text-bento-default">
-              {formatCurrency(totalSpend, primaryCurrency)}
+          {/* Footer summary */}
+          <div className="mt-3 flex items-center justify-between text-xs text-bento-subtle">
+            <span>{filtered.length} transactions</span>
+            <span className="font-mono tabular-nums">
+              Total spend:{" "}
+              <span className="font-semibold text-bento-default">
+                {formatCurrency(totalSpend, primaryCurrency)}
+              </span>
             </span>
-          </span>
-        </div>
+          </div>
+        </>
       )}
     </div>
   );

@@ -1,17 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useToken } from "@/hooks/use-token";
-import { getTransactionsForMonth } from "@/lib/lunchmoney/client";
-import { computeAverageMonthlySpend } from "@/lib/lunchmoney/analytics";
 import { computeNetWorth } from "@/lib/account-utils";
 import { useAppData } from "@/hooks/use-app-data";
 import { useInvestableMonths } from "@/hooks/use-investable-months";
+import { useTransactionHistory } from "@/hooks/use-transaction-history";
 import {
+  computeInvestable,
   type InvestableState,
-  isCheckingAccount,
-  isSavingsAccount,
-  getLastThreeFullMonths,
 } from "@/lib/investable-utils";
 import { InvestableCashCard } from "@/components/accounts/investable-cash-card";
 import { AccountSection } from "@/components/accounts/account-section";
@@ -21,94 +18,34 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
+/** Months of spend history the investable-cash figure averages over. */
+const SPEND_LOOKBACK_MONTHS = 3;
+
 export default function AccountsPage() {
   const { isAuthenticated } = useToken();
   const { accounts, primaryCurrency, categoryMap, loading, error } =
     useAppData();
-  const [investable, setInvestable] = useState<InvestableState>({
-    status: "idle",
-  });
-  const [showInactive, setShowInactive] = useState(false);
   const { months: floorMonths } = useInvestableMonths();
+  const history = useTransactionHistory(SPEND_LOOKBACK_MONTHS, isAuthenticated);
+  const [showInactive, setShowInactive] = useState(false);
 
-  useEffect(() => {
-    const activeAccounts = accounts.filter((a) => a.status === "active");
-    if (!isAuthenticated || activeAccounts.length === 0) return;
+  const active = useMemo(
+    () => accounts.filter((a) => a.status === "active"),
+    [accounts]
+  );
+  const inactive = accounts.filter((a) => a.status !== "active");
+  const { totalAssets, totalLiabilities, netWorth } = computeNetWorth(accounts);
 
-    let ignore = false;
-
-    async function run() {
-      setInvestable({ status: "loading" });
-
-      const months = getLastThreeFullMonths(new Date());
-      try {
-        const monthlyTxArrays = await Promise.all(
-          months.map(({ year, month }) =>
-            getTransactionsForMonth(year, month).then((r) => r.transactions)
-          )
-        );
-
-        if (ignore) return;
-
-        const avgMonthlySpend = computeAverageMonthlySpend(
-          monthlyTxArrays,
-          categoryMap
-        );
-        const totalCheckingBalance = activeAccounts
-          .filter(isCheckingAccount)
-          .reduce((sum, a) => sum + a.toBase, 0);
-        const totalSavingsBalance = activeAccounts
-          .filter(isSavingsAccount)
-          .reduce((sum, a) => sum + a.toBase, 0);
-
-        const savingsTarget = avgMonthlySpend * floorMonths;
-        const savingsFunded = totalSavingsBalance >= savingsTarget;
-        const savingsShortfall = Math.max(
-          0,
-          savingsTarget - totalSavingsBalance
-        );
-        const checkingSurplus = Math.max(
-          0,
-          totalCheckingBalance - avgMonthlySpend
-        );
-
-        setInvestable({
-          status: "ready",
-          investableAmount: savingsFunded ? checkingSurplus : 0,
-          totalCheckingBalance,
-          checkingFloor: avgMonthlySpend,
-          totalSavingsBalance,
-          savingsTarget,
-          savingsFunded,
-          savingsShortfall,
-          avgMonthlySpend,
-          savingsMonths: floorMonths,
-        });
-      } catch (err) {
-        if (ignore) return;
-        setInvestable({
-          status: "error",
-          message:
-            err instanceof Error ? err.message : "Could not load transactions",
-        });
-      }
-    }
-
-    run();
-    return () => {
-      ignore = true;
+  const investable = useMemo<InvestableState>(() => {
+    if (history.error) return { status: "error", message: history.error };
+    if (!history.months) return { status: "loading" };
+    return {
+      status: "ready",
+      ...computeInvestable(active, history.months, categoryMap, floorMonths),
     };
-  }, [isAuthenticated, accounts, categoryMap, floorMonths]);
+  }, [history, active, categoryMap, floorMonths]);
 
   if (!isAuthenticated) return <NoTokenPrompt />;
-
-  const activeAccounts = accounts.filter((a) => a.status === "active");
-  const inactiveAccounts = accounts.filter((a) => a.status !== "active");
-
-  const assets = activeAccounts.filter((a) => !a.isLiability);
-  const liabilities = activeAccounts.filter((a) => a.isLiability);
-
-  const { totalAssets, totalLiabilities, netWorth } = computeNetWorth(accounts);
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
@@ -155,54 +92,51 @@ export default function AccountsPage() {
         </div>
       ) : error ? (
         <p className="text-sm text-bento-danger">{error}</p>
+      ) : accounts.length === 0 ? (
+        <p className="text-center text-sm text-bento-subtle">
+          No accounts found.
+        </p>
       ) : (
         <>
-          {accounts.length > 0 && (
-            <InvestableCashCard
-              state={investable}
-              primaryCurrency={primaryCurrency}
-            />
-          )}
+          <InvestableCashCard
+            state={investable}
+            primaryCurrency={primaryCurrency}
+          />
           <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-6">
             <AccountSection
               title="Assets"
-              accounts={assets}
+              accounts={active.filter((a) => !a.isLiability)}
               total={totalAssets}
               primaryCurrency={primaryCurrency}
             />
             <AccountSection
               title="Liabilities"
-              accounts={liabilities}
+              accounts={active.filter((a) => a.isLiability)}
               total={totalLiabilities}
               primaryCurrency={primaryCurrency}
             />
-            {accounts.length === 0 && (
-              <p className="text-center text-sm text-bento-subtle">
-                No accounts found.
-              </p>
-            )}
           </div>
-          {inactiveAccounts.length > 0 && (
+          {inactive.length > 0 && (
             <div className="mt-4 sm:mt-6">
               <button
                 onClick={() => setShowInactive((v) => !v)}
                 className="mb-3 flex items-center gap-1.5 text-sm text-bento-subtle transition-colors hover:text-bento-default"
               >
                 <span>{showInactive ? "▾" : "▸"}</span>
-                {inactiveAccounts.length} inactive or revoked{" "}
-                {inactiveAccounts.length === 1 ? "account" : "accounts"}
+                {inactive.length} inactive or revoked{" "}
+                {inactive.length === 1 ? "account" : "accounts"}
               </button>
               <AnimatedCollapse open={showInactive}>
                 <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-6">
                   <AccountSection
                     title="Inactive / Revoked"
-                    accounts={inactiveAccounts.filter((a) => !a.isLiability)}
+                    accounts={inactive.filter((a) => !a.isLiability)}
                     total={0}
                     primaryCurrency={primaryCurrency}
                   />
                   <AccountSection
                     title="Inactive / Revoked"
-                    accounts={inactiveAccounts.filter((a) => a.isLiability)}
+                    accounts={inactive.filter((a) => a.isLiability)}
                     total={0}
                     primaryCurrency={primaryCurrency}
                   />
