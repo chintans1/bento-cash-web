@@ -278,6 +278,7 @@ type TxTemplate = {
   category_id: number | null;
   day: number;
   notes: string | null;
+  recurring_id?: number;
 };
 
 const TX_TEMPLATES: TxTemplate[] = [
@@ -289,6 +290,7 @@ const TX_TEMPLATES: TxTemplate[] = [
     category_id: 9,
     day: 1,
     notes: "Monthly rent",
+    recurring_id: 2001,
   },
   // Income — salary fixed, freelance varies
   {
@@ -389,6 +391,7 @@ const TX_TEMPLATES: TxTemplate[] = [
     category_id: 4,
     day: 7,
     notes: null,
+    recurring_id: 2002,
   },
   {
     payee: "Spotify",
@@ -397,6 +400,7 @@ const TX_TEMPLATES: TxTemplate[] = [
     category_id: 4,
     day: 7,
     notes: null,
+    recurring_id: 2003,
   },
   {
     payee: "Apple",
@@ -422,6 +426,7 @@ const TX_TEMPLATES: TxTemplate[] = [
     category_id: 5,
     day: 9,
     notes: null,
+    recurring_id: 2005,
   },
   {
     payee: "Equinox",
@@ -439,6 +444,7 @@ const TX_TEMPLATES: TxTemplate[] = [
     category_id: 6,
     day: 10,
     notes: null,
+    recurring_id: 2004,
   },
   { payee: "AT&T", min: 89, max: 89, category_id: 6, day: 28, notes: null },
   // Travel — sporadic; some months nothing, some months a flight
@@ -535,6 +541,7 @@ export function createDemoClient(): LMClient {
             amount,
             category_id: tmpl.category_id,
             notes: tmpl.notes,
+            recurring_id: tmpl.recurring_id,
           }),
         ];
       });

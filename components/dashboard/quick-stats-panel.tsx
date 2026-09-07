@@ -24,14 +24,12 @@ function StatTile({
   label,
   value,
   hint,
-  accent,
   open,
   onClick,
 }: {
   label: string;
   value: string;
   hint: string;
-  accent: string;
   open?: boolean;
   onClick?: () => void;
 }) {
@@ -62,15 +60,9 @@ function StatTile({
         </button>
       )}
       <CardContent>
-        <div className="flex items-center gap-1.5">
-          <span
-            className="size-1.5 rounded-full"
-            style={{ backgroundColor: accent }}
-          />
-          <p className="text-[11px] font-medium tracking-[0.12em] text-bento-subtle uppercase">
-            {label}
-          </p>
-        </div>
+        <p className="text-[11px] font-medium tracking-[0.12em] text-bento-subtle uppercase">
+          {label}
+        </p>
         <p className="mt-1.5 font-heading text-2xl font-semibold tabular-nums sm:text-3xl">
           {value}
         </p>
@@ -123,7 +115,6 @@ export function QuickStatsPanel({
               label="Income"
               value={formatCurrency(quickStats.totalIncome, primaryCurrency)}
               hint={`${incomePanelTxs.length} deposits`}
-              accent="var(--bento-positive)"
               open={openPanel === "income"}
               onClick={() => toggle("income")}
             />
@@ -131,7 +122,6 @@ export function QuickStatsPanel({
               label="Spend"
               value={formatCurrency(quickStats.totalSpend, primaryCurrency)}
               hint={`${sortedSpendTxs.length} transactions`}
-              accent="var(--series-1)"
               open={openPanel === "spend"}
               onClick={() => toggle("spend")}
             />
@@ -139,7 +129,6 @@ export function QuickStatsPanel({
               label="Avg / day"
               value={formatCurrency(quickStats.avgSpendPerDay, primaryCurrency)}
               hint={`This ${MONTH_NAMES[selectedMonth - 1]}`}
-              accent="var(--cat-5)"
             />
             <StatTile
               label="Peak day"
@@ -147,7 +136,6 @@ export function QuickStatsPanel({
               hint={`${
                 quickStats.peakDay ? formatShortDate(quickStats.peakDay) : "—"
               } · excl. recurring`}
-              accent="var(--cat-2)"
               open={openPanel === "peak"}
               onClick={() => toggle("peak")}
             />

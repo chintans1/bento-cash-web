@@ -18,6 +18,12 @@ const CAT_COLOR_VARS = [
 ] as const;
 
 export function categoryColor(name: string): string {
+  // Uncategorized is an attention-needed state across the app, so it uses the
+  // same amber as the dashboard banner instead of an arbitrary hashed color.
+  if (name.trim().toLowerCase() === "uncategorized") {
+    return "var(--cat-3)";
+  }
+
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
     hash = (hash * 31 + name.charCodeAt(i)) | 0;

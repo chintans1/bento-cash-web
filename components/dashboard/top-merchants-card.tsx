@@ -28,12 +28,17 @@ export function TopMerchantsCard({
     <Card>
       <CardHeader>
         <CardTitle className="text-lg">Top merchants</CardTitle>
+        <p className="mt-1 text-xs text-bento-subtle">
+          Excludes recurring payments
+        </p>
       </CardHeader>
       <CardContent>
         {loading ? (
           <p className="text-sm text-bento-subtle">Loading…</p>
         ) : merchantTotals.length === 0 ? (
-          <p className="text-sm text-bento-subtle">No spending data found.</p>
+          <p className="text-sm text-bento-subtle">
+            No flexible spending found.
+          </p>
         ) : (
           <ul className="flex flex-col gap-3">
             {merchantTotals.map((m) => {

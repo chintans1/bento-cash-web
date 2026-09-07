@@ -15,6 +15,7 @@ import {
   computeMerchantTotals,
   computeMonthTotals,
   computeDailySpend,
+  computeCumulativeSpendComparison,
   computeMoMDeltas,
   countUncategorized,
   computeAverageMonthlySpend,
@@ -382,6 +383,17 @@ describe("computeMerchantTotals", () => {
     const tx = makeTx({ amount: "10.00", payee: "" });
     const totals = computeMerchantTotals([tx], catMap);
     expect(totals[0].payee).toBe("Unknown");
+  });
+
+  it("excludes recurring transactions", () => {
+    const txs = [
+      makeTx({ amount: "50.00", payee: "Cafe" }),
+      makeTx({ amount: "2000.00", payee: "Landlord", recurring_id: 42 }),
+    ];
+    const totals = computeMerchantTotals(txs, catMap);
+
+    expect(totals).toHaveLength(1);
+    expect(totals[0].payee).toBe("Cafe");
   });
 });
 
@@ -751,5 +763,75 @@ describe("computeQuickStats", () => {
     );
     expect(result?.peakDay).toBe("2026-01-15");
     expect(result?.peakAmount).toBe(300);
+  });
+});
+
+// ── computeCumulativeSpendComparison ─────────────────────────────────────────
+
+describe("computeCumulativeSpendComparison", () => {
+  const catMap = new Map<number, CategoryInfo>();
+
+  it("groups spend into three-day cumulative windows", () => {
+    const current = [
+      makeTx({ amount: "20.00", date: "2026-01-01" }),
+      makeTx({ amount: "30.00", date: "2026-01-03" }),
+      makeTx({ amount: "40.00", date: "2026-01-04" }),
+    ];
+    const result = computeCumulativeSpendComparison(
+      current,
+      [],
+      catMap,
+      2026,
+      1,
+      new Date(2026, 0, 6)
+    );
+
+    expect(result.find((point) => point.day === 3)?.currentTotal).toBe(50);
+    expect(result.find((point) => point.day === 6)?.currentTotal).toBe(90);
+    expect(result.some((point) => point.day === 2)).toBe(false);
+  });
+
+  it("separates flexible and recurring spend while keeping the total exact", () => {
+    const current = [
+      makeTx({ amount: "75.00", date: "2026-01-02" }),
+      makeTx({
+        amount: "1500.00",
+        date: "2026-01-03",
+        recurring_id: 42,
+      }),
+    ];
+    const result = computeCumulativeSpendComparison(
+      current,
+      [],
+      catMap,
+      2026,
+      1,
+      new Date(2026, 0, 3)
+    );
+    const firstWindow = result.find((point) => point.day === 3);
+
+    expect(firstWindow?.currentFlexible).toBe(75);
+    expect(firstWindow?.currentRecurring).toBe(1500);
+    expect(firstWindow?.currentTotal).toBe(1575);
+  });
+
+  it("includes today's partial window and stops both series there", () => {
+    const current = [makeTx({ amount: "25.00", date: "2026-01-07" })];
+    const previous = [
+      makeTx({ amount: "20.00", date: "2025-12-07" }),
+      makeTx({ amount: "5000.00", date: "2025-12-17" }),
+    ];
+    const result = computeCumulativeSpendComparison(
+      current,
+      previous,
+      catMap,
+      2026,
+      1,
+      new Date(2026, 0, 7)
+    );
+
+    expect(result.find((point) => point.day === 7)?.currentTotal).toBe(25);
+    expect(result.find((point) => point.day === 7)?.previousTotal).toBe(20);
+    expect(result.find((point) => point.day === 9)).toBeUndefined();
   });
 });

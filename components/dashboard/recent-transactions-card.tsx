@@ -47,10 +47,12 @@ export function RecentTransactionsCard({
             {transactions.map((tx) => {
               const amount = parseFloat(tx.amount);
               const isIncome = amount < 0;
-              const categoryName =
+              const category =
                 tx.category_id != null
-                  ? (categoryMap.get(tx.category_id)?.name ?? "Uncategorized")
-                  : "Uncategorized";
+                  ? categoryMap.get(tx.category_id)
+                  : undefined;
+              const isUncategorized = category == null;
+              const categoryName = category?.name ?? "Uncategorized";
               const color = categoryColor(categoryName);
 
               return (
@@ -73,7 +75,14 @@ export function RecentTransactionsCard({
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{tx.payee}</p>
                     <p className="truncate text-[11px] text-bento-subtle">
-                      {formatShortDate(tx.date)} · {categoryName}
+                      {formatShortDate(tx.date)} ·{" "}
+                      <span
+                        className={cn(
+                          isUncategorized && "text-cat-3"
+                        )}
+                      >
+                        {categoryName}
+                      </span>
                     </p>
                   </div>
                   <span

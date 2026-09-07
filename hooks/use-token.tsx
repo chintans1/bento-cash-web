@@ -56,6 +56,8 @@ interface TokenContextValue {
   token: string | null;
   isDemo: boolean;
   isAuthenticated: boolean;
+  /** False only for the server snapshot and first hydration render. */
+  isReady: boolean;
   setToken: (value: string) => void;
   signOut: () => void;
   enterDemo: () => void;
@@ -68,6 +70,11 @@ export function TokenProvider({ children }: { children: React.ReactNode }) {
   // localStorage. React reconciles the difference after hydration.
   const token = useSyncExternalStore(subscribe, readToken, () => null);
   const isDemo = useSyncExternalStore(subscribe, readDemo, () => false);
+  const isReady = useSyncExternalStore(
+    subscribe,
+    () => true,
+    () => false
+  );
 
   return (
     <TokenContext.Provider
@@ -75,6 +82,7 @@ export function TokenProvider({ children }: { children: React.ReactNode }) {
         token,
         isDemo,
         isAuthenticated: token !== null || isDemo,
+        isReady,
         setToken,
         signOut,
         enterDemo,

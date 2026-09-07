@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -16,6 +17,8 @@ const chartConfig = {
   current: { label: "This month", color: "var(--series-1)" },
   previous: { label: "Last month", color: "var(--bento-subtle)" },
 } satisfies ChartConfig;
+
+type SpendView = "flexible" | "total";
 
 /** Compact axis label: 1500 → $1.5K, 16000 → $16K */
 function compact(value: number, currency: string): string {
@@ -53,16 +56,34 @@ export function SpendingTrendCard({
   primaryCurrency: string;
   loading: boolean;
 }) {
+  const [view, setView] = useState<SpendView>("flexible");
   const prev = prevMonthOf(year, month);
-  const currentTotal = data.reduce<number>(
-    (last, p) => (p.current != null ? p.current : last),
-    0
+  const currentPoint = data.findLast((point) => point.currentTotal != null);
+  const previousPoint = data.findLast(
+    (point) =>
+      point.day <= (currentPoint?.day ?? 0) && point.previousTotal != null
   );
-  const previousTotal = data.reduce<number>(
-    (last, p) => (p.previous != null ? p.previous : last),
-    0
+  const currentFlexible = currentPoint?.currentFlexible ?? 0;
+  const currentRecurring = currentPoint?.currentRecurring ?? 0;
+  const currentTotal = currentPoint?.currentTotal ?? 0;
+  const currentAmount = view === "flexible" ? currentFlexible : currentTotal;
+  const previousAmount =
+    view === "flexible"
+      ? (previousPoint?.previousFlexible ?? 0)
+      : (previousPoint?.previousTotal ?? 0);
+  const diff = currentAmount - previousAmount;
+  const chartData = useMemo(
+    () =>
+      data.map((point) => ({
+        day: point.day,
+        windowStart: point.windowStart,
+        current:
+          view === "flexible" ? point.currentFlexible : point.currentTotal,
+        previous:
+          view === "flexible" ? point.previousFlexible : point.previousTotal,
+      })),
+    [data, view]
   );
-  const diff = currentTotal - previousTotal;
 
   return (
     <Card>
@@ -71,19 +92,46 @@ export function SpendingTrendCard({
           <div>
             <CardTitle className="text-lg">Spending</CardTitle>
             <p className="mt-1 text-xs text-bento-subtle">
-              Cumulative · {MONTH_NAMES[month - 1]} vs{" "}
+              3-day grouped · {MONTH_NAMES[month - 1]} vs{" "}
               {MONTH_NAMES[prev.month - 1]}
             </p>
           </div>
           <div className="text-right">
-            <p className="font-mono text-xl font-semibold tabular-nums">
-              {formatCurrency(currentTotal, primaryCurrency)}
+            <p className="text-xl font-semibold tabular-nums">
+              {formatCurrency(currentAmount, primaryCurrency)}
             </p>
             <p className="text-xs text-bento-subtle tabular-nums">
               {diff >= 0 ? "+" : "−"}
               {formatCurrency(Math.abs(diff), primaryCurrency)} vs last month
+              {currentPoint ? ` through day ${currentPoint.day}` : ""}
             </p>
           </div>
+        </div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <div
+            className="flex rounded-full bg-bento-control p-1"
+            aria-label="Spending view"
+          >
+            {(["flexible", "total"] as const).map((option) => (
+              <button
+                key={option}
+                type="button"
+                aria-pressed={view === option}
+                onClick={() => setView(option)}
+                className={`relative h-8 min-w-16 rounded-full px-3 text-xs font-medium capitalize transition-[color,background-color,box-shadow,scale] outline-none before:absolute before:inset-x-0 before:-inset-y-1 before:content-[''] focus-visible:ring-3 focus-visible:ring-ring/30 active:scale-[0.96] ${
+                  view === option
+                    ? "bg-bento-surface text-bento-default shadow-sm"
+                    : "text-bento-subtle hover:text-bento-default"
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-bento-subtle tabular-nums">
+            {formatCurrency(currentFlexible, primaryCurrency)} flexible ·{" "}
+            {formatCurrency(currentRecurring, primaryCurrency)} recurring
+          </p>
         </div>
       </CardHeader>
       <CardContent>
@@ -103,7 +151,7 @@ export function SpendingTrendCard({
         ) : (
           <ChartContainer config={chartConfig} className="h-48 w-full">
             <AreaChart
-              data={data}
+              data={chartData}
               margin={{ top: 4, right: 4, bottom: 0, left: 0 }}
             >
               <defs>
@@ -127,6 +175,9 @@ export function SpendingTrendCard({
               />
               <XAxis
                 dataKey="day"
+                type="number"
+                domain={["dataMin", "dataMax"]}
+                ticks={chartData.map((point) => point.day)}
                 tickLine={false}
                 axisLine={false}
                 tick={{ fontSize: 10 }}
@@ -144,9 +195,15 @@ export function SpendingTrendCard({
                 cursor={{ stroke: "var(--bento-hairline)" }}
                 content={({ active, payload, label }) => {
                   if (!active || !payload?.length) return null;
+                  const windowStart = Number(payload[0]?.payload?.windowStart);
+                  const windowEnd = Number(label);
+                  const windowLabel =
+                    windowStart === windowEnd
+                      ? `Day ${windowEnd}`
+                      : `Days ${windowStart}–${windowEnd}`;
                   return (
                     <div className="rounded-xl glass px-2.5 py-1.5 text-xs">
-                      <p className="mb-1 text-bento-subtle">Day {label}</p>
+                      <p className="mb-1 text-bento-subtle">{windowLabel}</p>
                       {payload.map((entry) => (
                         <p
                           key={String(entry.dataKey)}
