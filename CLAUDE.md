@@ -242,17 +242,17 @@ The main analytics view. Fetches current month + previous month transactions in 
 
 ### `/transactions` — Transaction List (`app/transactions/page.tsx`)
 
-Full searchable, filterable, sortable transaction list for a given month.
+Full searchable, filterable, sortable transaction list for a given month. The `month=YYYY-MM` URL parameter is shared with the overview; drill-down links preserve it, browser history restores it, and This month returns to the current period.
 
 - **Search** — filters by payee or notes (case-insensitive substring)
 - **Category filter** — dropdown of categories present in that month's data; "Uncategorized" option filters to `category_id == null`
 - **Sort** — payee, date, amount; toggle asc/desc
 - **Inline description edit** — click the payee → it becomes an input in place. Enter or blur commits, Escape reverts. (`components/transactions/editable-text.tsx`)
-- **Category picker** — click the category chip → a searchable list (`components/transactions/category-picker.tsx`). The tree is flattened into one flat list with the group name on each row, because typing three letters beats scrolling to the right group. Typing then pressing Enter takes the top match; arrow keys and clicking work as usual. Tab order runs description → category → next row's description
+- **Category picker** — click the category chip → a searchable list (`components/transactions/category-picker.tsx`). The tree is flattened into one flat list with the group name on each row, because typing three letters beats scrolling to the right group. Typing then pressing Enter takes the top match; arrow keys and clicking work as usual. Each row has a keyboard-accessible details button, description editor, and category picker
 - **Every edit is optimistic** — local state updates immediately and the request goes out after. A failure rolls the row back to its previous values and shows "Couldn't save" on it, so an edit is never silently lost. All three fields (description, category, notes) go through the same `save()` helper
-- **Notes** — click a row to expand its detail panel; `⌘/Ctrl + Enter` saves and closes, `Escape` cancels. On small screens the panel also carries the category picker, since the row's category cell is hidden there
+- **Notes** — click a row or its category icon to expand its detail panel. Use Save notes or `⌘/Ctrl + Enter` to save and close; Cancel or `Escape` discards the draft. Blurring does not save. Focus returns to the details button. On small screens the panel also carries the category picker, since the row's category cell is hidden there
 - **Keyboard** — `/` focuses search (`Esc` clears it and lets go), `[` and `]` step months. All are ignored while typing, so they never eat input
-- **Clearing the uncategorized queue** — when the Uncategorized filter is on, categorizing a row moves focus to the next row's picker, so `Enter → type → Enter` repeats without touching the mouse. Focus targets a specific transaction id rather than a row index, because the categorized row lingers in the DOM for its exit animation. Outside that filter focus is left alone, where moving it would be surprising
+- **Clearing the uncategorized queue** — when the Uncategorized filter is on, categorizing a row moves focus to the next row's picker (or its details button on phones), so `Enter → type → Enter` repeats without touching the mouse. Focus targets a specific transaction id rather than a row index, because the categorized row lingers in the DOM for its exit animation. Outside that filter focus is left alone, where moving it would be surprising
 - **Footer** — shows transaction count and total spend for the current filtered view
 
 Rows live in `components/transactions/transaction-row.tsx` and are memoized. The page re-renders on every keystroke in the search box, so the row callbacks are wrapped in `useCallback` and the filtered list is mirrored in a ref — without stable identities the memo would never hit and each character would re-render every visible row, picker and collapse included.
@@ -280,28 +280,23 @@ Current installed components in `components/ui/`:
 Two of these are deliberately not used the way the registry ships them:
 
 - **`skeleton`** defaults to `bg-bento-raised` instead of `bg-muted`. An opaque fill on a translucent pane reads as a patch stuck to it, so the divergence is in the component rather than repeated at every call site.
-- **`ChartTooltipContent` is not used.** It renders an opaque `bg-popover` surface with a ring and shadow. Chart tooltips are one of the two places that legitimately earn `glass glass-blur`, so cards pass their own `content={...}` to `ChartTooltip`. This is the house pattern — see `net-worth-card.tsx` and `spending-trend-card.tsx`, which render the same `rounded-xl glass px-2.5 py-1.5 text-xs` shell.
+- **`ChartTooltipContent` is not used.** It renders an opaque `bg-popover` surface with a ring and shadow. Cards pass their own `content={...}` to `ChartTooltip` using the shared `glass` surface. This is the house pattern — see `net-worth-card.tsx` and `spending-trend-card.tsx`, which render the same `rounded-xl glass px-2.5 py-1.5 text-xs` shell.
 
 Theme is defined in `app/globals.css` using CSS custom properties (oklch color space). Dark mode via `next-themes` with class strategy. Toggle: press `d` or use the header button.
 
-**Surfaces are translucent.** A fixed ambient wash (`body::before`, radial gradients tinted with `--primary` and the chart hues) sits behind the page, and every raised surface — cards, the transaction list, drill-down panels, chart tooltips, the header — is a pane of glass over it. The material lives in one Tailwind utility, `glass`: translucent fill, hairline ring, lit top edge. Use it rather than reaching for `bg-card` + blur classes, so all surfaces stay the same sheet.
+**Surfaces are solid.** The shared `glass` utility retains its name but uses the opaque card fill, a quiet hairline, and a shallow shadow. Cards and the transaction list use `rounded-2xl`. The page has a neutral background, with no ambient gradients. The header is solid as well.
 
-**`glass` deliberately has no backdrop-filter** — don't add one back. What sits behind these panels is the ambient wash, a smooth gradient, so blurring it is visually a no-op; but it forces every panel to re-sample and re-blur its backdrop on every frame that anything moves. Measured on an expanding category row, that was the difference between 22fps and 63fps. Surfaces that sit over genuinely _varying_ content add `glass-blur` alongside `glass` — chart tooltips do, and the sticky header carries its own blur — because there the blur is both visible and cheap.
+Keep the editorial headings and green accent. Use `bento-raised` for row hovers and `bento-hairline` for progress tracks. Secondary text should remain readable in both themes.
 
-The light page carries a faint tint (`--background` sits just below white, in the same neutral ramp as `--sidebar`) rather than being paper-white — glass over pure white is invisible, so the tint is what the cards separate from.
-
-Two consequences to keep in mind when adding UI:
-
-- Fills that sit **on** glass should be translucent too — `bento-raised` for row hovers and skeletons, `bento-hairline` for progress tracks. An opaque fill reads as a patch stuck on the pane.
 - Charts pull `--series-1` / `--series-2`, not `--chart-1` directly. The chart ramp is amber, and its bright end is unreadable as a line on a white surface, so light mode maps the series to the ramp's darker steps and dark mode to its brighter ones.
-- Category chips tint with the category's own color: `color-mix(in oklab, <color> var(--chip-tint), transparent)`. `--chip-tint` is per-theme (26% light, 34% dark) because a tint over dark glass needs more strength to read.
+- Category chips tint with the category's own color: `color-mix(in oklab, <color> var(--chip-tint), transparent)`. `--chip-tint` is per-theme (26% light, 34% dark) because a tint over a dark surface needs more strength to read.
 
 App code should use the semantic `bento-*` tokens rather than raw Tailwind palette colors, so both themes stay in sync:
 
 | Token                               | Use                                                     |
 | ----------------------------------- | ------------------------------------------------------- |
 | `bento-base` / `bento-surface`      | page background / card background                       |
-| `bento-glass` / `bento-raised`      | translucent panel fill / translucent overlay on a panel |
+| `bento-glass` / `bento-raised`      | solid panel fill / translucent overlay on a panel |
 | `bento-default` / `bento-subtle`    | primary / secondary text                                |
 | `bento-hairline` / `bento-muted`    | borders and tracks / muted fills                        |
 | `bento-brand` / `bento-brand-fg`    | brand accent and text on it                             |

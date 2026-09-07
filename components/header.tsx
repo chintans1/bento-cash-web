@@ -13,7 +13,7 @@ import { AnimatedCollapse } from "@/components/animated-collapse";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV_LINKS = [
-  { href: "/", label: "Home" },
+  { href: "/", label: "Overview" },
   { href: "/transactions", label: "Transactions" },
   { href: "/accounts", label: "Accounts" },
   { href: "/investments", label: "Investments" },
@@ -26,23 +26,26 @@ export function Header() {
   const { isDemo, isAuthenticated, signOut } = useToken();
 
   return (
-    <header className="sticky top-0 z-10 border-b border-bento-hairline/60 bg-bento-base/60 backdrop-blur-xl backdrop-saturate-150">
+    <header className="sticky top-0 z-10 border-b border-bento-hairline bg-bento-surface">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
-        <span className="font-heading text-2xl font-bold">
-          Bento Cash{" "}
-          <span className="font-mono text-xs text-bento-subtle">web</span>
-        </span>
+        <Link href="/" className="shrink-0 font-heading text-2xl font-bold">
+          Bento Cash
+        </Link>
 
         <div className="flex items-center gap-1">
           {/* Desktop nav */}
-          <nav className="hidden items-center gap-1 sm:flex">
+          <nav
+            aria-label="Main navigation"
+            className="hidden items-center gap-1 md:flex"
+          >
             {isAuthenticated &&
               NAV_LINKS.map(({ href, label }) => (
                 <Link
                   key={href}
                   href={href}
+                  aria-current={pathname === href ? "page" : undefined}
                   className={cn(
-                    "relative rounded-4xl px-4 py-1.5 text-sm font-medium transition-colors",
+                    "relative flex min-h-10 items-center rounded-full px-3 text-sm font-medium transition-colors",
                     pathname === href
                       ? "text-bento-brand-fg"
                       : "text-bento-subtle hover:bg-bento-raised hover:text-bento-default"
@@ -65,9 +68,11 @@ export function Header() {
           {/* Mobile hamburger */}
           {isAuthenticated && (
             <button
-              className="flex size-9 items-center justify-center rounded-lg text-bento-subtle transition-colors hover:bg-bento-raised hover:text-bento-default sm:hidden"
+              className="flex size-10 items-center justify-center rounded-lg text-bento-subtle transition-colors hover:bg-bento-raised hover:text-bento-default md:hidden"
               onClick={() => setMenuOpen((o) => !o)}
               aria-label="Toggle menu"
+              aria-expanded={menuOpen}
+              aria-controls="mobile-navigation"
             >
               {menuOpen ? (
                 <X className="size-5" />
@@ -84,12 +89,12 @@ export function Header() {
         <div className="flex flex-col items-center justify-center gap-1 border-t border-bento-hairline bg-bento-brand/10 px-4 py-2 text-center text-sm sm:flex-row sm:gap-3">
           <span className="text-bento-subtle">
             Viewing demo data —{" "}
-            <Link
-              href="/settings"
+            <button
+              onClick={signOut}
               className="font-medium text-bento-default underline-offset-4 hover:underline"
             >
               Connect your account
-            </Link>
+            </button>
           </span>
           <Button variant="ghost" size="sm" onClick={signOut}>
             Exit demo
@@ -99,11 +104,16 @@ export function Header() {
 
       {/* Mobile dropdown menu */}
       <AnimatedCollapse open={menuOpen && isAuthenticated}>
-        <nav className="border-t border-bento-hairline/60 px-4 pb-4 sm:hidden">
+        <nav
+          id="mobile-navigation"
+          aria-label="Mobile navigation"
+          className="border-t border-bento-hairline/60 px-4 pb-4 md:hidden"
+        >
           {NAV_LINKS.map(({ href, label }) => (
             <Link
               key={href}
               href={href}
+              aria-current={pathname === href ? "page" : undefined}
               onClick={() => setMenuOpen(false)}
               className={cn(
                 "mt-1 block rounded-lg px-4 py-2.5 text-sm font-medium transition-colors",

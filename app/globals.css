@@ -18,7 +18,7 @@
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
   --muted: oklch(0.963 0.002 197.1);
-  --muted-foreground: oklch(0.56 0.021 213.5);
+  --muted-foreground: oklch(0.5 0.018 213.5);
   --accent: oklch(0.963 0.002 197.1);
   --accent-foreground: oklch(0.218 0.008 223.9);
   --destructive: oklch(0.577 0.245 27.325);
@@ -40,9 +40,8 @@
   --sidebar-border: oklch(0.925 0.005 214.3);
   --sidebar-ring: oklch(0.723 0.014 214.4);
 
-  /* Translucent surfaces. Cards sit on the ambient wash behind the page and
-     blur it, so they carry alpha rather than a flat fill. */
-  --surface-glass: oklch(1 0 0 / 0.82);
+  /* Solid surfaces keep financial data legible in both themes. */
+  --surface-glass: var(--card);
   --surface-raised: oklch(0.148 0.004 228.8 / 0.05);
   --surface-hairline: oklch(0.148 0.004 228.8 / 0.09);
   --surface-sheen: oklch(1 0 0 / 0.9);
@@ -55,10 +54,6 @@
   --series-2: var(--chart-3);
   /* How strongly a category color tints its chip; dark needs more to read. */
   --chip-tint: 26%;
-  /* Strength of each ambient wash gradient (see body::before). */
-  --wash-primary: 14%;
-  --wash-warm: 18%;
-  --wash-cool: 8%;
 
   --positive: oklch(0.52 0.13 163.5);
   --negative: oklch(0.577 0.245 27.325);
@@ -107,7 +102,7 @@
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.56 0.021 213.5);
 
-  --surface-glass: oklch(0.268 0.009 223.9 / 0.55);
+  --surface-glass: var(--card);
   --surface-raised: oklch(1 0 0 / 0.06);
   --surface-hairline: oklch(1 0 0 / 0.1);
   --surface-sheen: oklch(1 0 0 / 0.09);
@@ -116,9 +111,6 @@
   --series-1: var(--chart-1);
   --series-2: var(--chart-2);
   --chip-tint: 34%;
-  --wash-primary: 34%;
-  --wash-warm: 18%;
-  --wash-cool: 16%;
 
   --positive: oklch(0.78 0.145 163.5);
   --negative: oklch(0.704 0.191 22.216);
@@ -216,18 +208,7 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/*
-  The app's surface material: a translucent panel ringed with a hairline and lit
-  along its top edge. Used by every raised surface — cards, the transaction
-  list, drill-downs, tooltips — so they all read as the same sheet of glass.
-
-  Deliberately no backdrop-filter. What sits behind these panels is the fixed
-  ambient wash, a smooth gradient: blurring it is visually a no-op, but it
-  forces every panel to re-sample and re-blur its backdrop on every frame that
-  anything moves, which cost ~35fps on an expanding card. Surfaces that sit
-  over *varying* content — the sticky header, popovers, chart tooltips — add
-  `glass-blur`, where the blur is both visible and cheap.
-*/
+/* Shared solid panels with a quiet hairline and a shallow shadow. */
 @utility glass {
   background-color: var(--surface-glass);
   box-shadow:
@@ -241,16 +222,6 @@
   backdrop-filter: blur(20px) saturate(150%);
 }
 
-/* Without backdrop-filter the panels would be see-through onto the wash, so
-   fall back to the opaque card fill. */
-@supports not (
-  (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))
-) {
-  .glass {
-    background-color: var(--card);
-  }
-}
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -259,33 +230,16 @@
     @apply bg-background text-foreground;
     text-wrap: pretty;
   }
-  /*
-    Fixed ambient wash behind everything. Translucent cards are invisible over a
-    flat background — this is what they blur and tint, and what gives the
-    stacked surfaces their depth.
-  */
-  body::before {
-    content: "";
-    position: fixed;
-    inset: 0;
-    z-index: -1;
-    pointer-events: none;
-    background:
-      radial-gradient(
-        58% 42% at 12% -5%,
-        color-mix(in oklab, var(--primary) var(--wash-primary), transparent),
-        transparent 70%
-      ),
-      radial-gradient(
-        52% 38% at 88% 8%,
-        color-mix(in oklab, var(--chart-4) var(--wash-warm), transparent),
-        transparent 70%
-      ),
-      radial-gradient(
-        70% 45% at 50% 105%,
-        color-mix(in oklab, var(--chart-5) var(--wash-cool), transparent),
-        transparent 70%
-      );
+  h1,
+  h2,
+  h3,
+  [data-slot="card-title"] {
+    text-wrap: balance;
+  }
+  a:focus-visible,
+  button:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
   }
   html {
     @apply font-sans;

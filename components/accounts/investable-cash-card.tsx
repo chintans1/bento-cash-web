@@ -60,7 +60,7 @@ export function InvestableCashCard({
               </p>
               <p className="mt-0.5 text-sm text-bento-subtle">
                 {state.investableAmount > 0
-                  ? "ready to invest"
+                  ? "above your cash buffers"
                   : state.savingsFunded
                     ? "checking is at its floor"
                     : "fund your savings first"}
@@ -68,7 +68,7 @@ export function InvestableCashCard({
             </div>
 
             <div className="space-y-2 border-t border-bento-hairline pt-3">
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
                 <div className="flex min-w-0 items-center gap-2">
                   <span
                     className={cn(
@@ -102,7 +102,7 @@ export function InvestableCashCard({
                 </span>
               </div>
 
-              <div className="flex items-center justify-between gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1">
                 <div className="flex min-w-0 items-center gap-2">
                   <span
                     className={cn(
@@ -151,7 +151,7 @@ export function InvestableCashCard({
             </div>
 
             <p className="text-xs text-bento-subtle">
-              avg{" "}
+              Based on avg{" "}
               {formatCurrency(state.avgMonthlySpend, primaryCurrency, false)}/mo
               · last 3 months
             </p>

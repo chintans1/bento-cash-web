@@ -58,6 +58,7 @@ function TransactionsPage() {
     categoryMap,
     catGroups,
     loading: appLoading,
+    error: appError,
   } = useAppData();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -66,13 +67,14 @@ function TransactionsPage() {
     month: selectedMonth,
     onPrev,
     onNext,
+    onToday,
     pending,
   } = useMonthNavigation();
   const {
     transactions,
     loading: monthLoading,
     refreshing,
-    error,
+    error: monthError,
     savingIds,
     failedId,
     setCategory,
@@ -83,15 +85,14 @@ function TransactionsPage() {
   // Categories come from the app-level fetch, so rows wait on them too — a row
   // rendered before they land would read "Uncategorized".
   const loading = monthLoading || appLoading;
+  const error = monthError || appError;
 
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   /** Transaction id whose category picker should take focus once the list settles. */
   const pendingFocusRef = useRef<number | null>(null);
-  const [filterCatId, setFilterCatId] = useState<number | null>(() => {
-    const cat = searchParams.get("category");
-    return cat !== null ? Number(cat) : null;
-  });
+  const categoryParam = searchParams.get("category");
+  const filterCatId = categoryParam !== null ? Number(categoryParam) : null;
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [expandedTxId, setExpandedTxId] = useState<number | null>(null);
@@ -187,11 +188,15 @@ function TransactionsPage() {
     pendingFocusRef.current = null;
 
     const frame = requestAnimationFrame(() => {
-      document
-        .querySelector<HTMLElement>(
-          `[data-tx-id="${nextId}"] [role='combobox']`
-        )
-        ?.focus();
+      const row = document.querySelector<HTMLElement>(
+        `[data-tx-id="${nextId}"]`
+      );
+      const picker = row?.querySelector<HTMLElement>("[role='combobox']");
+      // On phones the picker is inside the closed details panel.
+      const target = picker?.getClientRects().length
+        ? picker
+        : row?.querySelector<HTMLElement>("button[aria-controls]");
+      target?.focus();
     });
     return () => cancelAnimationFrame(frame);
   }, [filtered]);
@@ -251,7 +256,10 @@ function TransactionsPage() {
   );
 
   const handleNotesCommit = useCallback(
-    (txId: number) => setNotes(txId, notesDraft.trim() || null),
+    (txId: number) => {
+      setNotes(txId, notesDraft.trim() || null);
+      setExpandedTxId(null);
+    },
     [notesDraft, setNotes]
   );
 
@@ -266,13 +274,18 @@ function TransactionsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
-      <MonthSelector
-        year={selectedYear}
-        month={selectedMonth}
-        onPrev={onPrev}
-        onNext={onNext}
-        refreshing={refreshing || pending}
-      />
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="font-heading text-2xl font-bold">Transactions</h1>
+        <MonthSelector
+          year={selectedYear}
+          month={selectedMonth}
+          onPrev={onPrev}
+          onNext={onNext}
+          onToday={onToday}
+          className="mb-0"
+          refreshing={refreshing || pending}
+        />
+      </div>
 
       {/* Filters */}
       <div className="mb-4 flex flex-wrap gap-2">
@@ -280,7 +293,8 @@ function TransactionsPage() {
           <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-3.5 -translate-y-1/2 text-bento-subtle" />
           <Input
             ref={searchRef}
-            className="h-8 pl-8 text-sm"
+            className="h-10 pl-8 text-sm"
+            aria-label="Search transactions"
             placeholder="Search descriptions or notes…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -295,7 +309,8 @@ function TransactionsPage() {
             <Button
               variant="outline"
               size="icon-sm"
-              className="h-8"
+              className="h-10"
+              aria-label="Clear search"
               onClick={() => setQuery("")}
             >
               <X className="size-3.5" />
@@ -311,32 +326,33 @@ function TransactionsPage() {
           categoryId={filterCatId}
           options={categoryOptions}
           onChange={(newId) => {
-            setFilterCatId(newId);
             const params = new URLSearchParams(searchParams.toString());
             if (newId === null) params.delete("category");
             else params.set("category", newId.toString());
-            router.replace(`/transactions?${params.toString()}`);
+            router.replace(`/transactions?${params.toString()}`, {
+              scroll: false,
+            });
           }}
         />
       </div>
 
       {/* Table header */}
-      <div className="mb-1 grid grid-cols-[1fr_80px] gap-4 px-3 text-xs font-semibold tracking-wide text-bento-subtle uppercase sm:grid-cols-[1fr_160px_72px_96px]">
+      <div className="mb-1 grid grid-cols-[1fr_80px] items-center gap-4 px-3 text-xs font-semibold tracking-wide text-bento-subtle uppercase sm:grid-cols-[1fr_160px_72px_96px]">
         <button
-          className="text-left hover:text-bento-default"
+          className="min-h-10 text-left hover:text-bento-default"
           onClick={() => toggleSort("payee")}
         >
           Payee <SortIcon active={sortKey === "payee"} dir={sortDir} />
         </button>
         <span className="hidden sm:block">Category</span>
         <button
-          className="hidden text-center hover:text-bento-default sm:block"
+          className="hidden min-h-10 text-center hover:text-bento-default sm:block"
           onClick={() => toggleSort("date")}
         >
           Date <SortIcon active={sortKey === "date"} dir={sortDir} />
         </button>
         <button
-          className="text-right hover:text-bento-default"
+          className="min-h-10 text-right hover:text-bento-default"
           onClick={() => toggleSort("amount")}
         >
           Amount <SortIcon active={sortKey === "amount"} dir={sortDir} />
@@ -352,12 +368,39 @@ function TransactionsPage() {
       ) : error ? (
         <p className="text-sm text-bento-danger">{error}</p>
       ) : filtered.length === 0 ? (
-        <p className="py-12 text-center text-sm text-bento-subtle">
-          No transactions match.
-        </p>
+        <div className="rounded-2xl border border-bento-hairline bg-card px-6 py-12 text-center">
+          <p className="font-medium">
+            {transactions.length === 0
+              ? "No transactions this month"
+              : "No matching transactions"}
+          </p>
+          <p className="mt-2 text-sm text-bento-subtle">
+            {transactions.length === 0
+              ? "Choose another month to review your activity."
+              : "Try a different search or clear your filters."}
+          </p>
+          {(query || filterCatId !== null) && (
+            <Button
+              variant="outline"
+              className="mt-4 h-10"
+              onClick={() => {
+                setQuery("");
+                const params = new URLSearchParams(searchParams.toString());
+                params.delete("category");
+                router.replace(`/transactions?${params}`, { scroll: false });
+              }}
+            >
+              Clear filters
+            </Button>
+          )}
+        </div>
       ) : (
         <>
-          <div className="relative divide-y divide-bento-hairline/50 overflow-hidden rounded-4xl glass">
+          <div
+            aria-busy={refreshing || pending}
+            inert={refreshing || pending}
+            className="relative divide-y divide-bento-hairline/50 overflow-hidden rounded-2xl glass"
+          >
             <AnimatePresence mode="popLayout" initial={false}>
               {filtered.map((tx) => (
                 <TransactionRow

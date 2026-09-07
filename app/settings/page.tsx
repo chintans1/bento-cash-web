@@ -1,5 +1,6 @@
 "use client";
 
+import { NoTokenPrompt } from "@/components/no-token-prompt";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,7 @@ import { useAppData } from "@/hooks/use-app-data";
 import { useInvestableMonths } from "@/hooks/use-investable-months";
 
 export default function SettingsPage() {
-  const { signOut } = useToken();
+  const { signOut, isAuthenticated, isDemo } = useToken();
   const { user, loading } = useAppData();
 
   const { months: floorMonths, setMonths } = useInvestableMonths();
@@ -27,11 +28,14 @@ export default function SettingsPage() {
 
   function handleFloorMonthsChange(raw: string) {
     setFloorMonthsInput(raw);
-    setMonths(Number.parseInt(raw, 10));
+    setMonths(Number(raw));
   }
 
+  if (!isAuthenticated) return <NoTokenPrompt />;
+
   return (
-    <div className="flex flex-col items-center gap-5 p-6 pt-12">
+    <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-4 pt-6 pb-10 sm:px-6">
+      <h1 className="w-full font-heading text-2xl font-bold">Settings</h1>
       {/* User Card */}
       <Card className="w-full max-w-md">
         {loading ? (
@@ -68,7 +72,7 @@ export default function SettingsPage() {
             </CardContent>
             <CardFooter>
               <Button variant="outline" onClick={signOut}>
-                Change token
+                {isDemo ? "Connect your account" : "Change token"}
               </Button>
             </CardFooter>
           </>
@@ -91,6 +95,9 @@ export default function SettingsPage() {
         <CardContent>
           <div className="flex items-center gap-3">
             <Input
+              id="savings-months"
+              aria-describedby="savings-months-help"
+              onBlur={() => setFloorMonthsInput(null)}
               type="number"
               min={1}
               max={24}
@@ -99,10 +106,19 @@ export default function SettingsPage() {
               onChange={(e) => handleFloorMonthsChange(e.target.value)}
               className="h-11 w-24 text-center font-mono text-base"
             />
-            <span className="text-base text-bento-subtle">
+            <label
+              htmlFor="savings-months"
+              className="text-base text-bento-subtle"
+            >
               months savings target
-            </span>
+            </label>
           </div>
+          <p
+            id="savings-months-help"
+            className="mt-3 text-xs text-bento-subtle"
+          >
+            Choose 1–24 whole months. Changes save automatically.
+          </p>
         </CardContent>
       </Card>
       <p className="font-mono text-sm text-bento-subtle">

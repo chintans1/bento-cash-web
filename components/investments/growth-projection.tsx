@@ -201,7 +201,10 @@ export function GrowthProjection({
             </p>
           </div>
           <div className="flex flex-col items-end gap-1">
-            <label className="text-xs text-bento-subtle">
+            <label
+              htmlFor="monthly-contribution"
+              className="text-xs text-bento-subtle"
+            >
               Monthly contribution
             </label>
             <div className="flex items-center gap-1">
@@ -209,6 +212,7 @@ export function GrowthProjection({
                 $
               </span>
               <Input
+                id="monthly-contribution"
                 type="text"
                 inputMode="decimal"
                 value={
@@ -219,7 +223,7 @@ export function GrowthProjection({
                 onChange={(e) =>
                   changeMonthly(e.target.value.replace(/[^0-9.]/g, ""))
                 }
-                className="h-8 w-28 text-right font-mono text-sm tabular-nums"
+                className="h-10 w-28 text-right font-mono text-sm tabular-nums"
               />
             </div>
             {estimatedContrib !== null && (
@@ -239,9 +243,11 @@ export function GrowthProjection({
                   {([3, 6] as const).map((w) => (
                     <button
                       key={w}
+                      aria-label={`Estimate from the last ${w} months`}
+                      aria-pressed={contribWindow === w}
                       onClick={() => setContribWindow(w)}
                       className={cn(
-                        "rounded px-1.5 py-0.5 text-xs transition-colors",
+                        "min-h-10 min-w-10 rounded px-1.5 text-xs transition-colors",
                         contribWindow === w
                           ? "bg-bento-muted font-medium text-bento-default"
                           : "text-bento-subtle hover:text-bento-default"
@@ -255,7 +261,8 @@ export function GrowthProjection({
                   onClick={() =>
                     changeMonthly(String(Math.round(estimatedContrib)))
                   }
-                  className="rounded px-1 py-0.5 text-xs text-bento-brand transition-colors hover:underline active:scale-[0.96]"
+                  aria-label="Use estimated monthly contribution"
+                  className="min-h-10 min-w-10 rounded px-1 text-xs font-medium text-bento-default transition-colors hover:underline active:scale-[0.96]"
                 >
                   Use
                 </button>
@@ -377,6 +384,7 @@ export function GrowthProjection({
                   $
                 </span>
                 <Input
+                  aria-label="Investment goal"
                   type="text"
                   inputMode="decimal"
                   value={goalFocused ? goalInput : formatNumber(goalInput)}
@@ -385,7 +393,7 @@ export function GrowthProjection({
                   onChange={(e) =>
                     changeGoal(e.target.value.replace(/[^0-9.]/g, ""))
                   }
-                  className="h-7 w-28 text-right font-mono text-xs tabular-nums"
+                  className="h-10 w-28 text-right font-mono text-xs tabular-nums"
                 />
               </div>
             </div>
@@ -393,9 +401,10 @@ export function GrowthProjection({
               {GOAL_PRESETS.map(({ label, value }) => (
                 <button
                   key={value}
+                  aria-pressed={goal === value}
                   onClick={() => changeGoal(String(value))}
                   className={cn(
-                    "rounded px-1.5 py-0.5 text-xs transition-colors",
+                    "min-h-10 min-w-10 rounded px-1.5 text-xs transition-colors",
                     goal === value
                       ? "bg-bento-muted font-medium text-bento-default"
                       : "text-bento-subtle hover:text-bento-default"

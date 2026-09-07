@@ -54,14 +54,7 @@ export function StatCard({
           {label}
         </p>
         {!loading && sub && (
-          <p
-            className={cn(
-              "font-mono text-[11px] text-bento-subtle/50",
-              subClassName
-            )}
-          >
-            {sub}
-          </p>
+          <p className={cn("text-xs text-bento-subtle", subClassName)}>{sub}</p>
         )}
       </div>
     </Card>

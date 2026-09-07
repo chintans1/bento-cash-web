@@ -14,10 +14,12 @@ export function TopMerchantsCard({
   merchantTotals,
   primaryCurrency,
   loading,
+  transactionsHref,
 }: {
   merchantTotals: MerchantTotal[];
   primaryCurrency: string;
   loading: boolean;
+  transactionsHref: string;
 }) {
   // Sorted desc by spend, so the first row is the bar's full width.
   const maxSpend = merchantTotals[0]?.spend ?? 0;
@@ -75,7 +77,7 @@ export function TopMerchantsCard({
       </CardContent>
       <CardFooter>
         <Link
-          href="/transactions"
+          href={transactionsHref}
           className="text-sm text-bento-subtle transition-colors hover:text-bento-default"
         >
           View all transactions →

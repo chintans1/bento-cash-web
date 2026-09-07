@@ -20,11 +20,13 @@ export function RecentTransactionsCard({
   categoryMap,
   primaryCurrency,
   loading,
+  transactionsHref,
 }: {
   transactions: Transaction[];
   categoryMap: Map<number, CategoryInfo>;
   primaryCurrency: string;
   loading: boolean;
+  transactionsHref: string;
 }) {
   return (
     <Card>
@@ -91,7 +93,7 @@ export function RecentTransactionsCard({
       </CardContent>
       <CardFooter>
         <Link
-          href="/transactions"
+          href={transactionsHref}
           className="text-sm text-bento-subtle transition-colors hover:text-bento-default"
         >
           View all transactions →

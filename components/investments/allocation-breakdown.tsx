@@ -11,10 +11,10 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from "@/components/ui/hover-card";
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
 export function AllocationBreakdown({
@@ -61,18 +61,20 @@ export function AllocationBreakdown({
     <Card className="mb-6">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Allocation</CardTitle>
-        <CardDescription>Hover a row to see accounts</CardDescription>
+        <CardDescription>Select a group to see its accounts</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {rows.map(({ bucket, bucketAccounts, amount }) => {
           const pct = (amount / total) * 100;
           return (
-            <HoverCard key={bucket.label}>
-              <HoverCardTrigger
-                render={<div className="block w-full cursor-default" />}
+            <Popover key={bucket.label}>
+              <PopoverTrigger
+                render={
+                  <button className="block min-h-10 w-full rounded-lg text-left" />
+                }
               >
-                <div className="mb-1 flex items-baseline justify-between gap-2">
-                  <span className="min-w-0 truncate text-sm text-bento-subtle">
+                <div className="mb-1 flex flex-wrap items-baseline justify-between gap-2">
+                  <span className="text-sm text-bento-subtle">
                     {bucket.label}
                   </span>
                   <div className="flex shrink-0 items-baseline gap-2">
@@ -90,8 +92,8 @@ export function AllocationBreakdown({
                     style={{ width: `${pct}%` }}
                   />
                 </div>
-              </HoverCardTrigger>
-              <HoverCardContent side="right" align="start" sideOffset={12}>
+              </PopoverTrigger>
+              <PopoverContent side="bottom" align="start" sideOffset={8}>
                 <p className="mb-2 text-xs font-semibold tracking-wide text-bento-subtle uppercase">
                   {bucket.label}
                 </p>
@@ -118,8 +120,8 @@ export function AllocationBreakdown({
                     </span>
                   </div>
                 )}
-              </HoverCardContent>
-            </HoverCard>
+              </PopoverContent>
+            </Popover>
           );
         })}
       </CardContent>

@@ -30,14 +30,9 @@ export function NoTokenPrompt() {
   }
 
   return (
-    <div className="mx-auto flex max-w-sm animate-in flex-col items-center gap-8 px-6 pt-32 text-center duration-500 fill-mode-both fade-in">
+    <div className="mx-auto flex max-w-sm flex-col items-center gap-8 px-6 pt-12 pb-10 text-center sm:pt-20">
       <div className="flex flex-col gap-2">
-        <h1 className="font-heading text-5xl font-bold">
-          Bento Cash{" "}
-          <span className="font-mono text-lg font-bold text-bento-subtle">
-            web
-          </span>
-        </h1>
+        <h1 className="font-heading text-5xl font-bold">Bento Cash</h1>
         <p className="text-bento-subtle">
           Richer analytics for your Lunch Money finances.
         </p>
@@ -57,15 +52,20 @@ export function NoTokenPrompt() {
 
       <Alert className="text-left">
         <AlertDescription>
-          Your token is stored only in your browser&apos;s{" "}
-          <span className="font-medium text-bento-default">localStorage</span>.
-          There is no backend — all API calls go directly from your browser to
-          Lunch Money.
+          Your API token stays in this browser. Bento Cash connects directly to
+          Lunch Money to read your finances and save your edits.
         </AlertDescription>
       </Alert>
 
-      <form onSubmit={handleConnect} className="flex w-full flex-col gap-3">
+      <form
+        onSubmit={handleConnect}
+        className="flex w-full flex-col gap-3 text-left"
+      >
+        <label htmlFor="api-token" className="text-sm font-medium">
+          Lunch Money API token
+        </label>
         <Input
+          id="api-token"
           type="password"
           placeholder="Lunch Money API token"
           value={input}
