@@ -73,7 +73,7 @@ export function InvestableCashCard({
                   <span
                     className={cn(
                       "text-sm",
-                      checkingOk ? "text-bento-positive" : "text-bento-brand"
+                      checkingOk ? "text-bento-positive" : "text-bento-negative"
                     )}
                   >
                     {checkingOk ? "✓" : "✗"}
