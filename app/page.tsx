@@ -1,5 +1,7 @@
 "use client";
 
+import { Suspense } from "react";
+import { monthKeyOf } from "@/lib/date-utils";
 import { useToken } from "@/hooks/use-token";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
 import { NoTokenPrompt } from "@/components/no-token-prompt";
@@ -17,13 +19,14 @@ import { UpcomingBillsCard } from "@/components/dashboard/upcoming-bills-card";
 import { RecentTransactionsCard } from "@/components/dashboard/recent-transactions-card";
 import { AnimatedCollapse } from "@/components/animated-collapse";
 
-export default function HomePage() {
+function HomePage() {
   const { isAuthenticated } = useToken();
   const {
     year: selectedYear,
     month: selectedMonth,
     onPrev,
     onNext,
+    onToday,
     pending,
   } = useMonthNavigation();
 
@@ -53,6 +56,8 @@ export default function HomePage() {
     maxCatSpend,
   } = useDashboardData(isAuthenticated, selectedYear, selectedMonth);
 
+  const transactionsHref = `/transactions?month=${monthKeyOf(selectedYear, selectedMonth)}`;
+
   if (!isAuthenticated) {
     return <NoTokenPrompt />;
   }
@@ -66,13 +71,17 @@ export default function HomePage() {
           month={selectedMonth}
           onPrev={onPrev}
           onNext={onNext}
+          onToday={onToday}
           refreshing={refreshing || pending}
           className="mb-0"
         />
       </div>
 
       <AnimatedCollapse open={!loading && uncategorizedCount > 0}>
-        <UncategorizedBanner count={uncategorizedCount} />
+        <UncategorizedBanner
+          count={uncategorizedCount}
+          href={`${transactionsHref}&category=-1`}
+        />
       </AnimatedCollapse>
 
       <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
@@ -144,6 +153,7 @@ export default function HomePage() {
           />
 
           <TopMerchantsCard
+            transactionsHref={transactionsHref}
             merchantTotals={merchantTotals}
             primaryCurrency={primaryCurrency}
             loading={loading}
@@ -165,6 +175,7 @@ export default function HomePage() {
           />
 
           <RecentTransactionsCard
+            transactionsHref={transactionsHref}
             transactions={recentTransactions}
             categoryMap={categoryMap}
             primaryCurrency={primaryCurrency}
@@ -173,5 +184,13 @@ export default function HomePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function OverviewPage() {
+  return (
+    <Suspense>
+      <HomePage />
+    </Suspense>
   );
 }

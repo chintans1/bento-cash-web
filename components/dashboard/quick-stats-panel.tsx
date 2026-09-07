@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { AnimatedCollapse } from "@/components/animated-collapse";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatShortDate } from "@/lib/format";
@@ -38,14 +38,29 @@ function StatTile({
   return (
     <Card
       size="sm"
-      onClick={onClick}
       className={cn(
-        "gap-2",
-        onClick &&
-          "cursor-pointer transition-[transform,box-shadow] hover:shadow-md active:scale-[0.98]",
+        "relative gap-2",
+        onClick && "cursor-pointer transition-shadow hover:shadow-md",
         open && "ring-2 ring-bento-brand/60"
       )}
     >
+      {onClick && (
+        <button
+          onClick={onClick}
+          aria-label={`${label}: ${value}. View transactions`}
+          aria-expanded={open}
+          aria-controls="quick-stats-details"
+          className="absolute inset-0 z-10 rounded-[inherit]"
+        >
+          <ChevronDown
+            aria-hidden="true"
+            className={cn(
+              "absolute top-4 right-3 size-3.5 text-bento-subtle transition-transform",
+              open && "rotate-180"
+            )}
+          />
+        </button>
+      )}
       <CardContent>
         <div className="flex items-center gap-1.5">
           <span
@@ -100,7 +115,7 @@ export function QuickStatsPanel({
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => (
-            <Skeleton key={i} className="h-24 rounded-4xl" />
+            <Skeleton key={i} className="h-24 rounded-2xl" />
           ))
         ) : quickStats ? (
           <>
@@ -146,7 +161,10 @@ export function QuickStatsPanel({
         className="mb-4"
       >
         {openPanel && quickStats && (
-          <div className="overflow-hidden rounded-4xl glass">
+          <div
+            id="quick-stats-details"
+            className="overflow-hidden rounded-2xl glass"
+          >
             <div className="flex items-center justify-between border-b border-bento-hairline px-4 py-3">
               <span className="text-sm font-semibold">
                 {openPanel === "income" && "Income Transactions"}
@@ -156,7 +174,8 @@ export function QuickStatsPanel({
               </span>
               <Button
                 variant="ghost"
-                size="icon-sm"
+                size="icon-lg"
+                aria-label="Close transaction details"
                 onClick={() => setOpenPanel(null)}
                 className="text-bento-subtle hover:text-bento-default"
               >

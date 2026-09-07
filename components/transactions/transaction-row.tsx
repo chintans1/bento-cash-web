@@ -1,12 +1,13 @@
 "use client";
 
-import { memo } from "react";
+import { memo, useRef } from "react";
 import { motion } from "motion/react";
 import { AnimatedCollapse } from "@/components/animated-collapse";
 import { CategoryPicker } from "@/components/transactions/category-picker";
 import type { CategoryOption } from "@/components/transactions/category-picker";
 import { EditableText } from "@/components/transactions/editable-text";
 import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
 import { Kbd } from "@/components/ui/kbd";
 import { CategoryIcon } from "@/lib/lunchmoney/category-icons";
 import { categoryColor } from "@/lib/lunchmoney/category-colors";
@@ -61,6 +62,7 @@ export const TransactionRow = memo(function TransactionRow({
   onNotesCancel,
   pickerFinalFocus,
 }: TransactionRowProps) {
+  const detailsButton = useRef<HTMLButtonElement>(null);
   const payee = tx.payee ?? "";
   const amount = parseFloat(tx.amount);
   const isCredit = amount < 0;
@@ -97,8 +99,17 @@ export const TransactionRow = memo(function TransactionRow({
         onClick={() => onToggleExpand(tx.id)}
       >
         <div className="flex min-w-0 items-center gap-3">
-          <div
-            className="flex size-8 shrink-0 items-center justify-center rounded-full"
+          <button
+            ref={detailsButton}
+            aria-label={`${expanded ? "Close" : "Open"} details for ${payee || "transaction"}`}
+            aria-expanded={expanded}
+            aria-controls={`transaction-details-${tx.id}`}
+            title="Category and notes"
+            onClick={(event) => {
+              event.stopPropagation();
+              onToggleExpand(tx.id);
+            }}
+            className="flex size-10 shrink-0 items-center justify-center rounded-full transition-colors hover:ring-2 hover:ring-bento-hairline"
             style={{
               backgroundColor: `color-mix(in oklab, ${color} var(--chip-tint), transparent)`,
             }}
@@ -108,7 +119,7 @@ export const TransactionRow = memo(function TransactionRow({
               className="size-4"
               style={{ color }}
             />
-          </div>
+          </button>
           <div className="min-w-0 flex-1">
             <EditableText
               value={payee}
@@ -128,7 +139,7 @@ export const TransactionRow = memo(function TransactionRow({
               {formatShortDate(tx.date)}
             </span>
             {failed && (
-              <p className="px-1.5 text-xs text-bento-negative">
+              <p role="alert" className="px-1.5 text-xs text-bento-negative">
                 Couldn&apos;t save — change reverted.
               </p>
             )}
@@ -159,34 +170,65 @@ export const TransactionRow = memo(function TransactionRow({
 
       <AnimatedCollapse open={expanded}>
         <div
+          id={`transaction-details-${tx.id}`}
           className="flex flex-col gap-2 border-t border-bento-hairline/50 px-4 pt-2 pb-3"
           onClick={(e) => e.stopPropagation()}
         >
           {/* the row's category cell is hidden on small screens */}
           <div className="sm:hidden">{picker}</div>
+          <label
+            htmlFor={`transaction-notes-${tx.id}`}
+            className="text-xs font-medium"
+          >
+            Notes
+          </label>
           <Textarea
+            id={`transaction-notes-${tx.id}`}
             rows={2}
             placeholder="Add a note…"
             value={notesDraft}
             onChange={(e) => onNotesDraftChange(e.target.value)}
-            onBlur={() => onNotesCommit(tx.id)}
             onKeyDown={(e) => {
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault();
                 onNotesCommit(tx.id);
-                onToggleExpand(tx.id); // saves and closes
+                detailsButton.current?.focus();
               } else if (e.key === "Escape") {
                 e.preventDefault();
                 onNotesCancel(tx.id);
+                detailsButton.current?.focus();
               }
             }}
             autoFocus
             className="resize-none text-sm"
           />
-          <p className="text-[11px] text-bento-subtle">
-            <Kbd>⌘</Kbd>
-            <Kbd>↵</Kbd> to save · <Kbd>esc</Kbd> to cancel
-          </p>
+          <div className="flex items-center justify-between gap-3">
+            <p className="hidden text-xs text-bento-subtle sm:block">
+              <Kbd>⌘ / Ctrl</Kbd> + <Kbd>↵</Kbd> to save
+            </p>
+            <div className="ml-auto flex gap-2">
+              <Button
+                variant="ghost"
+                className="h-10"
+                onClick={() => {
+                  onNotesCancel(tx.id);
+                  detailsButton.current?.focus();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="h-10"
+                disabled={saving}
+                onClick={() => {
+                  onNotesCommit(tx.id);
+                  detailsButton.current?.focus();
+                }}
+              >
+                Save notes
+              </Button>
+            </div>
+          </div>
         </div>
       </AnimatedCollapse>
     </motion.div>

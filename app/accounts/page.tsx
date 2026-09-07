@@ -49,6 +49,7 @@ export default function AccountsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
+      <h1 className="mb-5 font-heading text-2xl font-bold">Accounts</h1>
       {/* Net worth hero */}
       <div className="mb-6 text-center">
         <p className="mb-1 text-sm text-bento-subtle">Net Worth</p>

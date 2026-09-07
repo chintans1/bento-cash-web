@@ -71,7 +71,8 @@ export default function InvestmentsPage() {
     : null;
 
   return (
-    <div className="mx-auto max-w-6xl px-6 pt-6 pb-10">
+    <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
+      <h1 className="mb-5 font-heading text-2xl font-bold">Investments</h1>
       {/* Hero */}
       <div className="mb-6 text-center">
         <p className="mb-1 text-sm text-bento-subtle">Portfolio Value</p>

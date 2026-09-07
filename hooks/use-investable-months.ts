@@ -18,12 +18,14 @@ function subscribe(listener: () => void) {
 }
 
 function readMonths(): number {
-  const parsed = Number.parseInt(localStorage.getItem(STORAGE_KEY) ?? "", 10);
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : DEFAULT_MONTHS;
+  const parsed = Number(localStorage.getItem(STORAGE_KEY));
+  return Number.isInteger(parsed) && parsed >= 1 && parsed <= 24
+    ? parsed
+    : DEFAULT_MONTHS;
 }
 
 function setMonths(value: number) {
-  if (!Number.isFinite(value) || value <= 0) return;
+  if (!Number.isInteger(value) || value < 1 || value > 24) return;
   localStorage.setItem(STORAGE_KEY, String(value));
   listeners.forEach((listener) => listener());
 }

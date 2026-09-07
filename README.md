@@ -18,7 +18,7 @@ No account needed — hit **Try Demo** from the home screen to explore with samp
 
 <img alt="Spend by category with drill-down" src="screenshots/spend-by-category.png">
 
-**Transactions** — searchable, filterable, sortable list for any month. Click a description to rename it, click a category to pick a new one from a searchable list, and expand a row for notes. Every edit applies immediately and writes back to Lunch Money; a failed write rolls the row back and says so.
+**Transactions** — searchable, filterable, sortable list for any month. Click a description to rename it, click a category to pick a new one from a searchable list, and expand a row for notes with explicit Save/Cancel controls. Month selection stays in the URL so dashboard drill-downs preserve context. Committed edits apply immediately and writes back to Lunch Money; a failed write rolls the row back and says so.
 
 Keyboard: `/` focuses search, `[` and `]` step months, `Enter` takes the top match in the category picker. Under the Uncategorized filter, categorizing a row moves focus to the next one, so a queue clears without touching the mouse.
 

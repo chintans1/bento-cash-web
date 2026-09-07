@@ -1,45 +1,46 @@
 "use client";
 
-import { useCallback, useState, useTransition } from "react";
-import { prevMonthOf, nextMonthOf } from "@/lib/date-utils";
+import { useCallback, useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { monthKeyOf, prevMonthOf, nextMonthOf } from "@/lib/date-utils";
 
-type MonthNavigation = {
-  year: number;
-  month: number;
-  onPrev: () => void;
-  onNext: () => void;
-  /** True while React is rendering the new month in the background. */
-  pending: boolean;
-};
-
-/**
- * Owns the selected month, starting at the current one.
- *
- * The month change runs inside a transition: re-rendering a month's worth of
- * cards and charts is a ~170ms job, and as a blocking update it froze the UI
- * between the click and the new data. As a transition React can interrupt that
- * work, so the arrow stays responsive and repeated presses land immediately.
- */
-export function useMonthNavigation(): MonthNavigation {
-  const [{ year, month }, setSelected] = useState(() => {
-    const now = new Date();
-    return { year: now.getFullYear(), month: now.getMonth() + 1 };
-  });
+/** Keep the selected month in the URL so drill-downs and browser history agree. */
+export function useMonthNavigation() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const [pending, startTransition] = useTransition();
+  const now = new Date();
+  const currentKey = monthKeyOf(now.getFullYear(), now.getMonth() + 1);
+  const requested = searchParams.get("month");
+  const key =
+    requested &&
+    /^\d{4}-(0[1-9]|1[0-2])$/.test(requested) &&
+    requested <= currentKey
+      ? requested
+      : currentKey;
+  const [year, month] = key.split("-").map(Number);
 
-  // Stable identities: the transactions page binds these to a window keydown
-  // listener, and new closures each render would re-subscribe it every time.
-  const onPrev = useCallback(() => {
-    startTransition(() =>
-      setSelected((current) => prevMonthOf(current.year, current.month))
-    );
-  }, []);
+  const navigate = useCallback(
+    (next: { year: number; month: number }) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("month", monthKeyOf(next.year, next.month));
+      startTransition(() =>
+        router.push(`${pathname}?${params}`, { scroll: false })
+      );
+    },
+    [pathname, router, searchParams]
+  );
 
+  const onPrev = useCallback(
+    () => navigate(prevMonthOf(year, month)),
+    [navigate, year, month]
+  );
   const onNext = useCallback(() => {
-    startTransition(() =>
-      setSelected((current) => nextMonthOf(current.year, current.month))
-    );
-  }, []);
+    if (key < currentKey) navigate(nextMonthOf(year, month));
+  }, [navigate, year, month, key, currentKey]);
+  const onToday = () =>
+    navigate({ year: now.getFullYear(), month: now.getMonth() + 1 });
 
-  return { year, month, pending, onPrev, onNext };
+  return { year, month, pending, onPrev, onNext, onToday };
 }
