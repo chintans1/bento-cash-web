@@ -161,7 +161,7 @@ export function computeCategoryTotals(
     .slice(0, limit);
 }
 
-/** Returns top merchants (by payee) sorted by spend descending. */
+/** Returns top non-recurring merchants (by payee) sorted by spend descending. */
 export function computeMerchantTotals(
   transactions: Transaction[],
   catMap: Map<number, CategoryInfo>,
@@ -169,6 +169,7 @@ export function computeMerchantTotals(
 ): MerchantTotal[] {
   const map = new Map<string, MerchantTotal>();
   for (const tx of filterSpendTransactions(transactions, catMap)) {
+    if (tx.recurring_id != null) continue;
     const payee = tx.payee?.trim() || "Unknown";
     const prev = map.get(payee) ?? { payee, spend: 0, txCount: 0 };
     map.set(payee, {
@@ -417,17 +418,29 @@ export function computeQuickStats(
 
 export type CumulativeSpendPoint = {
   day: number;
-  /** Cumulative spend in the selected month; null for days that haven't happened yet. */
-  current: number | null;
-  /** Cumulative spend in the previous month up to the same day number. */
-  previous: number | null;
+  /** First day represented by this three-day window. */
+  windowStart: number;
+  /** Cumulative non-recurring spend in the selected month. */
+  currentFlexible: number | null;
+  /** Cumulative recurring spend in the selected month. */
+  currentRecurring: number | null;
+  /** Cumulative total spend in the selected month. */
+  currentTotal: number | null;
+  /** Cumulative non-recurring spend in the previous month. */
+  previousFlexible: number | null;
+  /** Cumulative recurring spend in the previous month. */
+  previousRecurring: number | null;
+  /** Cumulative total spend in the previous month. */
+  previousTotal: number | null;
 };
 
 /**
- * Day-by-day cumulative spend for the selected month against the previous one,
- * so the two months can be drawn on the same axis. The current line stops at
- * today when the selected month is the current month — carrying a flat line to
- * the end of the month would read as "spending stopped".
+ * Three-day cumulative spend windows for the selected month against the
+ * previous one. Grouping days 1–3, 4–6, and so on absorbs small posting-date
+ * differences while retaining the exact cumulative value at every boundary.
+ * Both series stop at the selected month's elapsed day so future spending from
+ * the previous month cannot flatten the period being compared. A partial
+ * current window is included so the headline still reconciles through today.
  */
 export function computeCumulativeSpendComparison(
   transactions: Transaction[],
@@ -446,28 +459,53 @@ export function computeCumulativeSpendComparison(
   const lastDayWithData = isCurrentMonth ? today.getDate() : daysInMonth;
 
   const dayTotals = (txs: Transaction[]) => {
-    const totals = new Map<number, number>();
+    const totals = new Map<number, { flexible: number; recurring: number }>();
     for (const tx of filterSpendTransactions(txs, catMap)) {
       const day = parseInt(tx.date.slice(8, 10), 10);
-      totals.set(day, (totals.get(day) ?? 0) + tx.to_base);
+      const value = totals.get(day) ?? { flexible: 0, recurring: 0 };
+      if (tx.recurring_id != null) {
+        value.recurring += tx.to_base;
+      } else {
+        value.flexible += tx.to_base;
+      }
+      totals.set(day, value);
     }
     return totals;
   };
 
   const currentTotals = dayTotals(transactions);
   const prevTotals = dayTotals(prevTransactions);
+  const comparisonEndDay = Math.min(lastDayWithData, daysInMonth);
+  const pointDays = new Set<number>();
+  for (let day = 3; day <= comparisonEndDay; day += 3) pointDays.add(day);
+  pointDays.add(comparisonEndDay);
 
   const points: CumulativeSpendPoint[] = [];
-  let currentRunning = 0;
-  let prevRunning = 0;
-  for (let day = 1; day <= Math.max(daysInMonth, daysInPrevMonth); day++) {
-    currentRunning += currentTotals.get(day) ?? 0;
-    prevRunning += prevTotals.get(day) ?? 0;
+  let currentFlexible = 0;
+  let currentRecurring = 0;
+  let previousFlexible = 0;
+  let previousRecurring = 0;
+  for (let day = 1; day <= comparisonEndDay; day++) {
+    const current = currentTotals.get(day);
+    const previous = prevTotals.get(day);
+    currentFlexible += current?.flexible ?? 0;
+    currentRecurring += current?.recurring ?? 0;
+    previousFlexible += previous?.flexible ?? 0;
+    previousRecurring += previous?.recurring ?? 0;
+
+    if (!pointDays.has(day)) continue;
+
+    const hasCurrent = day <= Math.min(lastDayWithData, daysInMonth);
+    const hasPrevious = day <= daysInPrevMonth;
     points.push({
       day,
-      current:
-        day <= Math.min(lastDayWithData, daysInMonth) ? currentRunning : null,
-      previous: day <= daysInPrevMonth ? prevRunning : null,
+      windowStart: Math.floor((day - 1) / 3) * 3 + 1,
+      currentFlexible: hasCurrent ? currentFlexible : null,
+      currentRecurring: hasCurrent ? currentRecurring : null,
+      currentTotal: hasCurrent ? currentFlexible + currentRecurring : null,
+      previousFlexible: hasPrevious ? previousFlexible : null,
+      previousRecurring: hasPrevious ? previousRecurring : null,
+      previousTotal: hasPrevious ? previousFlexible + previousRecurring : null,
     });
   }
   return points;

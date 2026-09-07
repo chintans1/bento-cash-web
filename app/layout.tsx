@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { TokenProvider } from "@/hooks/use-token";
 import { AppDataProvider } from "@/hooks/use-app-data";
 import { Header } from "@/components/header";
+import { SessionGate } from "@/components/session-gate";
 import { cn } from "@/lib/utils";
 import { Analytics } from "@vercel/analytics/react";
 
@@ -56,7 +57,7 @@ export default function RootLayout({
           <TokenProvider>
             <AppDataProvider>
               <Header />
-              <main>{children}</main>
+              <SessionGate>{children}</SessionGate>
             </AppDataProvider>
           </TokenProvider>
           <Analytics />
