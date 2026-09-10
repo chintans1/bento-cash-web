@@ -7,6 +7,7 @@ import type {
   ManualAccount,
   PlaidAccount,
   RecurringItem,
+  Tag,
   AlignedSummaryResponse,
   UpdateManualAccountBody,
   components,
@@ -18,6 +19,7 @@ export type {
   ManualAccount,
   PlaidAccount,
   RecurringItem,
+  Tag,
   AlignedSummaryResponse,
 } from "@lunch-money/lunch-money-js-v2";
 
@@ -30,6 +32,21 @@ export type TransactionsResponse = {
   transactions: Transaction[];
   has_more: boolean;
 };
+export type TransactionPatch = Partial<
+  Pick<
+    Transaction,
+    | "date"
+    | "amount"
+    | "currency"
+    | "recurring_id"
+    | "payee"
+    | "category_id"
+    | "notes"
+    | "manual_account_id"
+    | "plaid_account_id"
+    | "tag_ids"
+  >
+> & { status?: "reviewed" | "unreviewed" };
 
 // ── Client interface ────────────────────────────────────────────────────────
 
@@ -40,6 +57,7 @@ export interface LMClient {
     month: number
   ): Promise<TransactionsResponse>;
   getCategories(): Promise<CategoriesResponse>;
+  getTags(): Promise<Tag[]>;
   getAccounts(): Promise<{ manual: ManualAccount[]; plaid: PlaidAccount[] }>;
   getRecurringItems(): Promise<RecurringItem[]>;
   getBalanceHistory(): Promise<BalanceHistoryAccount[]>;
@@ -48,15 +66,13 @@ export interface LMClient {
     month: number
   ): Promise<AlignedSummaryResponse>;
   updateManualAccount(id: number, data: UpdateManualAccountBody): Promise<void>;
-  updateTransactionCategory(
+  updateTransaction(
     transactionId: number,
-    categoryId: number | null
-  ): Promise<void>;
-  updateTransactionNotes(
-    transactionId: number,
-    notes: string | null
-  ): Promise<void>;
-  updateTransactionPayee(transactionId: number, payee: string): Promise<void>;
+    patch: TransactionPatch
+  ): Promise<Partial<Transaction>>;
+  updateTransactions(
+    transactions: (TransactionPatch & { id: number })[]
+  ): Promise<Partial<Transaction>[]>;
 }
 
 const TRANSACTION_PAGE_SIZE = 250;
@@ -94,6 +110,7 @@ export function createRealClient(token: string): LMClient {
           end_date: end,
           limit: TRANSACTION_PAGE_SIZE,
           offset,
+          include_pending: true,
         });
         all.push(...result.transactions);
         hasMore = result.hasMore;
@@ -113,6 +130,8 @@ export function createRealClient(token: string): LMClient {
       const categories = await sdk.categories.getAll();
       return { categories };
     },
+
+    getTags: () => sdk.tags.getAll(),
 
     async getAccounts() {
       const [manual, plaid] = await Promise.all([
@@ -152,19 +171,9 @@ export function createRealClient(token: string): LMClient {
     updateManualAccount: (id, data) =>
       sdk.manualAccounts.update(id, data).then(() => undefined),
 
-    async updateTransactionCategory(transactionId, categoryId) {
-      await sdk.transactions.update(transactionId, {
-        category_id: categoryId ?? null,
-      });
-    },
-
-    async updateTransactionNotes(transactionId, notes) {
-      await sdk.transactions.update(transactionId, { notes: notes ?? null });
-    },
-
-    async updateTransactionPayee(transactionId, payee) {
-      await sdk.transactions.update(transactionId, { payee });
-    },
+    updateTransaction: (id, patch) => sdk.transactions.update(id, patch),
+    updateTransactions: (transactions) =>
+      sdk.transactions.updateMany({ transactions }).then((r) => r.transactions),
   };
 }
 
@@ -199,6 +208,9 @@ export const getTransactionsForMonth = (
 export const getCategories = (): Promise<CategoriesResponse> =>
   cached(KEY.categories, () => activeClient().getCategories());
 
+export const getTags = (): Promise<Tag[]> =>
+  cached(KEY.tags, () => activeClient().getTags());
+
 export const getAccounts = (): Promise<{
   manual: ManualAccount[];
   plaid: PlaidAccount[];
@@ -228,33 +240,24 @@ export const updateManualAccount = async (
   invalidate(KEY.balanceHistory);
 };
 
-/** A transaction edit can move month totals and budget actuals, so drop both. */
-async function afterTransactionWrite(write: Promise<void>): Promise<void> {
-  await write;
+export async function updateTransaction(
+  transactionId: number,
+  patch: TransactionPatch
+): Promise<Partial<Transaction>> {
+  const transaction = await activeClient().updateTransaction(
+    transactionId,
+    patch
+  );
   invalidate(KEY.allTx);
   invalidate(KEY.allBudgets);
+  return transaction;
 }
 
-export const updateTransactionCategory = (
-  transactionId: number,
-  categoryId: number | null
-): Promise<void> =>
-  afterTransactionWrite(
-    activeClient().updateTransactionCategory(transactionId, categoryId)
-  );
-
-export const updateTransactionNotes = (
-  transactionId: number,
-  notes: string | null
-): Promise<void> =>
-  afterTransactionWrite(
-    activeClient().updateTransactionNotes(transactionId, notes)
-  );
-
-export const updateTransactionPayee = (
-  transactionId: number,
-  payee: string
-): Promise<void> =>
-  afterTransactionWrite(
-    activeClient().updateTransactionPayee(transactionId, payee)
-  );
+export async function updateTransactions(
+  transactions: (TransactionPatch & { id: number })[]
+): Promise<Partial<Transaction>[]> {
+  const updated = await activeClient().updateTransactions(transactions);
+  invalidate(KEY.allTx);
+  invalidate(KEY.allBudgets);
+  return updated;
+}

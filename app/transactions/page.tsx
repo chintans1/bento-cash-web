@@ -8,12 +8,15 @@ import {
   useRef,
   useState,
 } from "react";
-import { AnimatePresence } from "motion/react";
 import {
   buildCategoryOptions,
   CategoryFilterPicker,
 } from "@/components/transactions/category-picker";
-import { TransactionRow } from "@/components/transactions/transaction-row";
+import {
+  TransactionRow,
+  TRANSACTION_GRID_COLUMNS,
+} from "@/components/transactions/transaction-row";
+import { TransactionEditor } from "@/components/transactions/transaction-editor";
 import { usePayeeSuggestions } from "@/hooks/use-payee-suggestions";
 import { formatCurrency } from "@/lib/format";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -32,12 +35,20 @@ import { Kbd } from "@/components/ui/kbd";
 import { MonthSelector } from "@/components/dashboard/month-selector";
 import { ButtonGroup } from "@/components/ui/button-group";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  comparePendingFirst,
+  matchesReviewFilter,
+  reviewCounts,
+  type ReviewFilter,
+} from "@/lib/lunchmoney/transaction-state";
+import { cn } from "@/lib/utils";
 
 type SortKey = "date" | "amount" | "payee";
 type SortDir = "asc" | "desc";
 
 /** The "Uncategorized" option in the category filter. */
 const UNCATEGORIZED_FILTER = -1;
+const NO_SELECTION = new Set<number>();
 
 /**
  * Arrow next to the active sort column. Declared at module scope rather than
@@ -57,6 +68,9 @@ function TransactionsPage() {
     primaryCurrency,
     categoryMap,
     catGroups,
+    accounts,
+    tags,
+    recurringItems,
     loading: appLoading,
     error: appError,
   } = useAppData();
@@ -76,10 +90,9 @@ function TransactionsPage() {
     refreshing,
     error: monthError,
     savingIds,
-    failedId,
-    setCategory,
-    setPayee,
-    setNotes,
+    errors,
+    update,
+    reviewMany,
   } = useMonthTransactions(selectedYear, selectedMonth, isAuthenticated);
 
   // Categories come from the app-level fetch, so rows wait on them too — a row
@@ -90,14 +103,38 @@ function TransactionsPage() {
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
   /** Transaction id whose category picker should take focus once the list settles. */
-  const pendingFocusRef = useRef<number | null>(null);
+  const pendingFocusRef = useRef<{
+    id: number;
+    target: "category" | "review";
+  } | null>(null);
   const categoryParam = searchParams.get("category");
   const filterCatId = categoryParam !== null ? Number(categoryParam) : null;
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [expandedTxId, setExpandedTxId] = useState<number | null>(null);
-  // Only one row is open at a time, so one draft is all that's needed.
-  const [notesDraft, setNotesDraft] = useState("");
+  const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
+  const monthKey = `${selectedYear}-${selectedMonth}`;
+  const [selection, setSelection] = useState<{
+    month: string;
+    ids: Set<number>;
+  }>({ month: monthKey, ids: new Set() });
+  const selectedIds =
+    selection.month === monthKey ? selection.ids : NO_SELECTION;
+  const [editingId, setEditingId] = useState<number | null>(null);
+
+  const accountNames = useMemo(
+    () =>
+      new Map(
+        accounts.map((account) => [
+          `${account.source}-${account.rawId}`,
+          account.name,
+        ])
+      ),
+    [accounts]
+  );
+  const tagNames = useMemo(
+    () => new Map(tags.map((tag) => [tag.id, tag.name])),
+    [tags]
+  );
 
   // Page-level shortcuts. Ignored while typing so they never eat input.
   useEffect(() => {
@@ -134,10 +171,28 @@ function TransactionsPage() {
       if (
         q &&
         !tx.payee?.toLowerCase().includes(q) &&
-        !tx.notes?.toLowerCase().includes(q)
+        !tx.original_name?.toLowerCase().includes(q) &&
+        !tx.notes?.toLowerCase().includes(q) &&
+        !categoryMap
+          .get(tx.category_id ?? -1)
+          ?.name.toLowerCase()
+          .includes(q) &&
+        !accountNames
+          .get(
+            tx.manual_account_id != null
+              ? `manual-${tx.manual_account_id}`
+              : tx.plaid_account_id != null
+                ? `plaid-${tx.plaid_account_id}`
+                : "cash"
+          )
+          ?.toLowerCase()
+          .includes(q) &&
+        !tx.tag_ids.some((id) => tagNames.get(id)?.toLowerCase().includes(q)) &&
+        !tx.amount.includes(q)
       ) {
         return false;
       }
+      if (!matchesReviewFilter(tx, reviewFilter)) return false;
       if (filterCatId === null) return true;
       return filterCatId === UNCATEGORIZED_FILTER
         ? tx.category_id == null
@@ -145,6 +200,9 @@ function TransactionsPage() {
     });
 
     result.sort((a, b) => {
+      const pendingOrder = comparePendingFirst(a, b);
+      if (pendingOrder !== 0) return pendingOrder;
+
       const cmp =
         sortKey === "date"
           ? a.date.localeCompare(b.date)
@@ -154,7 +212,19 @@ function TransactionsPage() {
       return sortDir === "asc" ? cmp : -cmp;
     });
     return result;
-  }, [transactions, query, filterCatId, sortKey, sortDir]);
+  }, [
+    transactions,
+    query,
+    filterCatId,
+    reviewFilter,
+    sortKey,
+    sortDir,
+    categoryMap,
+    accountNames,
+    tagNames,
+  ]);
+
+  const counts = useMemo(() => reviewCounts(transactions), [transactions]);
 
   const categoryOptions = useMemo(
     () => buildCategoryOptions(catGroups),
@@ -177,25 +247,24 @@ function TransactionsPage() {
     Runs after the list has re-rendered without the categorized row. A ref
     rather than state: this schedules a DOM side effect, not a render.
 
-    Focus targets a specific transaction rather than a row index, because the
-    categorized row lingers in the DOM for its exit animation — an index would
-    land on the row that is on its way out, and focus would fall to <body> when
-    it finally left.
+    Focus targets a specific transaction rather than a row index because the
+    filtered list can reorder or remove rows before the next frame.
   */
   useEffect(() => {
-    const nextId = pendingFocusRef.current;
-    if (nextId == null) return;
+    const pendingFocus = pendingFocusRef.current;
+    if (pendingFocus == null) return;
     pendingFocusRef.current = null;
 
     const frame = requestAnimationFrame(() => {
       const row = document.querySelector<HTMLElement>(
-        `[data-tx-id="${nextId}"]`
+        `[data-tx-id="${pendingFocus.id}"]`
       );
-      const picker = row?.querySelector<HTMLElement>("[role='combobox']");
-      // On phones the picker is inside the closed details panel.
-      const target = picker?.getClientRects().length
-        ? picker
-        : row?.querySelector<HTMLElement>("button[aria-controls]");
+      const target =
+        pendingFocus.target === "review"
+          ? row?.querySelector<HTMLElement>(
+              "button[aria-label='Mark reviewed']"
+            )
+          : row?.querySelector<HTMLElement>("[role='combobox']");
       target?.focus();
     });
     return () => cancelAnimationFrame(frame);
@@ -218,13 +287,6 @@ function TransactionsPage() {
     }
   }
 
-  const handleToggleExpand = useCallback((txId: number) => {
-    setExpandedTxId((prev) => (prev === txId ? null : txId));
-    setNotesDraft(
-      filteredRef.current.find((tx) => tx.id === txId)?.notes ?? ""
-    );
-  }, []);
-
   /**
    * When we're advancing to the next uncategorized row, the picker's own focus
    * restore would aim at the trigger that is about to leave the list, dropping
@@ -246,36 +308,71 @@ function TransactionsPage() {
         const current = filteredRef.current;
         const index = current.findIndex((tx) => tx.id === txId);
         const remaining = current.filter((tx) => tx.id !== txId);
-        pendingFocusRef.current =
-          (remaining[index] ?? remaining.at(-1))?.id ?? null;
+        const next = remaining[index] ?? remaining.at(-1);
+        pendingFocusRef.current = next
+          ? { id: next.id, target: "category" }
+          : null;
       }
 
-      setCategory(txId, newCatId);
+      void update(txId, { category_id: newCatId });
     },
-    [filterCatId, setCategory]
+    [filterCatId, update]
   );
 
-  const handleNotesCommit = useCallback(
-    (txId: number) => {
-      setNotes(txId, notesDraft.trim() || null);
-      setExpandedTxId(null);
+  const setSelected = useCallback(
+    (id: number, selected: boolean) => {
+      setSelection((current) => {
+        const next = new Set(current.month === monthKey ? current.ids : []);
+        if (selected) next.add(id);
+        else next.delete(id);
+        return { month: monthKey, ids: next };
+      });
     },
-    [notesDraft, setNotes]
+    [monthKey]
   );
 
-  const handleNotesCancel = useCallback((txId: number) => {
-    setNotesDraft(
-      filteredRef.current.find((tx) => tx.id === txId)?.notes ?? ""
-    );
-    setExpandedTxId(null);
-  }, []);
+  const handleReview = useCallback(
+    (id: number, reviewed: boolean) => {
+      if (reviewFilter === "unreviewed" && reviewed) {
+        const current = filteredRef.current;
+        const index = current.findIndex((transaction) => transaction.id === id);
+        const remaining = current.filter(
+          (transaction) => transaction.id !== id
+        );
+        const next = remaining[index] ?? remaining.at(-1);
+        pendingFocusRef.current = next
+          ? { id: next.id, target: "review" }
+          : null;
+      }
+      if (reviewed) setSelected(id, false);
+      void update(id, { status: reviewed ? "reviewed" : "unreviewed" });
+    },
+    [reviewFilter, setSelected, update]
+  );
+
+  const editingTransaction =
+    editingId == null
+      ? null
+      : (transactions.find((transaction) => transaction.id === editingId) ??
+        null);
 
   if (!isAuthenticated) return <NoTokenPrompt />;
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="font-heading text-2xl font-bold">Transactions</h1>
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-balance">
+            Transactions
+          </h1>
+          <p className="mt-1 text-sm text-bento-subtle tabular-nums">
+            {counts.unreviewed === 0
+              ? "Everything is reviewed"
+              : `${counts.unreviewed} to review`}
+            {counts.pending > 0 && ` · ${counts.pending} pending`}
+            {counts.attention > 0 && ` · ${counts.attention} need attention`}
+          </p>
+        </div>
         <MonthSelector
           year={selectedYear}
           month={selectedMonth}
@@ -287,9 +384,63 @@ function TransactionsPage() {
         />
       </div>
 
+      <div className="mb-4 grid grid-cols-4 items-center gap-1 rounded-full bg-bento-muted p-1 sm:flex sm:w-fit">
+        {(
+          [
+            ["all", "All", "All", transactions.length],
+            ["unreviewed", "Needs review", "Review", counts.unreviewed],
+            ["pending", "Pending", "Pending", counts.pending],
+            ["attention", "Attention", "Attention", counts.attention],
+          ] as const
+        ).map(([value, label, mobileLabel, count]) => (
+          <button
+            key={value}
+            type="button"
+            aria-pressed={reviewFilter === value}
+            className={cn(
+              "min-h-10 min-w-0 flex-1 rounded-full px-1 text-xs font-medium whitespace-nowrap transition-[color,background-color,box-shadow] sm:flex-none sm:px-3 sm:text-sm",
+              reviewFilter === value
+                ? "bg-card text-bento-default shadow-sm"
+                : "text-bento-subtle hover:text-bento-default"
+            )}
+            onClick={() => setReviewFilter(value)}
+          >
+            <span className="sm:hidden">{mobileLabel}</span>
+            <span className="hidden sm:inline">{label}</span>{" "}
+            <span className="tabular-nums">{count}</span>
+          </button>
+        ))}
+      </div>
+
+      {selectedIds.size > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-2xl bg-bento-default px-3 py-2 text-sm text-bento-base shadow-lg">
+          <span className="mr-auto px-1 font-medium tabular-nums">
+            {selectedIds.size} selected
+          </span>
+          <Button
+            variant="secondary"
+            className="h-10"
+            onClick={() => {
+              void reviewMany([...selectedIds]).then((saved) => {
+                if (saved) setSelection({ month: monthKey, ids: new Set() });
+              });
+            }}
+          >
+            Mark reviewed
+          </Button>
+          <Button
+            variant="ghost"
+            className="h-10 text-bento-base hover:text-bento-default"
+            onClick={() => setSelection({ month: monthKey, ids: new Set() })}
+          >
+            Clear
+          </Button>
+        </div>
+      )}
+
       {/* Filters */}
-      <div className="mb-4 flex flex-wrap gap-2">
-        <ButtonGroup className="relative min-w-48 flex-1">
+      <div className="mb-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_11rem]">
+        <ButtonGroup className="relative w-full min-w-0">
           <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-3.5 -translate-y-1/2 text-bento-subtle" />
           <Input
             ref={searchRef}
@@ -337,14 +488,40 @@ function TransactionsPage() {
       </div>
 
       {/* Table header */}
-      <div className="mb-1 grid grid-cols-[1fr_80px] items-center gap-4 px-3 text-xs font-semibold tracking-wide text-bento-subtle uppercase sm:grid-cols-[1fr_160px_72px_96px]">
+      <div
+        className={cn(
+          "mb-1 grid items-center gap-2 px-3 text-xs font-semibold tracking-wide text-bento-subtle",
+          TRANSACTION_GRID_COLUMNS
+        )}
+      >
+        <button
+          type="button"
+          aria-label="Select all visible transactions"
+          className="min-h-10"
+          onClick={() => {
+            const eligible = filtered.filter(
+              (transaction) =>
+                transaction.status === "unreviewed" && !transaction.is_pending
+            );
+            setSelection({
+              month: monthKey,
+              ids: eligible.every((transaction) =>
+                selectedIds.has(transaction.id)
+              )
+                ? new Set()
+                : new Set(eligible.map((transaction) => transaction.id)),
+            });
+          }}
+        >
+          <span className="sr-only">Select</span>
+        </button>
         <button
           className="min-h-10 text-left hover:text-bento-default"
           onClick={() => toggleSort("payee")}
         >
           Payee <SortIcon active={sortKey === "payee"} dir={sortDir} />
         </button>
-        <span className="hidden sm:block">Category</span>
+        <span className="hidden pl-2 sm:block">Category</span>
         <button
           className="hidden min-h-10 text-center hover:text-bento-default sm:block"
           onClick={() => toggleSort("date")}
@@ -352,11 +529,13 @@ function TransactionsPage() {
           Date <SortIcon active={sortKey === "date"} dir={sortDir} />
         </button>
         <button
-          className="min-h-10 text-right hover:text-bento-default"
+          className="hidden min-h-10 text-right hover:text-bento-default sm:block"
           onClick={() => toggleSort("amount")}
         >
           Amount <SortIcon active={sortKey === "amount"} dir={sortDir} />
         </button>
+        <span />
+        <span />
       </div>
 
       {loading ? (
@@ -401,34 +580,37 @@ function TransactionsPage() {
             inert={refreshing || pending}
             className="relative divide-y divide-bento-hairline/50 overflow-hidden rounded-2xl glass"
           >
-            <AnimatePresence mode="popLayout" initial={false}>
-              {filtered.map((tx) => (
-                <TransactionRow
-                  key={tx.id}
-                  transaction={tx}
-                  categoryName={
-                    (tx.category_id != null
-                      ? categoryMap.get(tx.category_id)
-                      : undefined
-                    )?.name ?? UNCATEGORIZED.name
-                  }
-                  primaryCurrency={primaryCurrency}
-                  categoryOptions={categoryOptions}
-                  payeeSuggestions={payeeSuggestions}
-                  expanded={expandedTxId === tx.id}
-                  saving={savingIds.has(tx.id)}
-                  failed={failedId === tx.id}
-                  notesDraft={notesDraft}
-                  onToggleExpand={handleToggleExpand}
-                  onPayeeChange={setPayee}
-                  onCategoryChange={handleCategoryChange}
-                  onNotesDraftChange={setNotesDraft}
-                  onNotesCommit={handleNotesCommit}
-                  onNotesCancel={handleNotesCancel}
-                  pickerFinalFocus={keepFocusWhileAdvancing}
-                />
-              ))}
-            </AnimatePresence>
+            {filtered.map((tx) => (
+              <TransactionRow
+                key={tx.id}
+                transaction={tx}
+                categoryName={
+                  (tx.category_id != null
+                    ? categoryMap.get(tx.category_id)
+                    : undefined
+                  )?.name ?? UNCATEGORIZED.name
+                }
+                accountName={
+                  tx.manual_account_id != null
+                    ? accountNames.get(`manual-${tx.manual_account_id}`)
+                    : tx.plaid_account_id != null
+                      ? accountNames.get(`plaid-${tx.plaid_account_id}`)
+                      : "Cash transaction"
+                }
+                primaryCurrency={primaryCurrency}
+                categoryOptions={categoryOptions}
+                payeeSuggestions={payeeSuggestions}
+                saving={savingIds.has(tx.id)}
+                error={errors.get(tx.id)}
+                selected={selectedIds.has(tx.id)}
+                onSelect={setSelected}
+                onOpen={setEditingId}
+                onPayeeChange={(id, payee) => void update(id, { payee })}
+                onCategoryChange={handleCategoryChange}
+                onReview={handleReview}
+                pickerFinalFocus={keepFocusWhileAdvancing}
+              />
+            ))}
           </div>
 
           {/* Footer summary */}
@@ -442,6 +624,21 @@ function TransactionsPage() {
             </span>
           </div>
         </>
+      )}
+
+      {editingTransaction && (
+        <TransactionEditor
+          key={editingTransaction.id}
+          transaction={editingTransaction}
+          categoryOptions={categoryOptions}
+          accounts={accounts}
+          tags={tags}
+          recurringItems={recurringItems}
+          saving={savingIds.has(editingTransaction.id)}
+          error={errors.get(editingTransaction.id)}
+          onClose={() => setEditingId(null)}
+          onSave={(patch) => update(editingTransaction.id, patch)}
+        />
       )}
     </div>
   );

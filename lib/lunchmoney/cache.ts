@@ -24,6 +24,7 @@ const BUDGET = "budget:";
 export const KEY = {
   me: "me",
   categories: "categories",
+  tags: "tags",
   accounts: "accounts",
   recurring: "recurring",
   balanceHistory: "balance-history",

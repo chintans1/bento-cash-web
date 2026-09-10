@@ -167,7 +167,7 @@ export function EditableText({
       <span className="truncate text-sm font-medium">
         {value || <span className="text-bento-subtle">{placeholder}</span>}
       </span>
-      <Pencil className="size-3 shrink-0 text-bento-subtle opacity-0 transition-opacity group-hover/edit:opacity-100" />
+      <Pencil className="size-3 shrink-0 text-bento-subtle opacity-100 transition-opacity sm:opacity-0 sm:group-focus-within/edit:opacity-100 sm:group-hover/edit:opacity-100" />
     </button>
   );
 }

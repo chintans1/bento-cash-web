@@ -32,9 +32,6 @@ popover` could not reach `ui.shadcn.com` from the sandboxed dev environment;
 - `useAccounts` never retries after a failed request — the error sticks for the
   session and the only way out is a reload. Needs a retry path, or refetch when
   the page regains focus.
-- Rolling back a failed save restores the row as it was when _that_ edit
-  started. Two quick edits to the same row, where the first fails after the
-  second succeeds, would take the second edit down with it.
 - `growth-projection.tsx` reads `monthly_contribution` from `localStorage` in a
   render-time initializer. It doesn't currently mismatch, because the auth gate
   keeps the component out of the server render — but it's the same pattern
@@ -46,17 +43,6 @@ popover` could not reach `ui.shadcn.com` from the sandboxed dev environment;
 - **Bulk edit** — select multiple transactions and categorize them in one go.
   The single-row flow is fast now; the queue-clearing case is where volume
   lives.
-- **Reviewed / unreviewed transactions** — the API returns
-  `status: "reviewed" | "unreviewed" | "delete_pending"` on every transaction
-  and `getTransactionsForMonth` already fetches it unfiltered, but nothing in
-  the app reads or writes it. Showing a badge on unreviewed rows and filtering
-  to them is free from data we hold; marking a row reviewed needs a new
-  `updateTransactionStatus` in the client plus the optimistic-update and
-  rollback path the category edit uses. Note pending transactions always come
-  back `unreviewed`, so a review queue needs to decide whether to include them
-  — everywhere else the app excludes `is_pending`.
-- **Rules** — "always categorize Whole Foods as Groceries". LM has a rules API;
-  applying one from a transaction row is the natural entry point.
 - **Split transactions** — LM supports children; the app treats every
   transaction as atomic.
 - **Search across months.** Search is client-side over the loaded month only.
@@ -68,8 +54,6 @@ popover` could not reach `ui.shadcn.com` from the sandboxed dev environment;
   every component is verified by hand or with an ad-hoc Playwright script.
   Worth a real Playwright suite in-repo covering the editing flows, since those
   are the ones that touch the live API.
-- Demo data has no pending transactions, so the pending-exclusion behavior
-  (which was wrong until recently) is only pinned by unit tests.
 
 ## Housekeeping
 

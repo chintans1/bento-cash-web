@@ -1,11 +1,17 @@
 "use client";
 
 import { createContext, use, useEffect, useState } from "react";
-import type { AccountType } from "@lunch-money/lunch-money-js-v2";
+import type {
+  AccountType,
+  RecurringItem,
+  Tag,
+} from "@lunch-money/lunch-money-js-v2";
 import {
   getAccounts,
   getCategories,
   getMe,
+  getRecurringItems,
+  getTags,
   type UserInfo,
 } from "@/lib/lunchmoney/client";
 import {
@@ -21,6 +27,8 @@ type AppData = {
   user: UserInfo | null;
   primaryCurrency: string;
   accounts: NormalizedAccount[];
+  tags: Tag[];
+  recurringItems: RecurringItem[];
   categoryMap: Map<number, CategoryInfo>;
   catGroups: CategoryGroupEntry[];
 };
@@ -36,6 +44,8 @@ const EMPTY: AppData = {
   user: null,
   primaryCurrency: "usd",
   accounts: [],
+  tags: [],
+  recurringItems: [],
   categoryMap: new Map(),
   catGroups: [],
 };
@@ -66,8 +76,14 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
     let cancelled = false;
 
-    Promise.all([getMe(), getAccounts(), getCategories()])
-      .then(([user, { manual, plaid }, catRes]) => {
+    Promise.all([
+      getMe(),
+      getAccounts(),
+      getCategories(),
+      getTags(),
+      getRecurringItems(),
+    ])
+      .then(([user, { manual, plaid }, catRes, tags, recurringItems]) => {
         if (cancelled) return;
         setLoaded({
           session,
@@ -75,6 +91,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
             user,
             primaryCurrency: user.primary_currency,
             accounts: normalizeAccounts(manual, plaid),
+            tags,
+            recurringItems,
             ...buildCategoryData(catRes),
           },
         });
