@@ -53,11 +53,11 @@ export function CashOverview({
         {checkingTotal > 0 && savingsTotal > 0 && (
           <div className="flex h-2 w-full overflow-hidden rounded-full">
             <div
-              className="h-full bg-cat-1 transition-[width]"
+              className="h-full bg-cat-2 transition-[width]"
               style={{ width: `${checkingPct}%` }}
             />
             <div
-              className="h-full bg-cat-2 transition-[width]"
+              className="h-full bg-cat-4 transition-[width]"
               style={{ width: `${savingsPct}%` }}
             />
           </div>
@@ -67,7 +67,7 @@ export function CashOverview({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 shrink-0 rounded-full bg-cat-1" />
+                <div className="h-2 w-2 shrink-0 rounded-full bg-cat-2" />
                 <span className="text-sm text-bento-subtle">Checking</span>
               </div>
               <span className="font-mono text-sm font-medium tabular-nums">
@@ -98,7 +98,7 @@ export function CashOverview({
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 shrink-0 rounded-full bg-cat-2" />
+                <div className="h-2 w-2 shrink-0 rounded-full bg-cat-4" />
                 <span className="text-sm text-bento-subtle">Savings</span>
               </div>
               <span className="font-mono text-sm font-medium tabular-nums">

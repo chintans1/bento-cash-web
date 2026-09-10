@@ -33,7 +33,6 @@ import { Input } from "@/components/ui/input";
 import { Search, X } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
 import { MonthSelector } from "@/components/dashboard/month-selector";
-import { ButtonGroup } from "@/components/ui/button-group";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   comparePendingFirst,
@@ -440,11 +439,11 @@ function TransactionsPage() {
 
       {/* Filters */}
       <div className="mb-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_11rem]">
-        <ButtonGroup className="relative w-full min-w-0">
+        <div className="relative min-w-0">
           <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-3.5 -translate-y-1/2 text-bento-subtle" />
           <Input
             ref={searchRef}
-            className="h-10 pl-8 text-sm"
+            className="h-10 rounded-3xl pr-12 pl-8 text-sm"
             aria-label="Search transactions"
             placeholder="Search descriptions or notes…"
             value={query}
@@ -458,9 +457,9 @@ function TransactionsPage() {
           />
           {query ? (
             <Button
-              variant="outline"
+              variant="ghost"
               size="icon-sm"
-              className="h-10"
+              className="absolute top-0 right-0 size-10 rounded-full"
               aria-label="Clear search"
               onClick={() => setQuery("")}
             >
@@ -471,7 +470,7 @@ function TransactionsPage() {
               /
             </Kbd>
           )}
-        </ButtonGroup>
+        </div>
 
         <CategoryFilterPicker
           categoryId={filterCatId}
