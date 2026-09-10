@@ -127,13 +127,13 @@ Backed by `useSyncExternalStore` rather than an effect: the server snapshot is n
 
 ### `hooks/use-app-data.tsx`
 
-The app-wide fetch — user, accounts, and categories — mounted once in `layout.tsx`. These depend on the account, not on the month on screen, so every page reads them from here instead of fetching for itself; `useDashboardData` included.
+The app-wide fetch — user, accounts, categories, tags, and recurring items — mounted once in `layout.tsx`. These depend on the account, not on the month on screen, so every page reads them from here instead of fetching for itself; `useDashboardData` included.
 
 Results are tagged with the session (`"demo"`, or the token) they were fetched for and `data` is only used when that tag matches, so signing out or switching accounts drops the previous account's data without a reset step — and `loading` falls out of the same check rather than being a flag.
 
 ### `hooks/use-month-transactions.ts`
 
-One month of transactions plus the optimistic edits the transactions page makes on them (`setCategory`, `setPayee`, `setNotes`). Each edit patches local state, then persists; a failure rolls that row back and flags it. The mutators are stable identities and read the pre-edit row from a ref rather than from `transactions`, because the page hands them to memoized rows where a new identity per edit would defeat the memo.
+One month of posted and pending transactions plus optimistic single and bulk updates. Edits carry a revision per field, so a late response cannot overwrite a newer change; failures roll back only the fields still owned by that request. Successful date changes remove a transaction when it leaves the loaded month. The hook exposes one generic `update` function and a bulk `reviewMany` operation.
 
 ### `hooks/use-transaction-history.ts`
 
@@ -149,17 +149,18 @@ Thin wrappers around `LunchMoneyClient` from `@lunch-money/lunch-money-js-v2`. T
 
 Exported functions:
 
-| Function                                        | SDK call                                             | Notes                                               |
-| ----------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------- |
-| `getMe(token)`                                  | `user.getMe()`                                       | Returns `UserInfo` including `primary_currency`     |
-| `getTransactionsForMonth(token, year, month)`   | `transactions.getAll()`                              | Sorts by `created_at` desc; limit 250               |
-| `getCategories(token)`                          | `categories.getAll()`                                | Returns `{ categories: Category[] }`                |
-| `getAccounts(token)`                            | `manualAccounts.getAll()` + `plaidAccounts.getAll()` | Both fetched in parallel                            |
-| `getRecurringItems(token)`                      | `recurringItems.getAll()`                            | Returns LM's native recurring item list             |
-| `getBalanceHistory(token)`                      | `rawClient.GET("/balance_history")`                  | Every month of balance history, for every account   |
-| `getBudgetSummary(token, year, month)`          | `summary.get()`                                      | Budget vs. actual per category                      |
-| `updateTransactionCategory(token, txId, catId)` | `transactions.update()`                              | Writes back to LM; `catId=null` clears the category |
-| `updateTransactionPayee(token, txId, payee)`    | `transactions.update()`                              | Renames a transaction's description                 |
+| Function                                      | SDK call                                             | Notes                                             |
+| --------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------- |
+| `getMe(token)`                                | `user.getMe()`                                       | Returns `UserInfo` including `primary_currency`   |
+| `getTransactionsForMonth(token, year, month)` | `transactions.getAll()`                              | Includes pending and follows every result page    |
+| `getCategories(token)`                        | `categories.getAll()`                                | Returns `{ categories: Category[] }`              |
+| `getTags(token)`                              | `tags.getAll()`                                      | Tags available for transaction editing            |
+| `getAccounts(token)`                          | `manualAccounts.getAll()` + `plaidAccounts.getAll()` | Both fetched in parallel                          |
+| `getRecurringItems(token)`                    | `recurringItems.getAll()`                            | Returns LM's native recurring item list           |
+| `getBalanceHistory(token)`                    | `rawClient.GET("/balance_history")`                  | Every month of balance history, for every account |
+| `getBudgetSummary(token, year, month)`        | `summary.get()`                                      | Budget vs. actual per category                    |
+| `updateTransaction(token, txId, patch)`       | `transactions.update()`                              | Atomic typed patch; returns the canonical result  |
+| `updateTransactions(token, patches)`          | `transactions.updateMany()`                          | Bulk transaction updates                          |
 
 ### `lib/lunchmoney/cache.ts`
 
@@ -244,15 +245,17 @@ The main analytics view. Fetches current month + previous month transactions in 
 
 Full searchable, filterable, sortable transaction list for a given month. The `month=YYYY-MM` URL parameter is shared with the overview; drill-down links preserve it, browser history restores it, and This month returns to the current period.
 
-- **Search** — filters by payee or notes (case-insensitive substring)
+- **Search** — filters by payee, original statement name, notes, category, account, tags, or amount (case-insensitive substring)
 - **Category filter** — dropdown of categories present in that month's data; "Uncategorized" option filters to `category_id == null`
+- **Review views** — All, Needs review, Pending, and Attention. All contains every transaction; Pending is a focused shortcut, and pending transactions remain excluded from the actionable review count
 - **Sort** — payee, date, amount; toggle asc/desc
 - **Inline description edit** — click the payee → it becomes an input in place. Enter or blur commits, Escape reverts. (`components/transactions/editable-text.tsx`)
 - **Category picker** — click the category chip → a searchable list (`components/transactions/category-picker.tsx`). The tree is flattened into one flat list with the group name on each row, because typing three letters beats scrolling to the right group. Typing then pressing Enter takes the top match; arrow keys and clicking work as usual. Each row has a keyboard-accessible details button, description editor, and category picker
-- **Every edit is optimistic** — local state updates immediately and the request goes out after. A failure rolls the row back to its previous values and shows "Couldn't save" on it, so an edit is never silently lost. All three fields (description, category, notes) go through the same `save()` helper
-- **Notes** — click a row or its category icon to expand its detail panel. Use Save notes or `⌘/Ctrl + Enter` to save and close; Cancel or `Escape` discards the draft. Blurring does not save. Focus returns to the details button. On small screens the panel also carries the category picker, since the row's category cell is hidden there
+- **Review** — the trailing check toggles a posted transaction's status. In Needs review, a completed row leaves the queue and focus advances. Selection enables one bulk API request to mark many rows reviewed
+- **Details editor** — a persistent trailing chevron signals that each row opens. Clicking the category icon or any non-control area of a row opens a responsive side sheet for status, payee, original statement name, date, amount, currency, category, account, recurring item, tags, notes, source, and timestamps. Direct controls keep their own behavior. Changes are submitted as one atomic patch; locked synced accounts and split/group transactions explain their restrictions
+- **Every edit is optimistic** — local state updates immediately and the request goes out after. Each field is revisioned independently, the server's canonical response is installed, and failures roll back only the affected fields with a row-level message
 - **Keyboard** — `/` focuses search (`Esc` clears it and lets go), `[` and `]` step months. All are ignored while typing, so they never eat input
-- **Clearing the uncategorized queue** — when the Uncategorized filter is on, categorizing a row moves focus to the next row's picker (or its details button on phones), so `Enter → type → Enter` repeats without touching the mouse. Focus targets a specific transaction id rather than a row index, because the categorized row lingers in the DOM for its exit animation. Outside that filter focus is left alone, where moving it would be surprising
+- **Clearing the uncategorized queue** — when the Uncategorized filter is on, categorizing a row moves focus to the next row's picker (or its details button on phones), so `Enter → type → Enter` repeats without touching the mouse. Focus targets a specific transaction id rather than a row index because the categorized row is removed immediately. Outside that filter focus is left alone, where moving it would be surprising
 - **Footer** — shows transaction count and total spend for the current filtered view
 
 Rows live in `components/transactions/transaction-row.tsx` and are memoized. The page re-renders on every keystroke in the search box, so the row callbacks are wrapped in `useCallback` and the filtered list is mirrored in a ref — without stable identities the memo would never hit and each character would re-render every visible row, picker and collapse included.
@@ -293,15 +296,15 @@ Keep the editorial headings and green accent. Use `bento-raised` for row hovers 
 
 App code should use the semantic `bento-*` tokens rather than raw Tailwind palette colors, so both themes stay in sync:
 
-| Token                               | Use                                                     |
-| ----------------------------------- | ------------------------------------------------------- |
-| `bento-base` / `bento-surface`      | page background / card background                       |
+| Token                               | Use                                               |
+| ----------------------------------- | ------------------------------------------------- |
+| `bento-base` / `bento-surface`      | page background / card background                 |
 | `bento-glass` / `bento-raised`      | solid panel fill / translucent overlay on a panel |
-| `bento-default` / `bento-subtle`    | primary / secondary text                                |
-| `bento-hairline` / `bento-muted`    | borders and tracks / muted fills                        |
-| `bento-brand` / `bento-brand-fg`    | brand accent and text on it                             |
-| `bento-positive` / `bento-negative` | money in / money out, under / over budget               |
-| `cat-1` … `cat-7`                   | category accents (see `category-colors.ts`)             |
+| `bento-default` / `bento-subtle`    | primary / secondary text                          |
+| `bento-hairline` / `bento-muted`    | borders and tracks / muted fills                  |
+| `bento-brand` / `bento-brand-fg`    | brand accent and text on it                       |
+| `bento-positive` / `bento-negative` | money in / money out, under / over budget         |
+| `cat-1` … `cat-7`                   | category accents (see `category-colors.ts`)       |
 
 ---
 

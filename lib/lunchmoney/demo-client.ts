@@ -2,14 +2,17 @@ import type {
   User,
   Category,
   ManualAccount,
+  PlaidAccount,
   RecurringItem,
   AlignedSummaryResponse,
   Transaction,
+  Tag,
 } from "@lunch-money/lunch-money-js-v2";
 import type {
   LMClient,
   BalanceHistoryAccount,
   CategoriesResponse,
+  TransactionPatch,
   TransactionsResponse,
 } from "./client";
 
@@ -73,6 +76,37 @@ function demoAccount(
   };
 }
 
+function demoPlaidAccount(
+  seed: Pick<
+    PlaidAccount,
+    | "id"
+    | "name"
+    | "display_name"
+    | "type"
+    | "subtype"
+    | "mask"
+    | "institution_name"
+    | "balance"
+    | "to_base"
+  >
+): PlaidAccount {
+  return {
+    plaid_item_id: "demo-plaid-item",
+    date_linked: "2025-01-01",
+    linked_by_name: "Alex Demo",
+    status: "active",
+    allow_transaction_modifications: true,
+    limit: 15000,
+    currency: "usd",
+    balance_last_update: TS,
+    import_start_date: "2025-01-01",
+    last_import: TS,
+    last_fetch: TS,
+    plaid_last_successful_update: TS,
+    ...seed,
+  };
+}
+
 function demoRecurring(seed: {
   id: number;
   payee: string;
@@ -104,11 +138,32 @@ function demoRecurring(seed: {
   };
 }
 
+function demoTag(
+  seed: Pick<Tag, "id" | "name" | "text_color" | "background_color">
+): Tag {
+  return {
+    description: null,
+    archived: false,
+    archived_at: null,
+    created_at: TS,
+    updated_at: TS,
+    ...seed,
+  };
+}
+
 function demoTransaction(
   seed: Pick<
     Transaction,
     "id" | "date" | "payee" | "amount" | "category_id" | "notes"
-  > & { recurring_id?: number | null }
+  > & {
+    recurring_id?: number | null;
+    status?: Transaction["status"];
+    is_pending?: boolean;
+    manual_account_id?: number | null;
+    plaid_account_id?: number | null;
+    tag_ids?: number[];
+    source?: Transaction["source"];
+  }
 ): Transaction {
   return {
     currency: "usd",
@@ -200,6 +255,20 @@ const DEMO_ACCOUNTS: ManualAccount[] = [
   },
 ].map(demoAccount);
 
+const DEMO_PLAID_ACCOUNTS: PlaidAccount[] = [
+  {
+    id: 1101,
+    name: "Gold Card",
+    display_name: "Amex Gold",
+    type: "credit",
+    subtype: "credit card",
+    mask: "1008",
+    institution_name: "American Express",
+    balance: "1284.62",
+    to_base: 1284.62,
+  },
+].map(demoPlaidAccount);
+
 const DEMO_RECURRING: RecurringItem[] = [
   { id: 2001, payee: "Landlord", amount: "2100.00" },
   { id: 2002, payee: "Netflix", amount: "15.99" },
@@ -207,6 +276,42 @@ const DEMO_RECURRING: RecurringItem[] = [
   { id: 2004, payee: "Con Edison", amount: "145.00" },
   { id: 2005, payee: "Planet Fitness", amount: "24.99" },
 ].map(demoRecurring);
+
+const DEMO_TAGS: Tag[] = [
+  {
+    id: 3001,
+    name: "Groceries",
+    text_color: "#166534",
+    background_color: "#dcfce7",
+  },
+  {
+    id: 3002,
+    name: "Work",
+    text_color: "#1e40af",
+    background_color: "#dbeafe",
+  },
+  {
+    id: 3003,
+    name: "Vacation",
+    text_color: "#9a3412",
+    background_color: "#ffedd5",
+  },
+  {
+    id: 3004,
+    name: "Subscription",
+    text_color: "#6b21a8",
+    background_color: "#f3e8ff",
+  },
+].map(demoTag);
+
+const DEMO_TAG_IDS_BY_PAYEE = new Map<string, number[]>([
+  ["Whole Foods", [3001]],
+  ["Trader Joe's", [3001]],
+  ["Freelance Design", [3002]],
+  ["Delta Airlines", [3003]],
+  ["Netflix", [3004]],
+  ["Spotify", [3004]],
+]);
 
 // Budget amounts: [budgeted, other_activity]. Food and Shopping are over budget.
 const DEMO_BUDGET_SUMMARY: AlignedSummaryResponse = {
@@ -522,29 +627,85 @@ function demoBalanceHistory(): BalanceHistoryAccount[] {
 // ── Factory ──────────────────────────────────────────────────────────────────
 
 export function createDemoClient(): LMClient {
+  const transactionOverrides = new Map<number, TransactionPatch>();
+  const knownTransactions = new Map<number, Transaction>();
+
+  function saveTransaction(id: number, patch: TransactionPatch) {
+    transactionOverrides.set(id, {
+      ...transactionOverrides.get(id),
+      ...patch,
+    });
+    return {
+      id,
+      ...patch,
+      ...(patch.amount !== undefined && { to_base: Number(patch.amount) }),
+    };
+  }
+
   return {
     getMe: () => Promise.resolve(DEMO_USER),
 
     getTransactionsForMonth(year, month) {
       const maxDay = new Date(year, month, 0).getDate();
-      const transactions = TX_TEMPLATES.flatMap((tmpl, i) => {
+      const generated = TX_TEMPLATES.flatMap((tmpl, i) => {
         const amount = randAmount(tmpl.min, tmpl.max, year, month, i);
         // Skip $0 transactions (used for sporadic items like travel)
         if (parseFloat(amount) === 0) return [];
         const day = Math.min(tmpl.day, maxDay);
         const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        const usesPlaid = tmpl.category_id !== 9 && parseFloat(amount) > 0;
         return [
           demoTransaction({
-            id: 10000 + i,
+            id: year * 100_000 + month * 1_000 + i,
             date,
             payee: tmpl.payee,
             amount,
             category_id: tmpl.category_id,
             notes: tmpl.notes,
             recurring_id: tmpl.recurring_id,
+            manual_account_id: usesPlaid ? null : 1001,
+            plaid_account_id: usesPlaid ? 1101 : null,
+            source: usesPlaid ? "plaid" : "manual",
+            tag_ids: DEMO_TAG_IDS_BY_PAYEE.get(tmpl.payee) ?? [],
+            status:
+              i === 9
+                ? "delete_pending"
+                : i % 5 === 0 || i === 2
+                  ? "unreviewed"
+                  : "reviewed",
+            is_pending: i === 4,
           }),
         ];
       });
+      generated.forEach((transaction) =>
+        knownTransactions.set(transaction.id, transaction)
+      );
+
+      const generatedIds = new Set(
+        generated.map((transaction) => transaction.id)
+      );
+      const movedIn = [...transactionOverrides.keys()].flatMap((id) => {
+        const original = knownTransactions.get(id);
+        return original && !generatedIds.has(id) ? [original] : [];
+      });
+      const transactions = [...generated, ...movedIn]
+        .map((transaction) => {
+          const patch = transactionOverrides.get(transaction.id);
+          return patch
+            ? {
+                ...transaction,
+                ...patch,
+                ...(patch.amount !== undefined && {
+                  to_base: Number(patch.amount),
+                }),
+              }
+            : transaction;
+        })
+        .filter((transaction) =>
+          transaction.date.startsWith(
+            `${year}-${String(month).padStart(2, "0")}-`
+          )
+        );
       transactions.sort(
         (a, b) =>
           new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
@@ -558,7 +719,10 @@ export function createDemoClient(): LMClient {
     getCategories: () =>
       Promise.resolve<CategoriesResponse>({ categories: DEMO_CATEGORIES }),
 
-    getAccounts: () => Promise.resolve({ manual: DEMO_ACCOUNTS, plaid: [] }),
+    getTags: () => Promise.resolve(DEMO_TAGS),
+
+    getAccounts: () =>
+      Promise.resolve({ manual: DEMO_ACCOUNTS, plaid: DEMO_PLAID_ACCOUNTS }),
 
     getRecurringItems: () => Promise.resolve(DEMO_RECURRING),
 
@@ -567,8 +731,11 @@ export function createDemoClient(): LMClient {
     getBudgetSummary: () => Promise.resolve(DEMO_BUDGET_SUMMARY),
 
     updateManualAccount: () => Promise.resolve(),
-    updateTransactionCategory: () => Promise.resolve(),
-    updateTransactionNotes: () => Promise.resolve(),
-    updateTransactionPayee: () => Promise.resolve(),
+    updateTransaction: (id, patch) =>
+      Promise.resolve(saveTransaction(id, patch)),
+    updateTransactions: (transactions) =>
+      Promise.resolve(
+        transactions.map(({ id, ...patch }) => saveTransaction(id, patch))
+      ),
   };
 }

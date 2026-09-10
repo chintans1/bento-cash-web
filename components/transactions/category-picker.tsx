@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/combobox";
 import { CategoryIcon } from "@/lib/lunchmoney/category-icons";
 import { categoryColor } from "@/lib/lunchmoney/category-colors";
+import { rankCategoryMatches } from "@/lib/lunchmoney/category-search";
 import { cn } from "@/lib/utils";
 import type { CategoryGroupEntry } from "@/lib/lunchmoney/analytics";
 
@@ -39,18 +40,6 @@ export function buildCategoryOptions(
     }
   }
   return options;
-}
-
-/**
- * Matches on the group name as well as the category name — "Food & Drink"
- * should surface everything under it, not just a category spelled that way.
- */
-function filterByNameOrGroup(option: CategoryOption, query: string) {
-  const q = query.toLocaleLowerCase();
-  return (
-    option.name.toLocaleLowerCase().includes(q) ||
-    (option.group?.toLocaleLowerCase().includes(q) ?? false)
-  );
 }
 
 /**
@@ -146,6 +135,8 @@ export function CategoryPicker({
   options,
   onChange,
   saving,
+  disabled,
+  appearance = "cell",
   finalFocus,
 }: {
   categoryId: number | null;
@@ -153,6 +144,8 @@ export function CategoryPicker({
   options: CategoryOption[];
   onChange: (categoryId: number | null) => void;
   saving?: boolean;
+  disabled?: boolean;
+  appearance?: "cell" | "field";
   /**
    * What receives focus when the picker closes. Return an element to focus it,
    * `false` to leave focus alone, or nothing for the default (the trigger).
@@ -160,6 +153,7 @@ export function CategoryPicker({
   finalFocus?: () => HTMLElement | boolean | null | void;
 }) {
   const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
 
   const selected = useMemo(
     () => options.find((o) => o.id === (categoryId ?? -1)) ?? null,
@@ -167,36 +161,61 @@ export function CategoryPicker({
   );
 
   const isUncategorized = categoryId == null;
+  const matches = useMemo(
+    () => rankCategoryMatches(options, query),
+    [options, query]
+  );
 
   return (
     <Combobox
       items={options}
+      filteredItems={matches}
       itemToStringLabel={(option: CategoryOption) => option.name}
-      filter={filterByNameOrGroup}
+      filter={null}
+      inputValue={query}
+      onInputValueChange={setQuery}
       value={selected}
       onValueChange={(option: CategoryOption | null) => {
         if (!option || option.id === (categoryId ?? -1)) return;
         onChange(option.id === -1 ? null : option.id);
       }}
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={(nextOpen) => {
+        setOpen(nextOpen);
+        if (!nextOpen) setQuery("");
+      }}
     >
       <ComboboxTrigger
         aria-label={`Category: ${categoryName}. Change`}
+        disabled={disabled}
         className={cn(
-          "group/cat flex min-h-10 w-full items-center gap-1.5 rounded-lg py-1 pr-1.5 pl-2 text-left text-xs transition-colors outline-none hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40",
-          saving && "opacity-60"
+          "group/cat flex min-h-10 w-full items-center gap-1.5 text-left outline-none",
+          appearance === "field"
+            ? "h-10 rounded-xl border border-transparent bg-input/50 px-3 text-sm transition-[color,box-shadow,background-color] hover:bg-input focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
+            : "rounded-lg py-1 pr-1.5 pl-2 text-xs transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40",
+          (saving || disabled) && "opacity-60"
         )}
       >
         <span
           className={cn(
             "truncate",
-            isUncategorized ? "text-cat-3" : "text-bento-subtle"
+            isUncategorized
+              ? "text-cat-3"
+              : appearance === "field"
+                ? "text-bento-default"
+                : "text-bento-subtle"
           )}
         >
           {categoryName}
         </span>
-        <ChevronDown className="ml-auto size-3 shrink-0 text-bento-subtle opacity-0 transition-opacity group-hover/cat:opacity-100" />
+        <ChevronDown
+          className={cn(
+            "ml-auto shrink-0 text-bento-subtle",
+            appearance === "field"
+              ? "size-4"
+              : "size-3 opacity-100 transition-opacity sm:opacity-0 sm:group-focus-within/cat:opacity-100 sm:group-hover/cat:opacity-100"
+          )}
+        />
       </ComboboxTrigger>
 
       <CategoryComboboxPopup finalFocus={finalFocus} />
@@ -221,7 +240,12 @@ export function CategoryFilterPicker({
   options: CategoryOption[];
   onChange: (categoryId: number | null) => void;
 }) {
+  const [query, setQuery] = useState("");
   const filterOptions = useMemo(() => [ALL_CATEGORIES, ...options], [options]);
+  const matches = useMemo(
+    () => rankCategoryMatches(filterOptions, query),
+    [filterOptions, query]
+  );
 
   const selected = useMemo(
     () =>
@@ -233,8 +257,14 @@ export function CategoryFilterPicker({
   return (
     <Combobox
       items={filterOptions}
+      filteredItems={matches}
       itemToStringLabel={(option: CategoryOption) => option.name}
-      filter={filterByNameOrGroup}
+      filter={null}
+      inputValue={query}
+      onInputValueChange={setQuery}
+      onOpenChange={(open) => {
+        if (!open) setQuery("");
+      }}
       value={selected}
       onValueChange={(option: CategoryOption | null) => {
         if (!option) return;
@@ -243,7 +273,7 @@ export function CategoryFilterPicker({
     >
       <ComboboxTrigger
         aria-label={`Filter by category: ${selected.name}. Change`}
-        className="flex h-10 w-44 items-center justify-between gap-1.5 rounded-3xl border border-transparent bg-input/50 px-3 text-sm whitespace-nowrap transition-[color,box-shadow,background-color] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
+        className="flex h-10 w-full items-center justify-between gap-1.5 rounded-3xl border border-transparent bg-input/50 px-3 text-sm whitespace-nowrap transition-[color,box-shadow,background-color] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 sm:w-44"
       >
         <span
           className={cn(

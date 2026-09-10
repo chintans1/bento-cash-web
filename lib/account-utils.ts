@@ -44,6 +44,7 @@ export type NormalizedAccount = {
   lastUpdated: string | null;
   source: "plaid" | "manual";
   status: string;
+  allowTransactionModifications: boolean;
 };
 
 export function normalizeManual(a: ManualAccount): NormalizedAccount {
@@ -62,6 +63,7 @@ export function normalizeManual(a: ManualAccount): NormalizedAccount {
     lastUpdated: a.balance_as_of,
     source: "manual",
     status: a.status,
+    allowTransactionModifications: true,
   };
 }
 
@@ -82,6 +84,7 @@ export function normalizePlaid(a: PlaidAccount): NormalizedAccount {
     lastUpdated: a.balance_last_update,
     source: "plaid",
     status: a.status,
+    allowTransactionModifications: a.allow_transaction_modifications,
   };
 }
 
