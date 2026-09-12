@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { TokenProvider } from "@/hooks/use-token";
 import { AppDataProvider } from "@/hooks/use-app-data";
 import { Header } from "@/components/header";
+import { Footer } from "@/components/footer";
 import { SessionGate } from "@/components/session-gate";
 import { cn } from "@/lib/utils";
 import { Analytics } from "@vercel/analytics/react";
@@ -52,12 +53,13 @@ export default function RootLayout({
         fontHeading.variable
       )}
     >
-      <body>
+      <body className="flex min-h-svh flex-col">
         <ThemeProvider>
           <TokenProvider>
             <AppDataProvider>
               <Header />
               <SessionGate>{children}</SessionGate>
+              <Footer />
             </AppDataProvider>
           </TokenProvider>
           <Analytics />

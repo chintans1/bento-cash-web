@@ -7,7 +7,7 @@ export function SessionGate({ children }: { children: React.ReactNode }) {
   const { isReady } = useToken();
 
   return (
-    <main>
+    <main className="flex-1">
       {isReady ? (
         children
       ) : (

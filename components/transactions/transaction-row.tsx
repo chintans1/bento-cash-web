@@ -68,8 +68,7 @@ export const TransactionRow = memo(function TransactionRow({
   const canReview = isReviewableTransaction(tx);
   const reviewed = tx.status === "reviewed";
   const unreviewed = tx.status === "unreviewed" && !tx.is_pending;
-  const usesCategoryColor =
-    tx.category_id == null || reviewed || tx.status === "delete_pending";
+  const usesCategoryColor = reviewed || tx.status === "delete_pending";
 
   return (
     <div
@@ -102,12 +101,11 @@ export const TransactionRow = memo(function TransactionRow({
             <Clock3 className="size-4" aria-hidden="true" />
             <span className="sr-only">Pending</span>
           </span>
-        ) : (
+        ) : canReview && !reviewed ? (
           <button
             type="button"
             aria-label={`${selected ? "Deselect" : "Select"} ${payee || "transaction"}`}
             aria-pressed={selected}
-            disabled={!canReview || reviewed}
             className="flex size-10 items-center justify-center rounded-full transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none"
             onClick={() => onSelect(tx.id, !selected)}
           >
@@ -122,6 +120,8 @@ export const TransactionRow = memo(function TransactionRow({
               {selected && <Check className="size-3" />}
             </span>
           </button>
+        ) : (
+          <span aria-hidden="true" className="size-10" />
         )}
 
         <div className="flex min-w-0 items-center gap-2">
@@ -220,6 +220,7 @@ export const TransactionRow = memo(function TransactionRow({
             aria-label={reviewed ? "Mark unreviewed" : "Mark reviewed"}
             onClick={() => onReview(tx.id, !reviewed)}
             className={cn(
+              reviewed && "text-bento-positive hover:text-bento-positive",
               unreviewed && "text-bento-subtle hover:text-bento-default"
             )}
           >
