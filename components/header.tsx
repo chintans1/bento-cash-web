@@ -26,7 +26,7 @@ export function Header() {
   const { isDemo, isAuthenticated, signOut } = useToken();
 
   return (
-    <header className="sticky top-0 z-10 border-b border-bento-hairline bg-bento-surface">
+    <header className="sticky top-0 z-20 border-b border-bento-hairline bg-bento-surface">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6">
         <Link href="/" className="shrink-0 font-heading text-2xl font-bold">
           Bento Cash
