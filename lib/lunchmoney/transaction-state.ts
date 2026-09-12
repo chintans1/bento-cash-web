@@ -37,6 +37,14 @@ export function isStructurallyLockedTransaction(
   );
 }
 
+export function isReviewableTransaction(transaction: Transaction): boolean {
+  return (
+    !transaction.is_pending &&
+    transaction.status !== "delete_pending" &&
+    !isStructurallyLockedTransaction(transaction)
+  );
+}
+
 export function transactionAccountPatch(account?: {
   source: "manual" | "plaid";
   rawId: number;
@@ -56,7 +64,10 @@ export function matchesReviewFilter(
   filter: ReviewFilter
 ): boolean {
   if (filter === "unreviewed") {
-    return transaction.status === "unreviewed" && !transaction.is_pending;
+    return (
+      transaction.status === "unreviewed" &&
+      isReviewableTransaction(transaction)
+    );
   }
   if (filter === "pending") return transaction.is_pending;
   if (filter === "attention") {
@@ -68,7 +79,10 @@ export function matchesReviewFilter(
 export function reviewCounts(transactions: Transaction[]) {
   return transactions.reduce(
     (counts, transaction) => {
-      if (transaction.status === "unreviewed" && !transaction.is_pending) {
+      if (
+        transaction.status === "unreviewed" &&
+        isReviewableTransaction(transaction)
+      ) {
         counts.unreviewed++;
       }
       if (transaction.is_pending) counts.pending++;
@@ -93,17 +107,17 @@ export function changedPatch(
   ) as TransactionPatch;
 }
 
-export function fieldsAtRevision(
-  values: TransactionPatch,
+export function fieldsAtRevision<T extends object>(
+  values: T,
   revisions: Map<string, number>,
   transactionId: number,
   revision: number
-): TransactionPatch {
+): Partial<T> {
   return Object.fromEntries(
     Object.entries(values).filter(
       ([key]) => revisions.get(`${transactionId}:${key}`) === revision
     )
-  ) as TransactionPatch;
+  ) as Partial<T>;
 }
 
 export function canonicalFieldsAtRevision(
@@ -113,8 +127,8 @@ export function canonicalFieldsAtRevision(
   transactionId: number,
   revision: number
 ): Partial<Transaction> {
-  const accepted: Partial<Transaction> = fieldsAtRevision(
-    canonical as TransactionPatch,
+  const accepted = fieldsAtRevision(
+    canonical,
     revisions,
     transactionId,
     revision

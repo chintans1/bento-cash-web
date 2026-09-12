@@ -100,6 +100,10 @@ export function TransactionEditor({
 }) {
   const [draft, setDraft] = useState(() => makeDraft(transaction));
 
+  function updateDraft<K extends keyof Draft>(field: K, value: Draft[K]) {
+    setDraft((current) => ({ ...current, [field]: value }));
+  }
+
   const currentAccount = accounts.find(
     (account) => account.id === accountValue(transaction)
   );
@@ -129,7 +133,7 @@ export function TransactionEditor({
 
   const amountValid = /^-?\d+(\.\d{1,4})?$/.test(draft.amount);
   const currencyValid = /^[A-Za-z]{3}$/.test(draft.currency);
-  const valid = draft.date && amountValid && currencyValid;
+  const valid = draft.date !== "" && amountValid && currencyValid;
   const categoryName =
     categoryOptions.find((option) => option.id === (draft.categoryId ?? -1))
       ?.name ?? "Uncategorized";
@@ -215,11 +219,11 @@ export function TransactionEditor({
                   structurallyLocked
                 }
                 onClick={() =>
-                  setDraft({
-                    ...draft,
+                  setDraft((current) => ({
+                    ...current,
                     status:
-                      draft.status === "reviewed" ? "unreviewed" : "reviewed",
-                  })
+                      current.status === "reviewed" ? "unreviewed" : "reviewed",
+                  }))
                 }
               >
                 <Check data-icon="inline-start" />
@@ -233,9 +237,7 @@ export function TransactionEditor({
               <Input
                 value={draft.payee}
                 disabled={structurallyLocked}
-                onChange={(event) =>
-                  setDraft({ ...draft, payee: event.target.value })
-                }
+                onChange={(event) => updateDraft("payee", event.target.value)}
               />
               {transaction.original_name &&
                 transaction.original_name !== transaction.payee && (
@@ -249,9 +251,7 @@ export function TransactionEditor({
                 type="date"
                 value={draft.date}
                 disabled={structurallyLocked}
-                onChange={(event) =>
-                  setDraft({ ...draft, date: event.target.value })
-                }
+                onChange={(event) => updateDraft("date", event.target.value)}
               />
             </Field>
             <Field label="Category">
@@ -261,7 +261,7 @@ export function TransactionEditor({
                 options={categoryOptions}
                 disabled={structurallyLocked}
                 appearance="field"
-                onChange={(categoryId) => setDraft({ ...draft, categoryId })}
+                onChange={(categoryId) => updateDraft("categoryId", categoryId)}
               />
             </Field>
             <Field label="Amount">
@@ -270,9 +270,7 @@ export function TransactionEditor({
                 aria-invalid={!amountValid}
                 value={draft.amount}
                 disabled={locked || structurallyLocked}
-                onChange={(event) =>
-                  setDraft({ ...draft, amount: event.target.value })
-                }
+                onChange={(event) => updateDraft("amount", event.target.value)}
               />
               <p className="mt-1.5 px-1 text-xs text-bento-subtle">
                 Negative amounts are credits.
@@ -286,7 +284,7 @@ export function TransactionEditor({
                 disabled={locked || structurallyLocked}
                 className="uppercase"
                 onChange={(event) =>
-                  setDraft({ ...draft, currency: event.target.value })
+                  updateDraft("currency", event.target.value)
                 }
               />
             </Field>
@@ -294,7 +292,7 @@ export function TransactionEditor({
               <Select
                 value={draft.account}
                 onValueChange={(value) =>
-                  value && setDraft({ ...draft, account: value })
+                  value && updateDraft("account", value)
                 }
               >
                 <SelectTrigger
@@ -332,7 +330,7 @@ export function TransactionEditor({
                 value={draft.recurringId}
                 disabled={structurallyLocked}
                 onValueChange={(value) =>
-                  value && setDraft({ ...draft, recurringId: value })
+                  value && updateDraft("recurringId", value)
                 }
               >
                 <SelectTrigger className="h-10 w-full rounded-xl">
@@ -359,7 +357,7 @@ export function TransactionEditor({
                 tags={tags.filter((tag) => !tag.archived)}
                 value={draft.tagIds}
                 disabled={structurallyLocked}
-                onChange={(tagIds) => setDraft({ ...draft, tagIds })}
+                onChange={(tagIds) => updateDraft("tagIds", tagIds)}
               />
             </Field>
             <Field label="Notes" className="sm:col-span-2">
@@ -369,9 +367,7 @@ export function TransactionEditor({
                 disabled={structurallyLocked}
                 className="resize-none"
                 placeholder="Add context for your future self…"
-                onChange={(event) =>
-                  setDraft({ ...draft, notes: event.target.value })
-                }
+                onChange={(event) => updateDraft("notes", event.target.value)}
               />
             </Field>
           </section>

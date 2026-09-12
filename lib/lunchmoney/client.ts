@@ -10,6 +10,7 @@ import type {
   Tag,
   AlignedSummaryResponse,
   UpdateManualAccountBody,
+  UpdateTransaction,
   components,
 } from "@lunch-money/lunch-money-js-v2";
 export type {
@@ -32,21 +33,20 @@ export type TransactionsResponse = {
   transactions: Transaction[];
   has_more: boolean;
 };
-export type TransactionPatch = Partial<
-  Pick<
-    Transaction,
-    | "date"
-    | "amount"
-    | "currency"
-    | "recurring_id"
-    | "payee"
-    | "category_id"
-    | "notes"
-    | "manual_account_id"
-    | "plaid_account_id"
-    | "tag_ids"
-  >
-> & { status?: "reviewed" | "unreviewed" };
+export type TransactionPatch = Pick<
+  UpdateTransaction,
+  | "date"
+  | "currency"
+  | "recurring_id"
+  | "payee"
+  | "category_id"
+  | "notes"
+  | "manual_account_id"
+  | "plaid_account_id"
+  | "tag_ids"
+  | "status"
+> &
+  Partial<Pick<Transaction, "amount">>;
 
 // ── Client interface ────────────────────────────────────────────────────────
 
@@ -69,10 +69,10 @@ export interface LMClient {
   updateTransaction(
     transactionId: number,
     patch: TransactionPatch
-  ): Promise<Partial<Transaction>>;
+  ): Promise<Transaction>;
   updateTransactions(
     transactions: (TransactionPatch & { id: number })[]
-  ): Promise<Partial<Transaction>[]>;
+  ): Promise<Transaction[]>;
 }
 
 const TRANSACTION_PAGE_SIZE = 250;
@@ -243,7 +243,7 @@ export const updateManualAccount = async (
 export async function updateTransaction(
   transactionId: number,
   patch: TransactionPatch
-): Promise<Partial<Transaction>> {
+): Promise<Transaction> {
   const transaction = await activeClient().updateTransaction(
     transactionId,
     patch
@@ -255,7 +255,7 @@ export async function updateTransaction(
 
 export async function updateTransactions(
   transactions: (TransactionPatch & { id: number })[]
-): Promise<Partial<Transaction>[]> {
+): Promise<Transaction[]> {
   const updated = await activeClient().updateTransactions(transactions);
   invalidate(KEY.allTx);
   invalidate(KEY.allBudgets);
