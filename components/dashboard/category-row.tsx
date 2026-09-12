@@ -13,9 +13,10 @@ import { MoMBadge } from "./mom-badge";
 import { AnimatedCollapse } from "@/components/animated-collapse";
 
 /**
- * One category in the spend breakdown. The colored pill doubles as the bar:
- * its width is the category's share of the largest category, and `fit-content`
- * keeps the label readable even for a tiny slice.
+ * One category in the spend breakdown. Every bar starts with the same label
+ * allowance, then uses the remaining track to show its share of the largest
+ * category. This keeps labels inside the bar without letting their length
+ * distort the ordering.
  */
 export function CategoryRow({
   cat,
@@ -39,39 +40,39 @@ export function CategoryRow({
     [transactions, cat.id]
   );
 
-  const pct = maxSpend > 0 ? (cat.spend / maxSpend) * 100 : 0;
+  const ratio = maxSpend > 0 ? cat.spend / maxSpend : 0;
+  const labelWidthRem = 13;
+  const barWidth = `min(100%, calc(${ratio * 100}% + ${labelWidthRem * (1 - ratio)}rem))`;
 
   return (
     <li>
       <button
-        className="flex w-full items-center gap-3 rounded-xl px-1 py-1 text-left transition-colors hover:bg-bento-raised"
+        className="grid w-full grid-cols-[minmax(0,1fr)_9rem_1rem] items-center gap-2 rounded-xl px-1 py-1 text-left transition-colors hover:bg-bento-raised"
         onClick={() => setExpanded((v) => !v)}
+        aria-expanded={expanded}
       >
-        <div className="min-w-0 flex-1">
-          <div
-            className="flex h-9 items-center gap-2 rounded-full px-2.5"
-            style={{
-              width: `${pct}%`,
-              minWidth: "fit-content",
-              maxWidth: "100%",
-              backgroundColor: `color-mix(in oklab, ${color} var(--chip-tint), transparent)`,
-              boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${color} 30%, transparent)`,
-            }}
-          >
-            <CategoryIcon
-              name={cat.name}
-              className="size-4 shrink-0"
-              style={{ color }}
-            />
-            <span className="truncate text-xs font-medium">{cat.name}</span>
-          </div>
+        <div
+          className="flex h-9 min-w-0 items-center gap-2 rounded-full px-2.5"
+          style={{
+            width: barWidth,
+            backgroundColor: `color-mix(in oklab, ${color} var(--chip-tint), transparent)`,
+            boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${color} 30%, transparent)`,
+          }}
+        >
+          <CategoryIcon
+            name={cat.name}
+            className="size-4 shrink-0"
+            style={{ color }}
+          />
+          <span className="truncate text-xs font-medium">{cat.name}</span>
         </div>
 
-        <MoMBadge delta={delta} />
-
-        <span className="shrink-0 font-mono text-xs font-medium tabular-nums">
-          {formatCurrency(cat.spend, primaryCurrency, false)}
-        </span>
+        <div className="flex items-center justify-end gap-2">
+          <MoMBadge delta={delta} />
+          <span className="font-mono text-xs font-medium tabular-nums">
+            {formatCurrency(cat.spend, primaryCurrency, false)}
+          </span>
+        </div>
 
         <ChevronDown
           className={cn(

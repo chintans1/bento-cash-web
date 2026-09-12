@@ -88,11 +88,15 @@ A Next.js 16 web frontend for [Lunch Money](https://lunchmoney.app) that provide
 
 ## Running
 
+Never use `npm` or `npx` in this repository. Use `pnpm` and `pnpm exec` exclusively.
+
+Before starting the development server, check whether port 3000 is already in use (for example, with `lsof -nP -iTCP:3000 -sTCP:LISTEN`). The developer usually already has `pnpm dev` running there. If port 3000 is already serving the app, reuse that server and do not start another one.
+
 ```bash
-npm run dev        # dev server with Turbopack
-npm run typecheck  # tsc --noEmit
-npm run lint
-npm run format
+pnpm dev        # dev server with Turbopack; only start if port 3000 is unused
+pnpm typecheck  # tsc --noEmit
+pnpm lint
+pnpm format
 ```
 
 ## Architecture
@@ -233,7 +237,7 @@ The main analytics view. Fetches current month + previous month transactions in 
 4. **Cash flow** — surplus/deficit headline, savings rate, income and spend each measured against the same figure last month, a green/red proportion bar, and last month's closing net. The direction arrow's color depends on the row: more income is good news, more spend isn't
 5. **Quick Stats** — 4 tiles: Income, Spend, Avg/Day, Peak Day; clicking Income/Spend/Peak opens a drill-down transaction table
 6. **Spending** — cumulative spend for the month drawn against the previous month on one axis (`computeCumulativeSpendComparison`); the current line stops at today rather than flatlining
-7. **Top expense categories** — each row's colored pill doubles as the bar (width = share of the largest category, `min-width: fit-content` keeps small ones readable); expandable to the top 5 transactions; MoM delta badge
+7. **Top expense categories** — each row's colored bar reserves the same label-width baseline, then uses the remaining track for its share of the largest category, keeping labels readable without letting their length distort the ranking; expandable to the top 5 transactions; MoM delta badge
 8. **Top merchants** — full width of the wide column; merchants ranked by spend with a bar and transaction count
 9. **Budget** — only rendered when the user has budgets configured in LM; ring gauge for the month total, then spend vs. budget per category
 10. **Upcoming bills** — LM recurring items (`status="reviewed"` only) with cadence and, when LM provides `matches.expected_occurrence_dates`, the next expected date; amounts normalized to a monthly equivalent
