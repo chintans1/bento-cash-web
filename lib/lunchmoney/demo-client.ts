@@ -630,15 +630,22 @@ export function createDemoClient(): LMClient {
   const transactionOverrides = new Map<number, TransactionPatch>();
   const knownTransactions = new Map<number, Transaction>();
 
-  function saveTransaction(id: number, patch: TransactionPatch) {
-    transactionOverrides.set(id, {
+  function saveTransaction(id: number, patch: TransactionPatch): Transaction {
+    const transaction = knownTransactions.get(id);
+    if (!transaction) throw new Error(`Unknown demo transaction: ${id}`);
+
+    const override = {
       ...transactionOverrides.get(id),
       ...patch,
-    });
+    };
+    transactionOverrides.set(id, override);
+
     return {
-      id,
-      ...patch,
-      ...(patch.amount !== undefined && { to_base: Number(patch.amount) }),
+      ...transaction,
+      ...override,
+      ...(override.amount !== undefined && {
+        to_base: Number(override.amount),
+      }),
     };
   }
 
@@ -731,11 +738,8 @@ export function createDemoClient(): LMClient {
     getBudgetSummary: () => Promise.resolve(DEMO_BUDGET_SUMMARY),
 
     updateManualAccount: () => Promise.resolve(),
-    updateTransaction: (id, patch) =>
-      Promise.resolve(saveTransaction(id, patch)),
-    updateTransactions: (transactions) =>
-      Promise.resolve(
-        transactions.map(({ id, ...patch }) => saveTransaction(id, patch))
-      ),
+    updateTransaction: async (id, patch) => saveTransaction(id, patch),
+    updateTransactions: async (transactions) =>
+      transactions.map(({ id, ...patch }) => saveTransaction(id, patch)),
   };
 }

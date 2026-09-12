@@ -25,26 +25,47 @@ export type MonthTransactions = {
   reviewMany: (ids: number[]) => Promise<boolean>;
 };
 
+const EMPTY_TRANSACTION_IDS = new Set<number>();
+const EMPTY_TRANSACTION_ERRORS = new Map<number, string>();
+
 export function useMonthTransactions(
   year: number,
   month: number,
-  enabled: boolean
+  session: string | null
 ): MonthTransactions {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [loadedMonth, setLoadedMonth] = useState<string | null>(null);
+  const [loadedKey, setLoadedKey] = useState<string | null>(null);
   const [failure, setFailure] = useState<{
-    month: string;
+    key: string;
     message: string;
   } | null>(null);
-  const [savingIds, setSavingIds] = useState<Set<number>>(new Set());
-  const [errors, setErrors] = useState<Map<number, string>>(new Map());
+  const [saving, setSaving] = useState<{
+    key: string;
+    ids: Set<number>;
+  } | null>(null);
+  const [saveErrors, setSaveErrors] = useState<{
+    key: string;
+    values: Map<number, string>;
+  } | null>(null);
   const latest = useRef(transactions);
   const nextRevision = useRef(0);
   const fieldRevisions = useRef(new Map<string, number>());
-  const pendingWrites = useRef(new Map<number, number>());
+  const pendingWrites = useRef(new Map<string, Map<number, number>>());
 
   const monthKey = `${year}-${month}`;
-  const pending = loadedMonth !== monthKey && failure?.month !== monthKey;
+  const requestKey = session === null ? null : `${session}:${monthKey}`;
+  const activeRequestKey = useRef(requestKey);
+  activeRequestKey.current = requestKey;
+  const pending =
+    requestKey !== null &&
+    loadedKey !== requestKey &&
+    failure?.key !== requestKey;
+  const savingIds =
+    saving?.key === requestKey ? saving.ids : EMPTY_TRANSACTION_IDS;
+  const errors =
+    saveErrors?.key === requestKey
+      ? saveErrors.values
+      : EMPTY_TRANSACTION_ERRORS;
 
   const updateLocal = useCallback(
     (change: (current: Transaction[]) => Transaction[]) => {
@@ -56,7 +77,7 @@ export function useMonthTransactions(
   );
 
   useEffect(() => {
-    if (!enabled) return;
+    if (requestKey === null) return;
     let cancelled = false;
 
     getTransactionsForMonth(year, month)
@@ -64,14 +85,14 @@ export function useMonthTransactions(
         if (cancelled) return;
         latest.current = result.transactions;
         setTransactions(result.transactions);
-        setLoadedMonth(monthKey);
+        setLoadedKey(requestKey);
         setFailure(null);
-        setErrors(new Map());
+        setSaveErrors({ key: requestKey, values: new Map() });
       })
       .catch((error: unknown) => {
         if (cancelled) return;
         setFailure({
-          month: monthKey,
+          key: requestKey,
           message:
             error instanceof Error ? error.message : "Something went wrong",
         });
@@ -80,23 +101,35 @@ export function useMonthTransactions(
     return () => {
       cancelled = true;
     };
-  }, [enabled, year, month, monthKey]);
+  }, [requestKey, year, month]);
 
-  const markSaving = useCallback((ids: number[], saving: boolean) => {
-    ids.forEach((id) => {
-      const count = (pendingWrites.current.get(id) ?? 0) + (saving ? 1 : -1);
-      if (count > 0) pendingWrites.current.set(id, count);
-      else pendingWrites.current.delete(id);
-    });
-    setSavingIds(new Set(pendingWrites.current.keys()));
-  }, []);
+  const markSaving = useCallback(
+    (key: string, ids: number[], value: boolean) => {
+      const writes =
+        pendingWrites.current.get(key) ?? new Map<number, number>();
+      ids.forEach((id) => {
+        const count = (writes.get(id) ?? 0) + (value ? 1 : -1);
+        if (count > 0) writes.set(id, count);
+        else writes.delete(id);
+      });
+      if (writes.size > 0) pendingWrites.current.set(key, writes);
+      else pendingWrites.current.delete(key);
+
+      if (activeRequestKey.current === key) {
+        setSaving({ key, ids: new Set(writes.keys()) });
+      }
+    },
+    []
+  );
 
   const update = useCallback(
     async (id: number, patch: TransactionPatch) => {
+      const key = activeRequestKey.current;
       const before = latest.current.find(
         (transaction) => transaction.id === id
       );
-      if (!before || Object.keys(patch).length === 0) return true;
+      if (!key || loadedKey !== key || !before) return false;
+      if (Object.keys(patch).length === 0) return true;
 
       const revision = ++nextRevision.current;
       Object.keys(patch).forEach((key) =>
@@ -107,12 +140,12 @@ export function useMonthTransactions(
           transaction.id === id ? { ...transaction, ...patch } : transaction
         )
       );
-      setErrors((current) => {
-        const next = new Map(current);
+      setSaveErrors((current) => {
+        const next = new Map(current?.key === key ? current.values : []);
         next.delete(id);
-        return next;
+        return { key, values: next };
       });
-      markSaving([id], true);
+      markSaving(key, [id], true);
 
       try {
         const canonical = await updateTransaction(id, patch);
@@ -123,15 +156,17 @@ export function useMonthTransactions(
           id,
           revision
         );
-        updateLocal((current) =>
-          current
-            .map((transaction) =>
-              transaction.id === id
-                ? { ...transaction, ...accepted }
-                : transaction
-            )
-            .filter((transaction) => isInMonth(transaction.date, year, month))
-        );
+        if (activeRequestKey.current === key) {
+          updateLocal((current) =>
+            current
+              .map((transaction) =>
+                transaction.id === id
+                  ? { ...transaction, ...accepted }
+                  : transaction
+              )
+              .filter((transaction) => isInMonth(transaction.date, year, month))
+          );
+        }
         return true;
       } catch (error) {
         const rollback = fieldsAtRevision(
@@ -145,82 +180,105 @@ export function useMonthTransactions(
           id,
           revision
         );
-        updateLocal((current) =>
-          current.map((transaction) =>
-            transaction.id === id
-              ? { ...transaction, ...rollback }
-              : transaction
-          )
-        );
-        setErrors((current) =>
-          new Map(current).set(
-            id,
-            error instanceof Error ? error.message : "Couldn't save changes"
-          )
-        );
+        if (
+          activeRequestKey.current === key &&
+          Object.keys(rollback).length > 0
+        ) {
+          updateLocal((current) =>
+            current.map((transaction) =>
+              transaction.id === id
+                ? { ...transaction, ...rollback }
+                : transaction
+            )
+          );
+          setSaveErrors((current) => {
+            const next = new Map(current?.key === key ? current.values : []);
+            next.set(
+              id,
+              error instanceof Error ? error.message : "Couldn't save changes"
+            );
+            return { key, values: next };
+          });
+        }
         return false;
       } finally {
-        markSaving([id], false);
+        markSaving(key, [id], false);
       }
     },
-    [markSaving, month, updateLocal, year]
+    [loadedKey, markSaving, month, updateLocal, year]
   );
 
   const reviewMany = useCallback(
     async (ids: number[]) => {
+      const key = activeRequestKey.current;
+      if (!key || loadedKey !== key) return false;
+      const requestedIds = new Set(ids);
       const before = new Map(
         latest.current
-          .filter((transaction) => ids.includes(transaction.id))
+          .filter((transaction) => requestedIds.has(transaction.id))
           .map((transaction) => [transaction.id, transaction.status])
       );
+      const transactionIds = [...before.keys()];
+      if (transactionIds.length === 0) return true;
+
       const revision = ++nextRevision.current;
-      ids.forEach((id) => fieldRevisions.current.set(`${id}:status`, revision));
+      transactionIds.forEach((id) =>
+        fieldRevisions.current.set(`${id}:status`, revision)
+      );
       updateLocal((current) =>
         current.map((transaction) =>
-          ids.includes(transaction.id)
+          requestedIds.has(transaction.id)
             ? { ...transaction, status: "reviewed" }
             : transaction
         )
       );
-      markSaving(ids, true);
+      markSaving(key, transactionIds, true);
 
       try {
-        await updateTransactions(ids.map((id) => ({ id, status: "reviewed" })));
+        await updateTransactions(
+          transactionIds.map((id) => ({ id, status: "reviewed" }))
+        );
         return true;
       } catch (error) {
-        updateLocal((current) =>
-          current.map((transaction) => {
-            const status = before.get(transaction.id);
-            return status !== undefined &&
-              fieldRevisions.current.get(`${transaction.id}:status`) ===
-                revision
-              ? { ...transaction, status }
-              : transaction;
-          })
+        const rollbackIds = transactionIds.filter(
+          (id) => fieldRevisions.current.get(`${id}:status`) === revision
         );
-        setErrors((current) => {
-          const next = new Map(current);
-          ids.forEach((id) =>
-            next.set(
-              id,
-              error instanceof Error ? error.message : "Couldn't mark reviewed"
-            )
+        if (activeRequestKey.current === key && rollbackIds.length > 0) {
+          const rollbackSet = new Set(rollbackIds);
+          updateLocal((current) =>
+            current.map((transaction) => {
+              const status = before.get(transaction.id);
+              return status !== undefined && rollbackSet.has(transaction.id)
+                ? { ...transaction, status }
+                : transaction;
+            })
           );
-          return next;
-        });
+          setSaveErrors((current) => {
+            const next = new Map(current?.key === key ? current.values : []);
+            rollbackIds.forEach((id) =>
+              next.set(
+                id,
+                error instanceof Error
+                  ? error.message
+                  : "Couldn't mark reviewed"
+              )
+            );
+            return { key, values: next };
+          });
+        }
         return false;
       } finally {
-        markSaving(ids, false);
+        markSaving(key, transactionIds, false);
       }
     },
-    [markSaving, updateLocal]
+    [loadedKey, markSaving, updateLocal]
   );
 
   return {
     transactions,
     loading: pending && transactions.length === 0,
     refreshing: pending && transactions.length > 0,
-    error: failure?.month === monthKey ? failure.message : null,
+    error: failure?.key === requestKey ? failure.message : null,
     savingIds,
     errors,
     update,

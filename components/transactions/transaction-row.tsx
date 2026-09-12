@@ -17,6 +17,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/lib/lunchmoney/client";
+import {
+  isReviewableTransaction,
+  isStructurallyLockedTransaction,
+} from "@/lib/lunchmoney/transaction-state";
 
 export const TRANSACTION_GRID_COLUMNS =
   "grid-cols-[40px_minmax(0,1fr)_40px_24px] sm:grid-cols-[40px_minmax(0,1fr)_160px_72px_96px_40px_24px] md:grid-cols-[40px_minmax(0,1fr)_220px_72px_96px_40px_24px] lg:grid-cols-[40px_minmax(0,1fr)_260px_72px_96px_40px_24px]";
@@ -60,7 +64,8 @@ export const TransactionRow = memo(function TransactionRow({
   const amount = parseFloat(tx.amount);
   const isCredit = amount < 0;
   const color = categoryColor(categoryName);
-  const canReview = !tx.is_pending && tx.status !== "delete_pending";
+  const structurallyLocked = isStructurallyLockedTransaction(tx);
+  const canReview = isReviewableTransaction(tx);
   const reviewed = tx.status === "reviewed";
   const unreviewed = tx.status === "unreviewed" && !tx.is_pending;
   const usesCategoryColor =
@@ -76,7 +81,8 @@ export const TransactionRow = memo(function TransactionRow({
         selected && "bg-bento-raised"
       )}
       onClick={(event) => {
-        const target = event.target as Element;
+        const target = event.target;
+        if (!(target instanceof Element)) return;
         if (!event.currentTarget.contains(target)) return;
         if (target.closest("button, input, textarea, select, a")) return;
         onOpen(tx.id);
@@ -148,6 +154,7 @@ export const TransactionRow = memo(function TransactionRow({
                 ariaLabel={
                   payee ? `Description: ${payee}. Edit` : "Add a description"
                 }
+                disabled={structurallyLocked}
                 onCommit={(next) => onPayeeChange(tx.id, next)}
               />
               {tx.status === "delete_pending" && (
@@ -183,6 +190,7 @@ export const TransactionRow = memo(function TransactionRow({
             categoryName={categoryName}
             options={categoryOptions}
             saving={saving}
+            disabled={structurallyLocked}
             onChange={(categoryId) => onCategoryChange(tx.id, categoryId)}
             finalFocus={pickerFinalFocus}
           />
@@ -236,6 +244,7 @@ export const TransactionRow = memo(function TransactionRow({
               categoryName={categoryName}
               options={categoryOptions}
               saving={saving}
+              disabled={structurallyLocked}
               onChange={(categoryId) => onCategoryChange(tx.id, categoryId)}
               finalFocus={pickerFinalFocus}
             />

@@ -28,6 +28,7 @@ export function EditableText({
   className,
   inputClassName,
   ariaLabel,
+  disabled = false,
 }: {
   value: string;
   onCommit: (next: string) => void;
@@ -41,6 +42,7 @@ export function EditableText({
   className?: string;
   inputClassName?: string;
   ariaLabel: string;
+  disabled?: boolean;
 }) {
   const [draft, setDraft] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
@@ -155,12 +157,13 @@ export function EditableText({
     <button
       type="button"
       aria-label={ariaLabel}
+      disabled={disabled}
       onClick={(e) => {
         e.stopPropagation();
         setDraft(value);
       }}
       className={cn(
-        "group/edit flex w-full items-center gap-1.5 rounded-lg px-1.5 py-0.5 text-left transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none",
+        "group/edit flex w-full items-center gap-1.5 rounded-lg px-1.5 py-0.5 text-left transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-60",
         className
       )}
     >

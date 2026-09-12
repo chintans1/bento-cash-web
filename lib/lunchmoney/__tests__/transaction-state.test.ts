@@ -6,6 +6,7 @@ import {
   comparePendingFirst,
   fieldsAtRevision,
   isInMonth,
+  isReviewableTransaction,
   isStructurallyLockedTransaction,
   isTransactionAccountOption,
   matchesReviewFilter,
@@ -46,6 +47,7 @@ describe("transaction state", () => {
       id: 3,
       status: "delete_pending" as const,
     };
+    const grouped = { ...transaction, id: 4, is_group_parent: true };
 
     expect(matchesReviewFilter(transaction, "unreviewed")).toBe(true);
     expect(matchesReviewFilter(pending, "unreviewed")).toBe(false);
@@ -53,7 +55,8 @@ describe("transaction state", () => {
     expect(matchesReviewFilter(pending, "all")).toBe(true);
     expect(matchesReviewFilter(pending, "pending")).toBe(true);
     expect(matchesReviewFilter(attention, "attention")).toBe(true);
-    expect(reviewCounts([transaction, pending, attention])).toEqual({
+    expect(matchesReviewFilter(grouped, "unreviewed")).toBe(false);
+    expect(reviewCounts([transaction, pending, attention, grouped])).toEqual({
       unreviewed: 1,
       pending: 1,
       attention: 1,
@@ -171,6 +174,10 @@ describe("transaction state", () => {
         is_split_parent: true,
       })
     ).toBe(true);
+    expect(isReviewableTransaction(transaction)).toBe(true);
+    expect(
+      isReviewableTransaction({ ...transaction, is_group_parent: true })
+    ).toBe(false);
   });
 
   it("recognizes whether an edited date remains in the loaded month", () => {

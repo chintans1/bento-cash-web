@@ -58,7 +58,7 @@ describe("demo transaction data", () => {
         plaid_account_id: null,
         tag_ids: [3001, 3002],
       })
-    ).resolves.toEqual({
+    ).resolves.toMatchObject({
       id,
       amount: "42.50",
       to_base: 42.5,

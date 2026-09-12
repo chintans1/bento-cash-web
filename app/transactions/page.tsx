@@ -36,6 +36,7 @@ import { MonthSelector } from "@/components/dashboard/month-selector";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   comparePendingFirst,
+  isReviewableTransaction,
   matchesReviewFilter,
   reviewCounts,
   type ReviewFilter,
@@ -61,8 +62,14 @@ function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   );
 }
 
+function parseCategoryFilter(value: string | null): number | null {
+  if (value === null) return null;
+  const id = Number(value);
+  return Number.isSafeInteger(id) ? id : null;
+}
+
 function TransactionsPage() {
-  const { isAuthenticated } = useToken();
+  const { token, isDemo, isAuthenticated } = useToken();
   const {
     primaryCurrency,
     categoryMap,
@@ -92,7 +99,11 @@ function TransactionsPage() {
     errors,
     update,
     reviewMany,
-  } = useMonthTransactions(selectedYear, selectedMonth, isAuthenticated);
+  } = useMonthTransactions(
+    selectedYear,
+    selectedMonth,
+    isDemo ? "demo" : token
+  );
 
   // Categories come from the app-level fetch, so rows wait on them too — a row
   // rendered before they land would read "Uncategorized".
@@ -107,7 +118,7 @@ function TransactionsPage() {
     target: "category" | "review";
   } | null>(null);
   const categoryParam = searchParams.get("category");
-  const filterCatId = categoryParam !== null ? Number(categoryParam) : null;
+  const filterCatId = parseCategoryFilter(categoryParam);
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
@@ -118,7 +129,10 @@ function TransactionsPage() {
   }>({ month: monthKey, ids: new Set() });
   const selectedIds =
     selection.month === monthKey ? selection.ids : NO_SELECTION;
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editing, setEditing] = useState<{
+    month: string;
+    id: number;
+  } | null>(null);
 
   const accountNames = useMemo(
     () =>
@@ -318,6 +332,16 @@ function TransactionsPage() {
     [filterCatId, update]
   );
 
+  const handlePayeeChange = useCallback(
+    (id: number, payee: string) => void update(id, { payee }),
+    [update]
+  );
+
+  const handleOpen = useCallback(
+    (id: number) => setEditing({ month: monthKey, id }),
+    [monthKey]
+  );
+
   const setSelected = useCallback(
     (id: number, selected: boolean) => {
       setSelection((current) => {
@@ -350,9 +374,9 @@ function TransactionsPage() {
   );
 
   const editingTransaction =
-    editingId == null
+    editing?.month !== monthKey
       ? null
-      : (transactions.find((transaction) => transaction.id === editingId) ??
+      : (transactions.find((transaction) => transaction.id === editing.id) ??
         null);
 
   if (!isAuthenticated) return <NoTokenPrompt />;
@@ -500,7 +524,8 @@ function TransactionsPage() {
           onClick={() => {
             const eligible = filtered.filter(
               (transaction) =>
-                transaction.status === "unreviewed" && !transaction.is_pending
+                transaction.status === "unreviewed" &&
+                isReviewableTransaction(transaction)
             );
             setSelection({
               month: monthKey,
@@ -603,8 +628,8 @@ function TransactionsPage() {
                 error={errors.get(tx.id)}
                 selected={selectedIds.has(tx.id)}
                 onSelect={setSelected}
-                onOpen={setEditingId}
-                onPayeeChange={(id, payee) => void update(id, { payee })}
+                onOpen={handleOpen}
+                onPayeeChange={handlePayeeChange}
                 onCategoryChange={handleCategoryChange}
                 onReview={handleReview}
                 pickerFinalFocus={keepFocusWhileAdvancing}
@@ -635,7 +660,7 @@ function TransactionsPage() {
           recurringItems={recurringItems}
           saving={savingIds.has(editingTransaction.id)}
           error={errors.get(editingTransaction.id)}
-          onClose={() => setEditingId(null)}
+          onClose={() => setEditing(null)}
           onSave={(patch) => update(editingTransaction.id, patch)}
         />
       )}
