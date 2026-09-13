@@ -281,27 +281,41 @@ export function NetWorthPerformanceCard({
                         <p className="mb-1 text-bento-subtle">
                           {monthLabel(String(payload[0].payload.month))}
                         </p>
-                        {payload.map((item) => (
-                          <p
-                            key={String(item.dataKey)}
-                            className="flex justify-between gap-4 font-medium tabular-nums"
-                          >
-                            <span>
-                              {item.dataKey === "total"
-                                ? "Net worth"
-                                : chart.individual.find(
-                                    (series) => series.key === item.dataKey
-                                  )?.name}
-                            </span>
-                            <span>
-                              {formatCurrency(
-                                Number(item.value),
-                                primaryCurrency,
-                                true
-                              )}
-                            </span>
-                          </p>
-                        ))}
+                        {payload.map((item) => {
+                          const series = chart.individual.find(
+                            (candidate) => candidate.key === item.dataKey
+                          );
+
+                          return (
+                            <p
+                              key={String(item.dataKey)}
+                              className="flex justify-between gap-4 font-medium tabular-nums"
+                            >
+                              <span className="flex items-center gap-2">
+                                <span
+                                  aria-hidden
+                                  className="size-2 shrink-0 rounded-full"
+                                  style={{
+                                    backgroundColor:
+                                      series?.color ?? "var(--series-1)",
+                                  }}
+                                />
+                                <span>
+                                  {item.dataKey === "total"
+                                    ? "Net worth"
+                                    : series?.name}
+                                </span>
+                              </span>
+                              <span>
+                                {formatCurrency(
+                                  Number(item.value),
+                                  primaryCurrency,
+                                  true
+                                )}
+                              </span>
+                            </p>
+                          );
+                        })}
                       </div>
                     );
                   }}
