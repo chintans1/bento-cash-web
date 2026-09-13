@@ -23,11 +23,18 @@ const INVESTMENT_SUBTYPES = new Set([
   "stock plan",
 ]);
 
-export function isInvestment(a: NormalizedAccount): boolean {
+export function isInvestmentKind(
+  type: string,
+  subtype: string | null
+): boolean {
   return (
-    INVESTMENT_TYPES.has(a.type.toLowerCase()) ||
-    (a.subtype !== null && INVESTMENT_SUBTYPES.has(a.subtype.toLowerCase()))
+    INVESTMENT_TYPES.has(type.toLowerCase()) ||
+    (subtype !== null && INVESTMENT_SUBTYPES.has(subtype.toLowerCase()))
   );
+}
+
+export function isInvestment(a: NormalizedAccount): boolean {
+  return isInvestmentKind(a.type, a.subtype);
 }
 
 export type Bucket = {

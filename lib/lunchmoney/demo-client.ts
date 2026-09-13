@@ -590,6 +590,7 @@ function demoBalanceHistory(): BalanceHistoryAccount[] {
     1002: 0.012,
     1003: 0.0,
     1004: 0.018,
+    1101: 0,
   };
 
   const now = new Date();
@@ -601,27 +602,32 @@ function demoBalanceHistory(): BalanceHistoryAccount[] {
     );
   }
 
-  return DEMO_ACCOUNTS.map<BalanceHistoryAccount>((account) => ({
-    source: { type: "manual", manual_account_id: account.id },
-    balances: months.map((month, i) => {
-      const back = months.length - 1 - i;
-      const trend = (1 + TREND[account.id]) ** -back;
-      const wobble = 0.97 + seededRandom(account.id, i, 3) * 0.06;
-      const balance = account.to_base * trend * (back === 0 ? 1 : wobble);
-      return {
-        // The newest month is the API's ephemeral "current" snapshot: today's
-        // balance, with no stored entry — and so no id — behind it.
-        ...(back === 0
-          ? { type: "current" as const }
-          : { type: "historical" as const, id: account.id * 100 + i }),
-        month,
-        balance: balance.toFixed(4),
-        currency: "usd",
-        to_base: Number(balance.toFixed(2)),
-        crypto_balance: null,
-      };
-    }),
-  }));
+  return [...DEMO_ACCOUNTS, ...DEMO_PLAID_ACCOUNTS].map<BalanceHistoryAccount>(
+    (account) => ({
+      source:
+        "plaid_item_id" in account
+          ? { type: "plaid", plaid_account_id: account.id }
+          : { type: "manual", manual_account_id: account.id },
+      balances: months.map((month, i) => {
+        const back = months.length - 1 - i;
+        const trend = (1 + TREND[account.id]) ** -back;
+        const wobble = 0.97 + seededRandom(account.id, i, 3) * 0.06;
+        const balance = account.to_base * trend * (back === 0 ? 1 : wobble);
+        return {
+          // The newest month is the API's ephemeral "current" snapshot: today's
+          // balance, with no stored entry — and so no id — behind it.
+          ...(back === 0
+            ? { type: "current" as const }
+            : { type: "historical" as const, id: account.id * 100 + i }),
+          month,
+          balance: balance.toFixed(4),
+          currency: "usd",
+          to_base: Number(balance.toFixed(2)),
+          crypto_balance: null,
+        };
+      }),
+    })
+  );
 }
 
 // ── Factory ──────────────────────────────────────────────────────────────────

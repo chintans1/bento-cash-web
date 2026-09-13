@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { computeNetWorthHistory, trailingMonths } from "../net-worth-history";
+import {
+  computeAccountHistorySeries,
+  computeNetWorthHistory,
+  historyForAccountGroup,
+  trailingMonths,
+} from "../net-worth-history";
 import type { BalanceHistoryAccount } from "../client";
 import type { NormalizedAccount } from "../../account-utils";
 
@@ -198,5 +203,92 @@ describe("trailingMonths", () => {
 
   it("returns everything available when there are fewer months than asked for", () => {
     expect(trailingMonths(points, "2026-04", 12)).toHaveLength(4);
+  });
+});
+
+describe("historyForAccountGroup", () => {
+  const groupedAccounts = [
+    {
+      id: "manual-1",
+      name: "Everyday Checking",
+      type: "cash",
+      subtype: "checking",
+      isLiability: false,
+    },
+    {
+      id: "plaid-2",
+      name: "Credit Card",
+      type: "credit",
+      subtype: "credit card",
+      isLiability: true,
+    },
+    {
+      id: "manual-3",
+      name: "Retirement",
+      type: "investment",
+      subtype: "401k",
+      isLiability: false,
+    },
+    {
+      id: "manual-4",
+      name: "Savings",
+      type: "cash",
+      subtype: "savings",
+      isLiability: false,
+    },
+  ] as NormalizedAccount[];
+  const groupedHistory = [
+    manual(1, [["2026-01", 100]]),
+    plaid(2, [["2026-01", 50]]),
+    manual(3, [["2026-01", 500]]),
+  ];
+
+  it("selects cash, investments, and debt independently", () => {
+    expect(
+      historyForAccountGroup(groupedHistory, groupedAccounts, "cash")
+    ).toEqual([groupedHistory[0]]);
+    expect(
+      historyForAccountGroup(groupedHistory, groupedAccounts, "investments")
+    ).toEqual([groupedHistory[2]]);
+    expect(
+      historyForAccountGroup(groupedHistory, groupedAccounts, "debt")
+    ).toEqual([groupedHistory[1]]);
+  });
+
+  it("builds one line per account and carries gaps within its history", () => {
+    const history = [
+      manual(1, [
+        ["2026-01", 100],
+        ["2026-03", 120],
+      ]),
+      manual(4, [
+        ["2026-01", 200],
+        ["2026-02", 210],
+        ["2026-03", 220],
+      ]),
+    ];
+
+    expect(
+      computeAccountHistorySeries(history, groupedAccounts, "cash")
+    ).toEqual([
+      {
+        key: "manual-1",
+        name: "Everyday Checking",
+        points: [
+          { month: "2026-01", balance: 100 },
+          { month: "2026-02", balance: 100 },
+          { month: "2026-03", balance: 120 },
+        ],
+      },
+      {
+        key: "manual-4",
+        name: "Savings",
+        points: [
+          { month: "2026-01", balance: 200 },
+          { month: "2026-02", balance: 210 },
+          { month: "2026-03", balance: 220 },
+        ],
+      },
+    ]);
   });
 });
