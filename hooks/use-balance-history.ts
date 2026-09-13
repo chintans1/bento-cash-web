@@ -6,11 +6,12 @@ import {
   type BalanceHistoryAccount,
 } from "@/lib/lunchmoney/client";
 
-export function useNetWorthHistory(isAuthenticated: boolean) {
+/** All balance snapshots, or null while the request is pending. */
+export function useBalanceHistory(enabled: boolean) {
   const [history, setHistory] = useState<BalanceHistoryAccount[] | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!enabled) return;
     let cancelled = false;
 
     getBalanceHistory()
@@ -24,7 +25,7 @@ export function useNetWorthHistory(isAuthenticated: boolean) {
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated]);
+  }, [enabled]);
 
   return history;
 }

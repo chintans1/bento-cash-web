@@ -6,12 +6,9 @@ import { Area, CartesianGrid, ComposedChart, XAxis, YAxis } from "recharts";
 import type { NormalizedAccount } from "@/lib/account-utils";
 import type { BalanceHistoryAccount } from "@/lib/lunchmoney/client";
 import {
-  accountBreakdownForMonth,
-  computeAccountHistorySeries,
-  computeNetWorthHistory,
-  historyForAccountGroup,
-  paddedChartDomain,
+  computeNetWorthPerformance,
   type AccountGroup,
+  type NetWorthPerformancePoint,
 } from "@/lib/lunchmoney/net-worth-history";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -34,19 +31,18 @@ const RANGES = [
   { value: 0, label: "All" },
 ];
 
+const CHART_CONFIG = {};
+const COMPACT_NUMBER = new Intl.NumberFormat("en", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
 function monthLabel(month: string) {
   const [year, value] = month.split("-").map(Number);
   return new Date(year, value - 1).toLocaleDateString("en-US", {
     month: "short",
     year: "2-digit",
   });
-}
-
-function valueForGroup(
-  point: ReturnType<typeof computeNetWorthHistory>[number],
-  group: AccountGroup
-) {
-  return group === "debt" ? point.totalLiabilities : point.netWorth;
 }
 
 function ChangeValue({
@@ -73,6 +69,64 @@ function ChangeValue({
       {value > 0 ? "+" : "−"}
       {formatCurrency(Math.abs(value), currency, true)}
     </span>
+  );
+}
+
+function PerformanceTooltip({
+  point,
+  group,
+  currency,
+}: {
+  point: NetWorthPerformancePoint;
+  group: AccountGroup;
+  currency: string;
+}) {
+  const label =
+    group === "all"
+      ? "Net worth"
+      : GROUPS.find((item) => item.value === group)?.label;
+
+  return (
+    <div className="w-80 max-w-[calc(100vw-2rem)] rounded-xl glass px-3 py-2.5 text-xs">
+      <p className="text-bento-subtle">{monthLabel(point.month)}</p>
+      <div className="mt-0.5 flex items-baseline justify-between gap-4 font-medium">
+        <span>{label}</span>
+        <span className="tabular-nums">
+          {formatCurrency(point.total, currency, true)}
+        </span>
+      </div>
+      {point.previousMonth && (
+        <div className="mt-0.5 flex justify-between gap-4 text-bento-subtle">
+          <span>from {monthLabel(point.previousMonth)}</span>
+          <ChangeValue
+            value={point.change}
+            currency={currency}
+            debt={group === "debt"}
+          />
+        </div>
+      )}
+
+      {point.breakdown.length > 0 && (
+        <div className="mt-2 space-y-1.5 border-t border-bento-hairline pt-2">
+          {point.breakdown.map((account) => (
+            <div
+              key={account.key}
+              className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-x-3"
+            >
+              <span className="truncate">{account.name}</span>
+              <span className="tabular-nums">
+                {formatCurrency(account.balance, currency, true)}
+              </span>
+              <ChangeValue
+                value={account.change}
+                currency={currency}
+                debt={group === "debt"}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -115,48 +169,15 @@ export function NetWorthPerformanceCard({
 
   const chart = useMemo(() => {
     if (!history) return null;
-
-    const groupedHistory = historyForAccountGroup(history, accounts, group);
-    const combined = computeNetWorthHistory(groupedHistory, accounts);
-    const visibleCombined = range ? combined.slice(-range) : combined;
-    const individual =
-      group === "all"
-        ? []
-        : computeAccountHistorySeries(history, accounts, group);
-    const points = visibleCombined.map((point) => {
-      const index = combined.findIndex((item) => item.month === point.month);
-      const previous = combined[index - 1];
-      const total = valueForGroup(point, group);
-
-      return {
-        month: point.month,
-        total,
-        change: previous ? total - valueForGroup(previous, group) : null,
-        previousMonth: previous?.month ?? null,
-        breakdown: accountBreakdownForMonth(
-          individual,
-          point.month,
-          previous?.month ?? null
-        ),
-      };
-    });
-
-    return {
-      points,
-      domain: paddedChartDomain(points.map((point) => point.total)),
-      first: points[0]?.total,
-      latest: points.at(-1)?.total,
-    };
+    return computeNetWorthPerformance(history, accounts, group, range);
   }, [history, accounts, group, range]);
 
+  const first = chart?.points[0]?.total;
+  const latest = chart?.points.at(-1)?.total;
   const change =
-    chart?.first !== undefined && chart.latest !== undefined
-      ? chart.latest - chart.first
-      : null;
+    first !== undefined && latest !== undefined ? latest - first : null;
   const changePct =
-    change !== null && chart?.first
-      ? (change / Math.abs(chart.first)) * 100
-      : null;
+    change !== null && first ? (change / Math.abs(first)) * 100 : null;
   const improving =
     change !== null && (group === "debt" ? change <= 0 : change >= 0);
   const Arrow = change !== null && change < 0 ? ArrowDownRight : ArrowUpRight;
@@ -195,7 +216,7 @@ export function NetWorthPerformanceCard({
         <CardContent>
           <Skeleton className="h-64 rounded-xl" />
         </CardContent>
-      ) : !chart || chart.points.length < 2 || chart.latest === undefined ? (
+      ) : !chart || chart.points.length < 2 || latest === undefined ? (
         <CardContent className="py-14 text-center text-bento-subtle">
           No balance history for this account type.
         </CardContent>
@@ -203,7 +224,7 @@ export function NetWorthPerformanceCard({
         <>
           <CardContent className="flex flex-wrap items-end gap-x-4 gap-y-1">
             <p className="font-heading text-3xl font-semibold tabular-nums">
-              {formatCurrency(chart.latest, primaryCurrency, true)}
+              {formatCurrency(latest, primaryCurrency, true)}
             </p>
             {change !== null && changePct !== null && (
               <p
@@ -222,7 +243,7 @@ export function NetWorthPerformanceCard({
           </CardContent>
 
           <CardContent className="px-2 sm:px-4">
-            <ChartContainer config={{}} className="h-64 w-full">
+            <ChartContainer config={CHART_CONFIG} className="h-64 w-full">
               <ComposedChart
                 data={chart.points}
                 margin={{ top: 8, right: 14, bottom: 4, left: 4 }}
@@ -260,12 +281,7 @@ export function NetWorthPerformanceCard({
                 />
                 <YAxis
                   domain={chart.domain}
-                  tickFormatter={(value) =>
-                    Intl.NumberFormat("en", {
-                      notation: "compact",
-                      maximumFractionDigits: 1,
-                    }).format(value)
-                  }
+                  tickFormatter={(value) => COMPACT_NUMBER.format(value)}
                   tickLine={false}
                   axisLine={false}
                   width={46}
@@ -274,60 +290,12 @@ export function NetWorthPerformanceCard({
                   cursor={{ stroke: "var(--bento-hairline)" }}
                   content={({ active, payload }) => {
                     if (!active || !payload?.length) return null;
-                    const point = payload[0]
-                      .payload as (typeof chart.points)[number];
-                    const label =
-                      group === "all"
-                        ? "Net worth"
-                        : GROUPS.find((item) => item.value === group)?.label;
-
                     return (
-                      <div className="w-80 max-w-[calc(100vw-2rem)] rounded-xl glass px-3 py-2.5 text-xs">
-                        <p className="text-bento-subtle">
-                          {monthLabel(point.month)}
-                        </p>
-                        <div className="mt-0.5 flex items-baseline justify-between gap-4 font-medium">
-                          <span>{label}</span>
-                          <span className="tabular-nums">
-                            {formatCurrency(point.total, primaryCurrency, true)}
-                          </span>
-                        </div>
-                        {point.previousMonth && (
-                          <div className="mt-0.5 flex justify-between gap-4 text-bento-subtle">
-                            <span>from {monthLabel(point.previousMonth)}</span>
-                            <ChangeValue
-                              value={point.change}
-                              currency={primaryCurrency}
-                              debt={group === "debt"}
-                            />
-                          </div>
-                        )}
-
-                        {point.breakdown.length > 0 && (
-                          <div className="mt-2 space-y-1.5 border-t border-bento-hairline pt-2">
-                            {point.breakdown.map((account) => (
-                              <div
-                                key={account.key}
-                                className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-x-3"
-                              >
-                                <span className="truncate">{account.name}</span>
-                                <span className="tabular-nums">
-                                  {formatCurrency(
-                                    account.balance,
-                                    primaryCurrency,
-                                    true
-                                  )}
-                                </span>
-                                <ChangeValue
-                                  value={account.change}
-                                  currency={primaryCurrency}
-                                  debt={group === "debt"}
-                                />
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      <PerformanceTooltip
+                        point={payload[0].payload as NetWorthPerformancePoint}
+                        group={group}
+                        currency={primaryCurrency}
+                      />
                     );
                   }}
                 />
