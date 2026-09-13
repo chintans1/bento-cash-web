@@ -2,17 +2,11 @@
 
 import { useMemo, useState } from "react";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
-import {
-  Area,
-  CartesianGrid,
-  ComposedChart,
-  Line,
-  XAxis,
-  YAxis,
-} from "recharts";
+import { Area, CartesianGrid, ComposedChart, XAxis, YAxis } from "recharts";
 import type { NormalizedAccount } from "@/lib/account-utils";
 import type { BalanceHistoryAccount } from "@/lib/lunchmoney/client";
 import {
+  accountBreakdownForMonth,
   computeAccountHistorySeries,
   computeNetWorthHistory,
   historyForAccountGroup,
@@ -40,22 +34,46 @@ const RANGES = [
   { value: 0, label: "All" },
 ];
 
-const SERIES_COLORS = [
-  "var(--series-1)",
-  "var(--cat-4)",
-  "var(--cat-5)",
-  "var(--cat-6)",
-  "var(--cat-1)",
-  "var(--cat-2)",
-  "var(--cat-7)",
-];
-
 function monthLabel(month: string) {
   const [year, value] = month.split("-").map(Number);
   return new Date(year, value - 1).toLocaleDateString("en-US", {
     month: "short",
     year: "2-digit",
   });
+}
+
+function valueForGroup(
+  point: ReturnType<typeof computeNetWorthHistory>[number],
+  group: AccountGroup
+) {
+  return group === "debt" ? point.totalLiabilities : point.netWorth;
+}
+
+function ChangeValue({
+  value,
+  currency,
+  debt,
+}: {
+  value: number | null;
+  currency: string;
+  debt: boolean;
+}) {
+  if (value === null || value === 0) {
+    return <span className="text-bento-subtle">—</span>;
+  }
+
+  const improving = debt ? value < 0 : value > 0;
+  return (
+    <span
+      className={cn(
+        "text-right tabular-nums",
+        improving ? "text-bento-positive" : "text-bento-negative"
+      )}
+    >
+      {value > 0 ? "+" : "−"}
+      {formatCurrency(Math.abs(value), currency, true)}
+    </span>
+  );
 }
 
 function Control({
@@ -101,49 +119,31 @@ export function NetWorthPerformanceCard({
     const groupedHistory = historyForAccountGroup(history, accounts, group);
     const combined = computeNetWorthHistory(groupedHistory, accounts);
     const visibleCombined = range ? combined.slice(-range) : combined;
-    const startMonth = visibleCombined[0]?.month;
     const individual =
       group === "all"
         ? []
-        : computeAccountHistorySeries(history, accounts, group).map(
-            (series, index) => ({
-              ...series,
-              color: SERIES_COLORS[index % SERIES_COLORS.length],
-              points: series.points.filter(
-                (point) => !startMonth || point.month >= startMonth
-              ),
-            })
-          );
-    const bySeries = individual.map(
-      (series) =>
-        [
-          series,
-          new Map(series.points.map((point) => [point.month, point.balance])),
-        ] as const
-    );
-    const points = visibleCombined.map((point) => ({
-      month: point.month,
-      total: group === "debt" ? point.totalLiabilities : point.netWorth,
-      ...Object.fromEntries(
-        bySeries.map(([series, values]) => [
-          series.key,
-          values.get(point.month),
-        ])
-      ),
-    }));
-    const keys =
-      group === "all" ? ["total"] : individual.map((item) => item.key);
-    const values = points.flatMap((point) =>
-      keys.flatMap((key) => {
-        const value = point[key as keyof typeof point];
-        return typeof value === "number" ? [value] : [];
-      })
-    );
+        : computeAccountHistorySeries(history, accounts, group);
+    const points = visibleCombined.map((point) => {
+      const index = combined.findIndex((item) => item.month === point.month);
+      const previous = combined[index - 1];
+      const total = valueForGroup(point, group);
+
+      return {
+        month: point.month,
+        total,
+        change: previous ? total - valueForGroup(previous, group) : null,
+        previousMonth: previous?.month ?? null,
+        breakdown: accountBreakdownForMonth(
+          individual,
+          point.month,
+          previous?.month ?? null
+        ),
+      };
+    });
 
     return {
       points,
-      individual,
-      domain: paddedChartDomain(values),
+      domain: paddedChartDomain(points.map((point) => point.total)),
       first: points[0]?.total,
       latest: points.at(-1)?.total,
     };
@@ -274,91 +274,75 @@ export function NetWorthPerformanceCard({
                   cursor={{ stroke: "var(--bento-hairline)" }}
                   content={({ active, payload }) => {
                     if (!active || !payload?.length) return null;
-                    return (
-                      <div className="rounded-xl glass px-3 py-2 text-xs">
-                        <p className="mb-1 text-bento-subtle">
-                          {monthLabel(String(payload[0].payload.month))}
-                        </p>
-                        {payload.map((item) => {
-                          const series = chart.individual.find(
-                            (candidate) => candidate.key === item.dataKey
-                          );
+                    const point = payload[0]
+                      .payload as (typeof chart.points)[number];
+                    const label =
+                      group === "all"
+                        ? "Net worth"
+                        : GROUPS.find((item) => item.value === group)?.label;
 
-                          return (
-                            <p
-                              key={String(item.dataKey)}
-                              className="flex justify-between gap-4 font-medium tabular-nums"
-                            >
-                              <span className="flex items-center gap-2">
-                                <span
-                                  aria-hidden
-                                  className="size-2 shrink-0 rounded-full"
-                                  style={{
-                                    backgroundColor:
-                                      series?.color ?? "var(--series-1)",
-                                  }}
-                                />
-                                <span>
-                                  {item.dataKey === "total"
-                                    ? "Net worth"
-                                    : series?.name}
+                    return (
+                      <div className="w-80 max-w-[calc(100vw-2rem)] rounded-xl glass px-3 py-2.5 text-xs">
+                        <p className="text-bento-subtle">
+                          {monthLabel(point.month)}
+                        </p>
+                        <div className="mt-0.5 flex items-baseline justify-between gap-4 font-medium">
+                          <span>{label}</span>
+                          <span className="tabular-nums">
+                            {formatCurrency(point.total, primaryCurrency, true)}
+                          </span>
+                        </div>
+                        {point.previousMonth && (
+                          <div className="mt-0.5 flex justify-between gap-4 text-bento-subtle">
+                            <span>from {monthLabel(point.previousMonth)}</span>
+                            <ChangeValue
+                              value={point.change}
+                              currency={primaryCurrency}
+                              debt={group === "debt"}
+                            />
+                          </div>
+                        )}
+
+                        {point.breakdown.length > 0 && (
+                          <div className="mt-2 space-y-1.5 border-t border-bento-hairline pt-2">
+                            {point.breakdown.map((account) => (
+                              <div
+                                key={account.key}
+                                className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-x-3"
+                              >
+                                <span className="truncate">{account.name}</span>
+                                <span className="tabular-nums">
+                                  {formatCurrency(
+                                    account.balance,
+                                    primaryCurrency,
+                                    true
+                                  )}
                                 </span>
-                              </span>
-                              <span>
-                                {formatCurrency(
-                                  Number(item.value),
-                                  primaryCurrency,
-                                  true
-                                )}
-                              </span>
-                            </p>
-                          );
-                        })}
+                                <ChangeValue
+                                  value={account.change}
+                                  currency={primaryCurrency}
+                                  debt={group === "debt"}
+                                />
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
                     );
                   }}
                 />
-                {group === "all" ? (
-                  <Area
-                    dataKey="total"
-                    type="monotone"
-                    stroke="var(--series-1)"
-                    strokeWidth={2.5}
-                    fill="url(#net-worth-performance-fill)"
-                    dot={false}
-                    activeDot={{ r: 4, strokeWidth: 0 }}
-                    isAnimationActive={false}
-                  />
-                ) : (
-                  chart.individual.map((series) => (
-                    <Line
-                      key={series.key}
-                      dataKey={series.key}
-                      type="monotone"
-                      stroke={series.color}
-                      strokeWidth={2.5}
-                      dot={false}
-                      activeDot={{ r: 4, strokeWidth: 0 }}
-                      connectNulls
-                      isAnimationActive={false}
-                    />
-                  ))
-                )}
+                <Area
+                  dataKey="total"
+                  type="monotone"
+                  stroke="var(--series-1)"
+                  strokeWidth={2.5}
+                  fill="url(#net-worth-performance-fill)"
+                  dot={false}
+                  activeDot={{ r: 4, strokeWidth: 0 }}
+                  isAnimationActive={false}
+                />
               </ComposedChart>
             </ChartContainer>
-            {chart.individual.length > 0 && (
-              <div className="flex flex-wrap justify-end gap-4 px-4 pb-2 text-xs text-bento-subtle">
-                {chart.individual.map((series) => (
-                  <span key={series.key} className="flex items-center gap-1.5">
-                    <span
-                      className="h-0.5 w-4"
-                      style={{ backgroundColor: series.color }}
-                    />
-                    {series.name}
-                  </span>
-                ))}
-              </div>
-            )}
           </CardContent>
         </>
       )}

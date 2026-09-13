@@ -21,6 +21,13 @@ export type AccountHistorySeries = {
   points: { month: string; balance: number }[];
 };
 
+export type AccountMonthBreakdown = {
+  key: string;
+  name: string;
+  balance: number;
+  change: number | null;
+};
+
 /** A padded chart domain that never invents negative values for positive data. */
 export function paddedChartDomain(values: number[]): [number, number] {
   const min = Math.min(...values);
@@ -28,6 +35,51 @@ export function paddedChartDomain(values: number[]): [number, number] {
   const padding = Math.max((max - min) * 0.12, Math.abs(max) * 0.015, 1);
 
   return [min >= 0 ? Math.max(0, min - padding) : min - padding, max + padding];
+}
+
+/** Account balances and month-over-month movement for a compact tooltip. */
+export function accountBreakdownForMonth(
+  series: AccountHistorySeries[],
+  month: string,
+  previousMonth: string | null,
+  limit = 7
+): AccountMonthBreakdown[] {
+  const rows = series
+    .flatMap((account) => {
+      const balance = account.points.find(
+        (point) => point.month === month
+      )?.balance;
+      if (balance === undefined) return [];
+
+      const previous = previousMonth
+        ? account.points.find((point) => point.month === previousMonth)?.balance
+        : undefined;
+      const change = previous === undefined ? null : balance - previous;
+
+      return balance === 0 && (change === null || change === 0)
+        ? []
+        : [{ key: account.key, name: account.name, balance, change }];
+    })
+    .sort((a, b) => b.balance - a.balance || a.name.localeCompare(b.name));
+
+  if (rows.length <= limit) return rows;
+
+  const other = rows.slice(limit).reduce(
+    (total, row) => ({
+      balance: total.balance + row.balance,
+      change: total.change + (row.change ?? 0),
+    }),
+    { balance: 0, change: 0 }
+  );
+
+  return [
+    ...rows.slice(0, limit),
+    {
+      key: "other-accounts",
+      name: `Other accounts (${rows.length - limit})`,
+      ...other,
+    },
+  ];
 }
 
 /**

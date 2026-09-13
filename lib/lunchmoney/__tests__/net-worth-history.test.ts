@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  accountBreakdownForMonth,
   computeAccountHistorySeries,
   computeNetWorthHistory,
   historyForAccountGroup,
@@ -222,6 +223,56 @@ describe("paddedChartDomain", () => {
 
   it("gives a flat series enough vertical space to render", () => {
     expect(paddedChartDomain([100, 100])).toEqual([98.5, 101.5]);
+  });
+});
+
+describe("accountBreakdownForMonth", () => {
+  it("sorts by balance, hides unchanged zeroes, and rolls up overflow", () => {
+    const series = [
+      {
+        key: "a",
+        name: "Checking",
+        points: [
+          { month: "2026-01", balance: 100 },
+          { month: "2026-02", balance: 110 },
+        ],
+      },
+      {
+        key: "b",
+        name: "Savings",
+        points: [
+          { month: "2026-01", balance: 200 },
+          { month: "2026-02", balance: 190 },
+        ],
+      },
+      {
+        key: "c",
+        name: "Cash",
+        points: [
+          { month: "2026-01", balance: 50 },
+          { month: "2026-02", balance: 60 },
+        ],
+      },
+      {
+        key: "d",
+        name: "Empty",
+        points: [
+          { month: "2026-01", balance: 0 },
+          { month: "2026-02", balance: 0 },
+        ],
+      },
+    ];
+
+    expect(accountBreakdownForMonth(series, "2026-02", "2026-01", 2)).toEqual([
+      { key: "b", name: "Savings", balance: 190, change: -10 },
+      { key: "a", name: "Checking", balance: 110, change: 10 },
+      {
+        key: "other-accounts",
+        name: "Other accounts (1)",
+        balance: 60,
+        change: 10,
+      },
+    ]);
   });
 });
 
