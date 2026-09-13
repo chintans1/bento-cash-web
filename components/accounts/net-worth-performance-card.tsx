@@ -145,7 +145,10 @@ export function NetWorthPerformanceCard({
     return {
       points,
       individual,
-      domain: [min - padding, max + padding] as [number, number],
+      domain: [
+        min >= 0 ? Math.max(0, min - padding) : min - padding,
+        max + padding,
+      ] as [number, number],
       first: points[0]?.total,
       latest: points.at(-1)?.total,
     };
