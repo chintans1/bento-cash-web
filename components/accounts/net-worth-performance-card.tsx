@@ -16,6 +16,7 @@ import {
   computeAccountHistorySeries,
   computeNetWorthHistory,
   historyForAccountGroup,
+  paddedChartDomain,
   type AccountGroup,
 } from "@/lib/lunchmoney/net-worth-history";
 import { formatCurrency } from "@/lib/format";
@@ -138,17 +139,11 @@ export function NetWorthPerformanceCard({
         return typeof value === "number" ? [value] : [];
       })
     );
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const padding = Math.max((max - min) * 0.12, Math.abs(max) * 0.015, 1);
 
     return {
       points,
       individual,
-      domain: [
-        min >= 0 ? Math.max(0, min - padding) : min - padding,
-        max + padding,
-      ] as [number, number],
+      domain: paddedChartDomain(values),
       first: points[0]?.total,
       latest: points.at(-1)?.total,
     };
