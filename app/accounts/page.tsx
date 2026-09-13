@@ -17,6 +17,8 @@ import { NoTokenPrompt } from "@/components/no-token-prompt";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { useNetWorthHistory } from "@/hooks/use-net-worth-history";
+import { NetWorthPerformanceCard } from "@/components/accounts/net-worth-performance-card";
 
 /** Months of spend history the investable-cash figure averages over. */
 const SPEND_LOOKBACK_MONTHS = 3;
@@ -27,6 +29,7 @@ export default function AccountsPage() {
     useAppData();
   const { months: floorMonths } = useInvestableMonths();
   const history = useTransactionHistory(SPEND_LOOKBACK_MONTHS, isAuthenticated);
+  const netWorthHistory = useNetWorthHistory(isAuthenticated);
   const [showInactive, setShowInactive] = useState(false);
 
   const active = useMemo(
@@ -99,6 +102,11 @@ export default function AccountsPage() {
         </p>
       ) : (
         <>
+          <NetWorthPerformanceCard
+            history={netWorthHistory}
+            accounts={accounts}
+            primaryCurrency={primaryCurrency}
+          />
           <InvestableCashCard
             state={investable}
             primaryCurrency={primaryCurrency}

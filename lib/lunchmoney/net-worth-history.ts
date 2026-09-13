@@ -5,11 +5,20 @@ import {
   type NormalizedAccount,
 } from "../account-utils";
 import type { BalanceHistoryAccount } from "./client";
+import { isInvestment, isInvestmentKind } from "../investment-utils";
+
+export type AccountGroup = "all" | "cash" | "investments" | "debt" | "other";
 
 /** A month's net worth, in the same shape as today's — see `computeNetWorth`. */
 export type NetWorthPoint = NetWorth & {
   /** YYYY-MM. */
   month: string;
+};
+
+export type AccountHistorySeries = {
+  key: string;
+  name: string;
+  points: { month: string; balance: number }[];
 };
 
 /**
@@ -108,4 +117,115 @@ export function trailingMonths(
   count: number
 ): NetWorthPoint[] {
   return points.filter((p) => p.month <= endMonth).slice(-count);
+}
+
+function matchesGroup(
+  type: string,
+  subtype: string | null,
+  isLiability: boolean,
+  group: AccountGroup
+): boolean {
+  if (group === "debt") return isLiability;
+  if (isLiability) return false;
+  if (group === "investments") return isInvestmentKind(type, subtype);
+  if (group === "cash") return type.toLowerCase() === "cash";
+  return type.toLowerCase() !== "cash" && !isInvestmentKind(type, subtype);
+}
+
+/** Keeps the history sources that belong to one high-level account group. */
+export function historyForAccountGroup(
+  history: BalanceHistoryAccount[],
+  accounts: NormalizedAccount[],
+  group: AccountGroup
+): BalanceHistoryAccount[] {
+  if (group === "all") return history;
+
+  const included = new Set(
+    accounts
+      .filter((account) =>
+        group === "investments"
+          ? isInvestment(account)
+          : matchesGroup(
+              account.type,
+              account.subtype,
+              account.isLiability,
+              group
+            )
+      )
+      .map((account) => account.id)
+  );
+
+  return history.filter(({ source }) => {
+    if (source.type === "manual") {
+      return included.has(accountKey("manual", source.manual_account_id));
+    }
+    if (source.type === "plaid") {
+      return included.has(accountKey("plaid", source.plaid_account_id));
+    }
+    if (source.type === "crypto_manual" || source.type === "crypto_synced") {
+      return group === "investments";
+    }
+    return matchesGroup(
+      source.account_type ?? "other asset",
+      source.subtype,
+      source.account_type ? isLiabilityType(source.account_type) : false,
+      group
+    );
+  });
+}
+
+/** Monthly balance lines for each account in a selected account group. */
+export function computeAccountHistorySeries(
+  history: BalanceHistoryAccount[],
+  accounts: NormalizedAccount[],
+  group: Exclude<AccountGroup, "all">
+): AccountHistorySeries[] {
+  const accountById = new Map(accounts.map((account) => [account.id, account]));
+  const filtered = historyForAccountGroup(history, accounts, group);
+  const months = Array.from(
+    new Set(
+      filtered.flatMap((account) => account.balances.map((item) => item.month))
+    )
+  ).sort();
+
+  return filtered
+    .map(({ source, balances }) => {
+      const key =
+        source.type === "manual"
+          ? accountKey("manual", source.manual_account_id)
+          : source.type === "plaid"
+            ? accountKey("plaid", source.plaid_account_id)
+            : source.type === "crypto_manual"
+              ? `crypto-manual-${source.crypto_manual_id}`
+              : source.type === "crypto_synced"
+                ? `crypto-synced-${source.crypto_synced_id}-${source.symbol}`
+                : `deleted-${source.deleted_account_id}`;
+      const current = accountById.get(key);
+      const name =
+        current?.name ??
+        (source.type === "deleted"
+          ? (source.display_name ?? source.name)
+          : source.type === "crypto_manual" || source.type === "crypto_synced"
+            ? source.symbol?.toUpperCase()
+            : null) ??
+        "Account";
+      const byMonth = new Map(
+        balances.map((item) => [item.month, item.to_base])
+      );
+      const recorded = [...byMonth.keys()].sort();
+      const first = recorded[0];
+      const last = recorded.at(-1);
+      let carried = 0;
+
+      return {
+        key,
+        name,
+        points: months.flatMap((month) => {
+          if (!first || !last || month < first || month > last) return [];
+          carried = byMonth.get(month) ?? carried;
+          return [{ month, balance: carried }];
+        }),
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name));
 }

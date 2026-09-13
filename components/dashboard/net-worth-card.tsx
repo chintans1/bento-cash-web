@@ -15,6 +15,7 @@ import { formatCurrency } from "@/lib/format";
 import { MONTH_NAMES, formatMonthKey, monthKeyOf } from "@/lib/date-utils";
 import type { NetWorthPoint } from "@/lib/lunchmoney/net-worth-history";
 import type { NetWorth } from "@/lib/account-utils";
+import Link from "next/link";
 
 const chartConfig = {
   netWorth: { label: "Net worth", color: "var(--series-1)" },
@@ -79,142 +80,164 @@ export function NetWorthCard({
   const charted = history.length >= 2;
 
   return (
-    <Card className="gap-3 overflow-hidden">
-      <CardContent className="pb-1">
-        <p className="text-xs font-medium tracking-[0.14em] text-bento-subtle uppercase">
-          Net worth
-        </p>
+    <Link
+      href="/accounts"
+      aria-label="View interactive net worth performance"
+      className="block rounded-2xl"
+    >
+      <Card className="gap-3 overflow-hidden transition-shadow hover:shadow-lg">
+        <CardContent className="pb-1">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-xs font-medium tracking-[0.14em] text-bento-subtle uppercase">
+              Net worth
+            </p>
+            <span className="text-xs text-bento-subtle">Explore →</span>
+          </div>
 
-        {/* One skeleton group, sized to the loaded layout, so the hero holds
+          {/* One skeleton group, sized to the loaded layout, so the hero holds
             its height instead of growing under the cards below it. */}
-        {pending ? (
-          <div aria-hidden>
-            <Skeleton className="mt-1 h-10 w-56 rounded-lg sm:h-12" />
-            <Skeleton className="mt-3 h-5 w-52 rounded-md" />
-            <Skeleton className="mt-5 h-8 w-44 rounded-md" />
-          </div>
-        ) : shown ? (
-          <p className="mt-1 font-heading text-4xl font-bold tracking-tight tabular-nums sm:text-5xl">
-            {formatCurrency(shown.netWorth, primaryCurrency, true)}
-          </p>
-        ) : (
-          <p className="mt-2 text-sm text-bento-subtle">
-            No balance recorded for {MONTH_NAMES[month - 1]} {year}.
-          </p>
-        )}
-
-        {previous && change !== null && (
-          <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
-            <span
-              className={cn(
-                "flex items-center gap-1 font-medium tabular-nums",
-                up ? "text-bento-positive" : "text-bento-negative"
-              )}
-            >
-              <Arrow className="size-4" />
-              {up ? "+" : "−"}
-              {formatCurrency(Math.abs(change), primaryCurrency, true)}
-              {pct !== null && (
-                <span className="font-normal">
-                  ({up ? "+" : "−"}
-                  {Math.abs(pct).toFixed(1)}%)
-                </span>
-              )}
-            </span>
-            <span className="text-bento-subtle">
-              since {formatMonthKey(previous.month)}
-            </span>
-          </div>
-        )}
-
-        {shown && (
-          <div className="mt-4 flex items-center gap-6 text-xs">
-            <div>
-              <p className="text-bento-subtle">Assets</p>
-              <p className="font-medium tabular-nums">
-                {formatCurrency(shown.totalAssets, primaryCurrency)}
-              </p>
+          {pending ? (
+            <div aria-hidden>
+              <Skeleton className="mt-1 h-10 w-56 rounded-lg sm:h-12" />
+              <Skeleton className="mt-3 h-5 w-52 rounded-md" />
+              <Skeleton className="mt-5 h-8 w-44 rounded-md" />
             </div>
-            <Separator orientation="vertical" className="h-8" />
-            <div>
-              <p className="text-bento-subtle">Liabilities</p>
-              <p className="font-medium tabular-nums">
-                {formatCurrency(shown.totalLiabilities, primaryCurrency)}
-              </p>
-            </div>
-          </div>
-        )}
-
-        <p className="mt-4 text-[11px] text-pretty text-bento-subtle">
-          {charted && latest ? (
-            <>
-              Month-end balances, {formatMonthKey(history[0].month)} –{" "}
-              {formatMonthKey(latest.month)}.
-              {isCurrentMonth && " The figure above is as of today."}
-            </>
-          ) : historyLoading ? (
-            "Loading balance history…"
+          ) : shown ? (
+            <p className="mt-1 font-heading text-4xl font-bold tracking-tight tabular-nums sm:text-5xl">
+              {formatCurrency(shown.netWorth, primaryCurrency, true)}
+            </p>
           ) : (
-            "Lunch Money has no balance history to chart yet."
+            <p className="mt-2 text-sm text-bento-subtle">
+              No balance recorded for {MONTH_NAMES[month - 1]} {year}.
+            </p>
           )}
-        </p>
-      </CardContent>
 
-      {charted && (
-        <div className="-mb-6">
-          <ChartContainer config={chartConfig} className="h-32 w-full sm:h-40">
-            <AreaChart
-              data={history}
-              margin={{ top: 4, right: 0, bottom: 0, left: 0 }}
+          {previous && change !== null && (
+            <div className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+              <span
+                className={cn(
+                  "flex items-center gap-1 font-medium tabular-nums",
+                  up ? "text-bento-positive" : "text-bento-negative"
+                )}
+              >
+                <Arrow className="size-4" />
+                {up ? "+" : "−"}
+                {formatCurrency(Math.abs(change), primaryCurrency, true)}
+                {pct !== null && (
+                  <span className="font-normal">
+                    ({up ? "+" : "−"}
+                    {Math.abs(pct).toFixed(1)}%)
+                  </span>
+                )}
+              </span>
+              <span className="text-bento-subtle">
+                since {formatMonthKey(previous.month)}
+              </span>
+            </div>
+          )}
+
+          {shown && (
+            <div className="mt-4 flex items-center gap-6 text-xs">
+              <div>
+                <p className="text-bento-subtle">Assets</p>
+                <p className="font-medium tabular-nums">
+                  {formatCurrency(shown.totalAssets, primaryCurrency)}
+                </p>
+              </div>
+              <Separator orientation="vertical" className="h-8" />
+              <div>
+                <p className="text-bento-subtle">Liabilities</p>
+                <p className="font-medium tabular-nums">
+                  {formatCurrency(shown.totalLiabilities, primaryCurrency)}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <p className="mt-4 text-[11px] text-pretty text-bento-subtle">
+            {charted && latest ? (
+              <>
+                Month-end balances, {formatMonthKey(history[0].month)} –{" "}
+                {formatMonthKey(latest.month)}.
+                {isCurrentMonth && " The figure above is as of today."}
+              </>
+            ) : historyLoading ? (
+              "Loading balance history…"
+            ) : (
+              "Lunch Money has no balance history to chart yet."
+            )}
+          </p>
+        </CardContent>
+
+        {charted && (
+          <div className="-mb-6">
+            <ChartContainer
+              config={chartConfig}
+              className="h-32 w-full sm:h-40"
             >
-              <defs>
-                <linearGradient id="net-worth-fill" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="0%"
-                    stopColor="var(--series-1)"
-                    stopOpacity={0.35}
-                  />
-                  <stop
-                    offset="100%"
-                    stopColor="var(--series-1)"
-                    stopOpacity={0}
-                  />
-                </linearGradient>
-              </defs>
-              <YAxis hide domain={["auto", "auto"]} />
-              {/* Only worth drawing when the series actually goes negative. */}
-              {crossesZero && (
-                <ReferenceLine y={0} stroke="var(--bento-hairline)" />
-              )}
-              <ChartTooltip
-                cursor={{ stroke: "var(--bento-hairline)" }}
-                content={({ active, payload }) => {
-                  if (!active || !payload?.length) return null;
-                  const point = payload[0].payload as NetWorthPoint;
-                  return (
-                    <div className="rounded-xl glass px-2.5 py-1.5 text-xs">
-                      <p className="text-bento-subtle">
-                        {formatMonthKey(point.month)}
-                      </p>
-                      <p className="font-medium tabular-nums">
-                        {formatCurrency(point.netWorth, primaryCurrency, true)}
-                      </p>
-                    </div>
-                  );
-                }}
-              />
-              <Area
-                dataKey="netWorth"
-                type="monotone"
-                stroke="var(--series-1)"
-                strokeWidth={2}
-                fill="url(#net-worth-fill)"
-                activeDot={{ r: 4, strokeWidth: 0 }}
-              />
-            </AreaChart>
-          </ChartContainer>
-        </div>
-      )}
-    </Card>
+              <AreaChart
+                data={history}
+                margin={{ top: 4, right: 0, bottom: 0, left: 0 }}
+              >
+                <defs>
+                  <linearGradient
+                    id="net-worth-fill"
+                    x1="0"
+                    y1="0"
+                    x2="0"
+                    y2="1"
+                  >
+                    <stop
+                      offset="0%"
+                      stopColor="var(--series-1)"
+                      stopOpacity={0.35}
+                    />
+                    <stop
+                      offset="100%"
+                      stopColor="var(--series-1)"
+                      stopOpacity={0}
+                    />
+                  </linearGradient>
+                </defs>
+                <YAxis hide domain={["auto", "auto"]} />
+                {/* Only worth drawing when the series actually goes negative. */}
+                {crossesZero && (
+                  <ReferenceLine y={0} stroke="var(--bento-hairline)" />
+                )}
+                <ChartTooltip
+                  cursor={{ stroke: "var(--bento-hairline)" }}
+                  content={({ active, payload }) => {
+                    if (!active || !payload?.length) return null;
+                    const point = payload[0].payload as NetWorthPoint;
+                    return (
+                      <div className="rounded-xl glass px-2.5 py-1.5 text-xs">
+                        <p className="text-bento-subtle">
+                          {formatMonthKey(point.month)}
+                        </p>
+                        <p className="font-medium tabular-nums">
+                          {formatCurrency(
+                            point.netWorth,
+                            primaryCurrency,
+                            true
+                          )}
+                        </p>
+                      </div>
+                    );
+                  }}
+                />
+                <Area
+                  dataKey="netWorth"
+                  type="monotone"
+                  stroke="var(--series-1)"
+                  strokeWidth={2}
+                  fill="url(#net-worth-fill)"
+                  activeDot={{ r: 4, strokeWidth: 0 }}
+                />
+              </AreaChart>
+            </ChartContainer>
+          </div>
+        )}
+      </Card>
+    </Link>
   );
 }
