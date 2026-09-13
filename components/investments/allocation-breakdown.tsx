@@ -1,7 +1,7 @@
 "use client";
 
 import { type NormalizedAccount, sumBalances } from "@/lib/account-utils";
-import { BUCKETS } from "@/lib/investment-utils";
+import { BUCKETS, getInvestmentBucket } from "@/lib/investment-utils";
 import { formatCurrency } from "@/lib/format";
 import {
   Card,
@@ -28,8 +28,8 @@ export function AllocationBreakdown({
   if (total === 0) return null;
 
   const bucketRows = BUCKETS.map((bucket) => {
-    const bucketAccounts = accounts.filter((a) =>
-      bucket.subtypes.has((a.subtype ?? "").toLowerCase())
+    const bucketAccounts = accounts.filter(
+      (account) => getInvestmentBucket(account) === bucket
     );
     return { bucket, bucketAccounts, amount: sumBalances(bucketAccounts) };
   }).filter((r) => r.amount > 0);
@@ -63,7 +63,7 @@ export function AllocationBreakdown({
         <CardTitle className="text-lg">Allocation</CardTitle>
         <CardDescription>Select a group to see its accounts</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="flex flex-col gap-3">
         {rows.map(({ bucket, bucketAccounts, amount }) => {
           const pct = (amount / total) * 100;
           return (

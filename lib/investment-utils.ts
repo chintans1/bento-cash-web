@@ -51,6 +51,7 @@ export const BUCKETS: Bucket[] = [
       "401k",
       "403b",
       "457b",
+      "ira",
       "sep ira",
       "simple ira",
       "pension",
@@ -60,11 +61,6 @@ export const BUCKETS: Bucket[] = [
     label: "Retirement — Tax Free",
     color: "bg-emerald-500",
     subtypes: new Set(["roth ira", "roth 401k", "tfsa"]),
-  },
-  {
-    label: "Traditional IRA",
-    color: "bg-cyan-500",
-    subtypes: new Set(["ira"]),
   },
   {
     label: "Taxable Brokerage",
@@ -87,6 +83,35 @@ export const BUCKETS: Bucket[] = [
     subtypes: new Set(["crypto"]),
   },
 ];
+
+/**
+ * Finds an account's allocation bucket. Providers sometimes omit the subtype
+ * or report a Roth IRA as the generic `ira` subtype, so IRA names provide a
+ * narrow fallback. Roth must be checked first because all other IRAs are
+ * tax-deferred for allocation purposes.
+ */
+export function getInvestmentBucket(
+  account: Pick<NormalizedAccount, "name" | "subtype">
+): Bucket | undefined {
+  const subtype = (account.subtype ?? "").trim().toLowerCase();
+  const isNamedIra = /\bira\b/i.test(account.name);
+  const isNamedRothIra = /\broth\s+ira\b/i.test(account.name);
+
+  if (isNamedRothIra) {
+    return BUCKETS.find((bucket) => bucket.label === "Retirement — Tax Free");
+  }
+
+  const subtypeBucket = BUCKETS.find((bucket) => bucket.subtypes.has(subtype));
+  if (subtypeBucket) return subtypeBucket;
+
+  if (isNamedIra) {
+    return BUCKETS.find(
+      (bucket) => bucket.label === "Retirement — Tax Deferred"
+    );
+  }
+
+  return undefined;
+}
 
 export const ACCOUNT_TYPES = [
   "cash",
