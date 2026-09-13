@@ -5,7 +5,7 @@ import {
   type NormalizedAccount,
 } from "../account-utils";
 import type { BalanceHistoryAccount } from "./client";
-import { isInvestment, isInvestmentKind } from "../investment-utils";
+import { isInvestmentKind } from "../investment-utils";
 
 export type AccountGroup = "all" | "cash" | "investments" | "debt" | "other";
 
@@ -26,6 +26,19 @@ export type AccountMonthBreakdown = {
   name: string;
   balance: number;
   change: number | null;
+};
+
+export type NetWorthPerformancePoint = {
+  month: string;
+  total: number;
+  change: number | null;
+  previousMonth: string | null;
+  breakdown: AccountMonthBreakdown[];
+};
+
+export type NetWorthPerformance = {
+  points: NetWorthPerformancePoint[];
+  domain: [number, number];
 };
 
 /** A padded chart domain that never invents negative values for positive data. */
@@ -80,6 +93,25 @@ export function accountBreakdownForMonth(
       ...other,
     },
   ];
+}
+
+function balancesForMonths(
+  balances: BalanceHistoryAccount["balances"],
+  months: string[]
+): { month: string; balance: number }[] {
+  const byMonth = new Map(
+    balances.map((balance) => [balance.month, balance.to_base])
+  );
+  const recorded = [...byMonth.keys()].sort();
+  const first = recorded[0];
+  const last = recorded.at(-1);
+  let carried = 0;
+
+  return months.flatMap((month) => {
+    if (!first || !last || month < first || month > last) return [];
+    carried = byMonth.get(month) ?? carried;
+    return [{ month, balance: carried }];
+  });
 }
 
 /**
@@ -137,19 +169,9 @@ export function computeNetWorthHistory(
   const liabilities = new Map<string, number>();
 
   for (const account of history) {
-    const byMonth = new Map(account.balances.map((b) => [b.month, b.to_base]));
-    const recorded = Array.from(byMonth.keys()).sort();
-    if (recorded.length === 0) continue;
-
     const side = isLiabilitySource(account.source, byId) ? liabilities : assets;
-    const first = recorded[0];
-    const last = recorded[recorded.length - 1];
-
-    let carried = 0;
-    for (const month of months) {
-      if (month < first || month > last) continue;
-      carried = byMonth.get(month) ?? carried;
-      side.set(month, (side.get(month) ?? 0) + carried);
+    for (const point of balancesForMonths(account.balances, months)) {
+      side.set(point.month, (side.get(point.month) ?? 0) + point.balance);
     }
   }
 
@@ -204,14 +226,7 @@ export function historyForAccountGroup(
   const included = new Set(
     accounts
       .filter((account) =>
-        group === "investments"
-          ? isInvestment(account)
-          : matchesGroup(
-              account.type,
-              account.subtype,
-              account.isLiability,
-              group
-            )
+        matchesGroup(account.type, account.subtype, account.isLiability, group)
       )
       .map((account) => account.id)
   );
@@ -235,6 +250,33 @@ export function historyForAccountGroup(
   });
 }
 
+function sourceKey(source: BalanceHistoryAccount["source"]): string {
+  switch (source.type) {
+    case "manual":
+      return accountKey("manual", source.manual_account_id);
+    case "plaid":
+      return accountKey("plaid", source.plaid_account_id);
+    case "crypto_manual":
+      return `crypto-manual-${source.crypto_manual_id}`;
+    case "crypto_synced":
+      return `crypto-synced-${source.crypto_synced_id}-${source.symbol}`;
+    case "deleted":
+      return `deleted-${source.deleted_account_id}`;
+  }
+}
+
+function sourceName(source: BalanceHistoryAccount["source"]): string {
+  switch (source.type) {
+    case "deleted":
+      return source.display_name ?? source.name ?? "Account";
+    case "crypto_manual":
+    case "crypto_synced":
+      return source.symbol?.toUpperCase() ?? "Account";
+    default:
+      return "Account";
+  }
+}
+
 /** Monthly balance lines for each account in a selected account group. */
 export function computeAccountHistorySeries(
   history: BalanceHistoryAccount[],
@@ -251,42 +293,60 @@ export function computeAccountHistorySeries(
 
   return filtered
     .map(({ source, balances }) => {
-      const key =
-        source.type === "manual"
-          ? accountKey("manual", source.manual_account_id)
-          : source.type === "plaid"
-            ? accountKey("plaid", source.plaid_account_id)
-            : source.type === "crypto_manual"
-              ? `crypto-manual-${source.crypto_manual_id}`
-              : source.type === "crypto_synced"
-                ? `crypto-synced-${source.crypto_synced_id}-${source.symbol}`
-                : `deleted-${source.deleted_account_id}`;
-      const current = accountById.get(key);
-      const name =
-        current?.name ??
-        (source.type === "deleted"
-          ? (source.display_name ?? source.name)
-          : source.type === "crypto_manual" || source.type === "crypto_synced"
-            ? source.symbol?.toUpperCase()
-            : null) ??
-        "Account";
-      const byMonth = new Map(
-        balances.map((item) => [item.month, item.to_base])
-      );
-      const recorded = [...byMonth.keys()].sort();
-      const first = recorded[0];
-      const last = recorded.at(-1);
-      let carried = 0;
+      const key = sourceKey(source);
 
       return {
         key,
-        name,
-        points: months.flatMap((month) => {
-          if (!first || !last || month < first || month > last) return [];
-          carried = byMonth.get(month) ?? carried;
-          return [{ month, balance: carried }];
-        }),
+        name: accountById.get(key)?.name ?? sourceName(source),
+        points: balancesForMonths(balances, months),
       };
     })
     .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+function valueForGroup(point: NetWorthPoint, group: AccountGroup): number {
+  return group === "debt" ? point.totalLiabilities : point.netWorth;
+}
+
+/** Everything the interactive chart needs for one account group and range. */
+export function computeNetWorthPerformance(
+  history: BalanceHistoryAccount[],
+  accounts: NormalizedAccount[],
+  group: AccountGroup,
+  months: number
+): NetWorthPerformance {
+  const combined = computeNetWorthHistory(
+    historyForAccountGroup(history, accounts, group),
+    accounts
+  );
+  const visible = months ? combined.slice(-months) : combined;
+  const firstVisible = combined.length - visible.length;
+  const series =
+    group === "all"
+      ? []
+      : computeAccountHistorySeries(history, accounts, group);
+
+  const points = visible.map((point, index) => {
+    const previous = combined[firstVisible + index - 1];
+    const total = valueForGroup(point, group);
+
+    return {
+      month: point.month,
+      total,
+      change: previous ? total - valueForGroup(previous, group) : null,
+      previousMonth: previous?.month ?? null,
+      breakdown: accountBreakdownForMonth(
+        series,
+        point.month,
+        previous?.month ?? null
+      ),
+    };
+  });
+
+  return {
+    points,
+    domain: points.length
+      ? paddedChartDomain(points.map((point) => point.total))
+      : [0, 1],
+  };
 }

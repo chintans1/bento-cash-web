@@ -2,12 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  getBalanceHistory,
   getBudgetSummary,
   getRecurringItems,
   getTransactionsForMonth,
   type AlignedSummaryResponse,
-  type BalanceHistoryAccount,
   type RecurringItem,
   type Transaction,
 } from "@/lib/lunchmoney/client";
@@ -39,6 +37,7 @@ import {
   type NetWorthPoint,
 } from "@/lib/lunchmoney/net-worth-history";
 import { useAppData } from "@/hooks/use-app-data";
+import { useBalanceHistory } from "@/hooks/use-balance-history";
 import { monthKeyOf, prevMonthOf } from "@/lib/date-utils";
 
 /** How much of the net worth curve the hero shows. */
@@ -92,10 +91,7 @@ export function useDashboardData(
   const [recurringItems, setRecurringItems] = useState<RecurringItem[]>([]);
   const [budgetSummary, setBudgetSummary] =
     useState<AlignedSummaryResponse | null>(null);
-  /** null while the request is out; [] once it has resolved or failed. */
-  const [balanceHistory, setBalanceHistory] = useState<
-    BalanceHistoryAccount[] | null
-  >(null);
+  const balanceHistory = useBalanceHistory(isAuthenticated);
   const {
     accounts,
     primaryCurrency,
@@ -160,28 +156,6 @@ export function useDashboardData(
       cancelled = true;
     };
   }, [isAuthenticated, year, month, monthKey]);
-
-  /**
-   * All of LM's balance history, fetched once — it doesn't depend on the month
-   * on screen, so stepping through months reads from what's already here.
-   * A failure resolves to an empty series and the hero just drops its chart.
-   */
-  useEffect(() => {
-    if (!isAuthenticated) return;
-
-    let cancelled = false;
-    getBalanceHistory()
-      .then((history) => {
-        if (!cancelled) setBalanceHistory(history);
-      })
-      .catch(() => {
-        if (!cancelled) setBalanceHistory([]);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated]);
 
   // ── Derived data ────────────────────────────────────────────────────────────
 

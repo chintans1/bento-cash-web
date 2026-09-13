@@ -1,7 +1,24 @@
 import { describe, expect, it } from "vitest";
 import { createDemoClient } from "../demo-client";
+import { computeNetWorth, normalizeAccounts } from "../../account-utils";
+import { computeNetWorthHistory } from "../net-worth-history";
 
 describe("demo transaction data", () => {
+  it("keeps account balance history aligned with current balances", async () => {
+    const client = createDemoClient();
+    const [{ manual, plaid }, history] = await Promise.all([
+      client.getAccounts(),
+      client.getBalanceHistory(),
+    ]);
+    const accounts = normalizeAccounts(manual, plaid);
+
+    expect(history).toHaveLength(accounts.length);
+    expect(history.some(({ source }) => source.type === "plaid")).toBe(true);
+    expect(computeNetWorthHistory(history, accounts).at(-1)).toMatchObject(
+      computeNetWorth(accounts)
+    );
+  });
+
   it("covers the states and relationships exercised by the transaction UI", async () => {
     const client = createDemoClient();
     const [{ transactions }, tags, accounts] = await Promise.all([

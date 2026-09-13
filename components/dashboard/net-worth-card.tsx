@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Area, AreaChart, ReferenceLine, YAxis } from "recharts";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -15,7 +16,6 @@ import { formatCurrency } from "@/lib/format";
 import { MONTH_NAMES, formatMonthKey, monthKeyOf } from "@/lib/date-utils";
 import type { NetWorthPoint } from "@/lib/lunchmoney/net-worth-history";
 import type { NetWorth } from "@/lib/account-utils";
-import Link from "next/link";
 
 const chartConfig = {
   netWorth: { label: "Net worth", color: "var(--series-1)" },

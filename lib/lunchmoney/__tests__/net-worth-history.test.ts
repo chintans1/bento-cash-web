@@ -3,6 +3,7 @@ import {
   accountBreakdownForMonth,
   computeAccountHistorySeries,
   computeNetWorthHistory,
+  computeNetWorthPerformance,
   historyForAccountGroup,
   paddedChartDomain,
   trailingMonths,
@@ -276,7 +277,7 @@ describe("accountBreakdownForMonth", () => {
   });
 });
 
-describe("historyForAccountGroup", () => {
+describe("account-group performance", () => {
   const groupedAccounts = [
     {
       id: "manual-1",
@@ -306,23 +307,42 @@ describe("historyForAccountGroup", () => {
       subtype: "savings",
       isLiability: false,
     },
+    {
+      id: "manual-5",
+      name: "Home",
+      type: "other asset",
+      subtype: "real estate",
+      isLiability: false,
+    },
+    {
+      id: "manual-6",
+      name: "Brokerage",
+      type: "other asset",
+      subtype: "brokerage",
+      isLiability: false,
+    },
   ] as NormalizedAccount[];
   const groupedHistory = [
     manual(1, [["2026-01", 100]]),
     plaid(2, [["2026-01", 50]]),
     manual(3, [["2026-01", 500]]),
+    manual(5, [["2026-01", 750]]),
+    manual(6, [["2026-01", 250]]),
   ];
 
-  it("selects cash, investments, and debt independently", () => {
+  it("selects each account group independently", () => {
     expect(
       historyForAccountGroup(groupedHistory, groupedAccounts, "cash")
     ).toEqual([groupedHistory[0]]);
     expect(
       historyForAccountGroup(groupedHistory, groupedAccounts, "investments")
-    ).toEqual([groupedHistory[2]]);
+    ).toEqual([groupedHistory[2], groupedHistory[4]]);
     expect(
       historyForAccountGroup(groupedHistory, groupedAccounts, "debt")
     ).toEqual([groupedHistory[1]]);
+    expect(
+      historyForAccountGroup(groupedHistory, groupedAccounts, "other")
+    ).toEqual([groupedHistory[3]]);
   });
 
   it("builds one line per account and carries gaps within its history", () => {
@@ -360,5 +380,87 @@ describe("historyForAccountGroup", () => {
         ],
       },
     ]);
+  });
+
+  it("builds a combined chart with prior-month account changes", () => {
+    const history = [
+      manual(1, [
+        ["2026-01", 100],
+        ["2026-03", 120],
+      ]),
+      manual(4, [
+        ["2026-01", 200],
+        ["2026-02", 210],
+        ["2026-03", 220],
+      ]),
+    ];
+
+    const chart = computeNetWorthPerformance(
+      history,
+      groupedAccounts,
+      "cash",
+      2
+    );
+
+    expect(chart.domain).toEqual([304.9, 345.1]);
+    expect(chart.points).toEqual([
+      {
+        month: "2026-02",
+        total: 310,
+        change: 10,
+        previousMonth: "2026-01",
+        breakdown: [
+          { key: "manual-4", name: "Savings", balance: 210, change: 10 },
+          {
+            key: "manual-1",
+            name: "Everyday Checking",
+            balance: 100,
+            change: 0,
+          },
+        ],
+      },
+      {
+        month: "2026-03",
+        total: 340,
+        change: 30,
+        previousMonth: "2026-02",
+        breakdown: [
+          { key: "manual-4", name: "Savings", balance: 220, change: 10 },
+          {
+            key: "manual-1",
+            name: "Everyday Checking",
+            balance: 120,
+            change: 20,
+          },
+        ],
+      },
+    ]);
+  });
+
+  it("charts debt as a positive balance while preserving its decrease", () => {
+    const chart = computeNetWorthPerformance(
+      [
+        plaid(2, [
+          ["2026-01", 400],
+          ["2026-02", 300],
+        ]),
+      ],
+      groupedAccounts,
+      "debt",
+      0
+    );
+
+    expect(
+      chart.points.map(({ total, change }) => ({ total, change }))
+    ).toEqual([
+      { total: 400, change: null },
+      { total: 300, change: -100 },
+    ]);
+  });
+
+  it("returns an empty, valid chart when a group has no history", () => {
+    expect(computeNetWorthPerformance([], groupedAccounts, "cash", 12)).toEqual(
+      { points: [], domain: [0, 1] }
+    );
   });
 });
