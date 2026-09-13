@@ -3,6 +3,7 @@ import {
   computeAccountHistorySeries,
   computeNetWorthHistory,
   historyForAccountGroup,
+  paddedChartDomain,
   trailingMonths,
 } from "../net-worth-history";
 import type { BalanceHistoryAccount } from "../client";
@@ -203,6 +204,24 @@ describe("trailingMonths", () => {
 
   it("returns everything available when there are fewer months than asked for", () => {
     expect(trailingMonths(points, "2026-04", 12)).toHaveLength(4);
+  });
+});
+
+describe("paddedChartDomain", () => {
+  it("clamps the floor to zero when positive data includes zero", () => {
+    expect(paddedChartDomain([0, 274_000])).toEqual([0, 306_880]);
+  });
+
+  it("keeps a padded positive floor when every value is above zero", () => {
+    expect(paddedChartDomain([40_000, 48_000])).toEqual([39_040, 48_960]);
+  });
+
+  it("preserves negative space for genuinely negative data", () => {
+    expect(paddedChartDomain([-100, -50])).toEqual([-106, -44]);
+  });
+
+  it("gives a flat series enough vertical space to render", () => {
+    expect(paddedChartDomain([100, 100])).toEqual([98.5, 101.5]);
   });
 });
 

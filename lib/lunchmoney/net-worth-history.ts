@@ -21,6 +21,15 @@ export type AccountHistorySeries = {
   points: { month: string; balance: number }[];
 };
 
+/** A padded chart domain that never invents negative values for positive data. */
+export function paddedChartDomain(values: number[]): [number, number] {
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const padding = Math.max((max - min) * 0.12, Math.abs(max) * 0.015, 1);
+
+  return [min >= 0 ? Math.max(0, min - padding) : min - padding, max + padding];
+}
+
 /**
  * Which side of the ledger a history entry belongs on.
  *
