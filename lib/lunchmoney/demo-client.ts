@@ -743,6 +743,14 @@ export function createDemoClient(): LMClient {
 
     getBudgetSummary: () => Promise.resolve(DEMO_BUDGET_SUMMARY),
 
+    createManualAccount: () =>
+      Promise.reject(
+        new Error("Balance imports are unavailable in demo mode.")
+      ),
+    upsertBalanceHistory: () =>
+      Promise.reject(
+        new Error("Balance imports are unavailable in demo mode.")
+      ),
     updateManualAccount: () => Promise.resolve(),
     updateTransaction: async (id, patch) => saveTransaction(id, patch),
     updateTransactions: async (transactions) =>

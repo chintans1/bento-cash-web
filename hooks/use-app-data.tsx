@@ -37,6 +37,7 @@ interface AppDataContextValue extends AppData {
   loading: boolean;
   error: string | null;
   patchAccount: (id: string, type: AccountType, subtype: string) => void;
+  refreshAccounts: () => Promise<void>;
 }
 
 /** Stable identities, so consumers' memo deps don't churn while loading. */
@@ -126,6 +127,23 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
+  async function refreshAccounts() {
+    if (session === null) return;
+    const requestedSession = session;
+    const { manual, plaid } = await getAccounts();
+    setLoaded((prev) =>
+      prev?.session !== requestedSession
+        ? prev
+        : {
+            ...prev,
+            data: {
+              ...prev.data,
+              accounts: normalizeAccounts(manual, plaid),
+            },
+          }
+    );
+  }
+
   return (
     <AppDataContext.Provider
       value={{
@@ -135,6 +153,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         loading: session !== null && data === null && error === null,
         error,
         patchAccount,
+        refreshAccounts,
       }}
     >
       {children}
