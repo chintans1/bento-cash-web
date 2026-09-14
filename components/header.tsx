@@ -15,6 +15,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 const NAV_LINKS = [
   { href: "/", label: "Overview" },
   { href: "/transactions", label: "Transactions" },
+  { href: "/reports", label: "Reports" },
   { href: "/accounts", label: "Accounts" },
   { href: "/investments", label: "Investments" },
   { href: "/settings", label: "Settings" },
