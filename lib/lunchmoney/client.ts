@@ -9,6 +9,7 @@ import type {
   RecurringItem,
   Tag,
   AlignedSummaryResponse,
+  CreateManualAccountBody,
   UpdateManualAccountBody,
   UpdateTransaction,
   components,
@@ -27,6 +28,13 @@ export type {
 /** One account's monthly balance snapshots, as `/balance_history` groups them. */
 export type BalanceHistoryAccount =
   components["schemas"]["balanceHistoryAccountObject"];
+export type BalanceHistoryUpdate =
+  components["schemas"]["balanceHistoryUpdateItemObject"];
+export type BalanceHistoryAccountType =
+  | "manual"
+  | "plaid"
+  | "crypto_manual"
+  | "deleted";
 
 export type CategoriesResponse = { categories: Category[] };
 export type TransactionsResponse = {
@@ -65,6 +73,12 @@ export interface LMClient {
     year: number,
     month: number
   ): Promise<AlignedSummaryResponse>;
+  createManualAccount(data: CreateManualAccountBody): Promise<ManualAccount>;
+  upsertBalanceHistory(
+    accountType: BalanceHistoryAccountType,
+    accountId: number,
+    balances: BalanceHistoryUpdate[]
+  ): Promise<BalanceHistoryAccount>;
   updateManualAccount(id: number, data: UpdateManualAccountBody): Promise<void>;
   updateTransaction(
     transactionId: number,
@@ -168,6 +182,24 @@ export function createRealClient(token: string): LMClient {
       return sdk.summary.get({ start_date: start, end_date: end });
     },
 
+    createManualAccount: (data) => sdk.manualAccounts.create(data),
+
+    async upsertBalanceHistory(accountType, accountId, balances) {
+      const { data, error } = await sdk.rawClient.PUT(
+        "/balance_history/{account_type}/{account_id}",
+        {
+          params: {
+            path: { account_type: accountType, account_id: accountId },
+          },
+          body: { balances },
+        }
+      );
+      if (!data) {
+        throw new Error(error?.message ?? "Couldn't save balance history");
+      }
+      return data;
+    },
+
     updateManualAccount: (id, data) =>
       sdk.manualAccounts.update(id, data).then(() => undefined),
 
@@ -222,6 +254,21 @@ export const getRecurringItems = (): Promise<RecurringItem[]> =>
 export const getBalanceHistory = (): Promise<BalanceHistoryAccount[]> =>
   cached(KEY.balanceHistory, () => activeClient().getBalanceHistory());
 
+/** Bypasses the request cache before a balance import preview or commit. */
+export async function getFreshBalanceImportData(): Promise<{
+  manual: ManualAccount[];
+  plaid: PlaidAccount[];
+  history: BalanceHistoryAccount[];
+}> {
+  invalidate(KEY.accounts);
+  invalidate(KEY.balanceHistory);
+  const [{ manual, plaid }, history] = await Promise.all([
+    getAccounts(),
+    getBalanceHistory(),
+  ]);
+  return { manual, plaid, history };
+}
+
 export const getBudgetSummary = (
   year: number,
   month: number
@@ -239,6 +286,29 @@ export const updateManualAccount = async (
   // Editing a balance moves the current month's snapshot too.
   invalidate(KEY.balanceHistory);
 };
+
+export async function createManualAccount(
+  data: CreateManualAccountBody
+): Promise<ManualAccount> {
+  const account = await activeClient().createManualAccount(data);
+  invalidate(KEY.accounts);
+  invalidate(KEY.balanceHistory);
+  return account;
+}
+
+export async function upsertBalanceHistory(
+  accountType: BalanceHistoryAccountType,
+  accountId: number,
+  balances: BalanceHistoryUpdate[]
+): Promise<BalanceHistoryAccount> {
+  const result = await activeClient().upsertBalanceHistory(
+    accountType,
+    accountId,
+    balances
+  );
+  invalidate(KEY.balanceHistory);
+  return result;
+}
 
 export async function updateTransaction(
   transactionId: number,
