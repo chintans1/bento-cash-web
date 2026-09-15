@@ -41,12 +41,20 @@ export type ReportData = {
   averageSpend: number;
   averageSaved: number;
   savingsRate: number;
+  lowestIncome: number;
+  latestSpendChange: number | null;
   spendingCategories: SpendingCategoryReport[];
   incomeSources: IncomeSourceReport[];
 };
 
 function average(total: number, count: number) {
   return count ? total / count : 0;
+}
+
+export function describeMonthlyChange(change: number | null) {
+  if (change == null) return "Needs two months";
+  if (Math.abs(change) < 0.5) return "Same as the month before";
+  return `${Math.abs(change).toFixed(0)}% ${change < 0 ? "less" : "more"} than the month before`;
 }
 
 export function buildReportData(
@@ -134,6 +142,8 @@ export function buildReportData(
 
   const count = months.length;
   const totalSaved = totalIncome - totalSpend;
+  const latestSpend = months.at(-1)?.spend;
+  const previousSpend = months.at(-2)?.spend;
 
   return {
     months,
@@ -141,6 +151,11 @@ export function buildReportData(
     averageSpend: average(totalSpend, count),
     averageSaved: average(totalSaved, count),
     savingsRate: totalIncome ? (totalSaved / totalIncome) * 100 : 0,
+    lowestIncome: count ? Math.min(...months.map((month) => month.income)) : 0,
+    latestSpendChange:
+      latestSpend != null && previousSpend
+        ? ((latestSpend - previousSpend) / previousSpend) * 100
+        : null,
     spendingCategories,
     incomeSources,
   };

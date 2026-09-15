@@ -16,10 +16,6 @@ export function IncomeReport({
   currency: string;
 }) {
   const latest = data.months.at(-1);
-  const incomeMonths = data.months.filter((month) => month.income > 0);
-  const lowest = incomeMonths.length
-    ? Math.min(...incomeMonths.map((month) => month.income))
-    : 0;
 
   return (
     <div className="space-y-8">
@@ -36,7 +32,7 @@ export function IncomeReport({
         />
         <ReportMetric
           label="Lowest month"
-          value={formatCurrency(lowest, currency)}
+          value={formatCurrency(data.lowestIncome, currency)}
           note="helps reveal income volatility"
         />
       </div>
