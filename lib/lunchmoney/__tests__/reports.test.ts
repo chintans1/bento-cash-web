@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Transaction } from "../client";
 import type { CategoryInfo } from "../categories";
-import { buildReportData } from "../reports";
+import { buildReportData, describeMonthlyChange } from "../reports";
 
 function transaction(
   toBase: number,
@@ -73,6 +73,8 @@ describe("buildReportData", () => {
     expect(report.averageSpend).toBe(1_500);
     expect(report.averageSaved).toBe(3_000);
     expect(report.savingsRate).toBeCloseTo(66.67, 1);
+    expect(report.lowestIncome).toBe(4_000);
+    expect(report.latestSpendChange).toBe(100);
   });
 
   it("excludes pending and transfer transactions from every report", () => {
@@ -144,5 +146,31 @@ describe("buildReportData", () => {
       activeMonths: 1,
       averagePayment: 250,
     });
+  });
+
+  it("counts a zero-income month as the lowest month", () => {
+    const report = buildReportData(
+      [
+        [transaction(-4_000, { category_id: 2, payee: "Employer" })],
+        [transaction(100)],
+      ],
+      periods,
+      categories
+    );
+
+    expect(report.lowestIncome).toBe(0);
+  });
+
+  it("describes unchanged monthly spending without implying a decrease", () => {
+    const report = buildReportData(
+      [[transaction(100)], [transaction(100)]],
+      periods,
+      categories
+    );
+
+    expect(report.latestSpendChange).toBe(0);
+    expect(describeMonthlyChange(report.latestSpendChange)).toBe(
+      "Same as the month before"
+    );
   });
 });

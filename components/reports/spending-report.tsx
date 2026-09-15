@@ -1,4 +1,7 @@
-import type { ReportData } from "@/lib/lunchmoney/reports";
+import {
+  describeMonthlyChange,
+  type ReportData,
+} from "@/lib/lunchmoney/reports";
 import { formatCurrency } from "@/lib/format";
 import {
   EmptyBreakdown,
@@ -12,8 +15,7 @@ function describeChange(change: number | null, latest: number) {
   if (change == null) {
     return latest ? "New in the latest month" : "No spend in the latest month";
   }
-  if (Math.abs(change) < 0.5) return "Same as the month before";
-  return `${Math.abs(change).toFixed(0)}% ${change < 0 ? "less" : "more"} than the month before`;
+  return describeMonthlyChange(change);
 }
 
 export function SpendingReport({
@@ -24,11 +26,13 @@ export function SpendingReport({
   currency: string;
 }) {
   const latest = data.months.at(-1);
-  const previous = data.months.at(-2);
-  const change =
-    latest && previous && previous.spend
-      ? ((latest.spend - previous.spend) / previous.spend) * 100
-      : null;
+  const change = data.latestSpendChange;
+  const changeTone =
+    change == null || Math.abs(change) < 0.5
+      ? "default"
+      : change < 0
+        ? "positive"
+        : "negative";
 
   return (
     <div className="space-y-8">
@@ -46,14 +50,8 @@ export function SpendingReport({
         <ReportMetric
           label="Monthly change"
           value={change == null ? "—" : `${Math.abs(change).toFixed(0)}%`}
-          note={
-            change == null
-              ? "needs two months"
-              : `${change <= 0 ? "less" : "more"} than the month before`
-          }
-          tone={
-            change == null ? "default" : change <= 0 ? "positive" : "negative"
-          }
+          note={describeMonthlyChange(change)}
+          tone={changeTone}
         />
       </div>
 
