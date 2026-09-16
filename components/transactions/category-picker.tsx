@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronDown, ListFilter } from "lucide-react";
+import { ListFilter } from "lucide-react";
 import {
   Combobox,
   ComboboxContent,
@@ -86,6 +86,7 @@ function CategoryComboboxPopup({
     <ComboboxContent finalFocus={finalFocus}>
       <div className="border-b border-bento-hairline/60 p-1.5">
         <ComboboxInput
+          showTrigger={false}
           placeholder="Search categories…"
           onKeyDown={commitTopMatchOnEnter}
         />
@@ -99,18 +100,20 @@ function CategoryComboboxPopup({
             ) : (
               <CategoryIcon
                 name={option.name}
-                className="size-3.5 shrink-0"
-                style={{
-                  color:
-                    option.id === -1
-                      ? "var(--cat-3)"
-                      : categoryColor(option.name),
-                }}
+                className="size-3.5 shrink-0 text-(--item-color)"
+                style={
+                  {
+                    "--item-color":
+                      option.id === -1
+                        ? "var(--cat-3)"
+                        : categoryColor(option.name),
+                  } as React.CSSProperties
+                }
               />
             )}
             <span className="truncate">{option.name}</span>
             {option.group && (
-              <span className="ml-auto truncate text-[11px] text-muted-foreground">
+              <span className="ml-auto truncate text-(length:--text-caption) text-muted-foreground">
                 {option.group}
               </span>
             )}
@@ -189,10 +192,12 @@ export function CategoryPicker({
         aria-label={`Category: ${categoryName}. Change`}
         disabled={disabled}
         className={cn(
-          "group/cat flex min-h-10 w-full items-center gap-1.5 text-left outline-none",
+          "group/cat flex min-h-10 w-full items-center gap-1.5 text-left outline-none [&>svg]:ml-auto [&>svg]:shrink-0 [&>svg]:text-bento-subtle",
           appearance === "field"
-            ? "h-10 rounded-xl border border-transparent bg-input/50 px-3 text-sm transition-[color,box-shadow,background-color] hover:bg-input focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
+            ? "h-10 rounded-xl border border-transparent bg-input/50 px-3 text-sm transition-field hover:bg-input focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
             : "rounded-lg py-1 pr-1.5 pl-2 text-xs transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40",
+          appearance !== "field" &&
+            "[&>svg]:size-3 [&>svg]:transition-opacity sm:[&>svg]:opacity-0 sm:focus-within:[&>svg]:opacity-100 sm:hover:[&>svg]:opacity-100",
           (saving || disabled) && "opacity-60"
         )}
       >
@@ -208,14 +213,6 @@ export function CategoryPicker({
         >
           {categoryName}
         </span>
-        <ChevronDown
-          className={cn(
-            "ml-auto shrink-0 text-bento-subtle",
-            appearance === "field"
-              ? "size-4"
-              : "size-3 opacity-100 transition-opacity sm:opacity-0 sm:group-focus-within/cat:opacity-100 sm:group-hover/cat:opacity-100"
-          )}
-        />
       </ComboboxTrigger>
 
       <CategoryComboboxPopup finalFocus={finalFocus} />
@@ -273,7 +270,7 @@ export function CategoryFilterPicker({
     >
       <ComboboxTrigger
         aria-label={`Filter by category: ${selected.name}. Change`}
-        className="flex h-10 w-full items-center justify-between gap-1.5 rounded-3xl border border-transparent bg-input/50 px-3 text-sm whitespace-nowrap transition-[color,box-shadow,background-color] outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 sm:w-44"
+        className="flex h-10 w-full items-center justify-between gap-1.5 rounded-3xl border border-transparent bg-input/50 px-3 text-sm whitespace-nowrap transition-field outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 sm:w-44"
       >
         <span
           className={cn(
@@ -283,7 +280,6 @@ export function CategoryFilterPicker({
         >
           {selected.name}
         </span>
-        <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
       </ComboboxTrigger>
 
       <CategoryComboboxPopup />

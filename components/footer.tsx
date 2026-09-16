@@ -9,7 +9,7 @@ export function Footer() {
           target="_blank"
           rel="noreferrer"
           aria-label="Visit Lunch Money"
-          className="rounded-lg dark:bg-[#44958C]"
+          className="rounded-lg dark:bg-footer-brand"
         >
           <Image
             src="/powered-by-lunch-money.png"

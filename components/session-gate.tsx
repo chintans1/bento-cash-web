@@ -13,7 +13,7 @@ export function SessionGate({ children }: { children: React.ReactNode }) {
       ) : (
         <div
           role="status"
-          className="flex min-h-[calc(100svh-73px)] items-center justify-center gap-2 px-4 text-sm text-bento-subtle"
+          className="flex min-h-app-content items-center justify-center gap-2 px-4 text-sm text-bento-subtle"
         >
           <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
           <span>Loading…</span>

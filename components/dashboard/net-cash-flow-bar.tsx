@@ -31,7 +31,7 @@ function Delta({
   return (
     <span
       className={cn(
-        "flex items-center gap-0.5 text-[11px] tabular-nums",
+        "flex items-center gap-0.5 text-(length:--text-caption) tabular-nums",
         good ? "text-bento-positive" : "text-bento-negative"
       )}
     >
@@ -130,17 +130,33 @@ export function NetCashFlowBar({
         <div className="pt-6">
           <div className="flex h-3 overflow-hidden">
             <div
-              className="h-full rounded-l-full bg-bento-positive"
-              style={{ width: `${incomeWidth}%` }}
+              className="h-full w-(--progress-width) rounded-l-full bg-bento-positive"
+              style={
+                { "--progress-width": `${incomeWidth}%` } as React.CSSProperties
+              }
             />
             <div
-              className="h-full rounded-r-full bg-bento-negative"
-              style={{ width: `${spendWidth}%` }}
+              className="h-full w-(--progress-width) rounded-r-full bg-bento-negative"
+              style={
+                { "--progress-width": `${spendWidth}%` } as React.CSSProperties
+              }
             />
           </div>
-          <div className="mt-1.5 flex text-[11px] text-bento-subtle">
-            <span style={{ width: `${incomeWidth}%` }}>in</span>
-            <span className="text-right" style={{ width: `${spendWidth}%` }}>
+          <div className="mt-1.5 flex text-(length:--text-caption) text-bento-subtle">
+            <span
+              className="w-(--progress-width)"
+              style={
+                { "--progress-width": `${incomeWidth}%` } as React.CSSProperties
+              }
+            >
+              in
+            </span>
+            <span
+              className="w-(--progress-width) text-right"
+              style={
+                { "--progress-width": `${spendWidth}%` } as React.CSSProperties
+              }
+            >
               out
             </span>
           </div>

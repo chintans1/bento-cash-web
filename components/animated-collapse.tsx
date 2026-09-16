@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "motion/react";
 import { DURATION, EASE } from "@/lib/motion";
+import { cn } from "@/lib/utils";
 
 /**
  * Height transition for expanding content, with whatever follows it in the
@@ -47,8 +48,7 @@ export function AnimatedCollapse({
               opacity: { duration: DURATION.collapse * 0.5, ease: "linear" },
             },
           }}
-          style={{ overflow: "hidden" }}
-          className={className}
+          className={cn("overflow-hidden", className)}
         >
           {children}
         </motion.div>

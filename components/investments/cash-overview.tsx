@@ -53,12 +53,16 @@ export function CashOverview({
         {checkingTotal > 0 && savingsTotal > 0 && (
           <div className="flex h-2 w-full overflow-hidden rounded-full">
             <div
-              className="h-full bg-cat-2 transition-[width]"
-              style={{ width: `${checkingPct}%` }}
+              className="h-full w-(--progress-width) bg-cat-2 transition-width"
+              style={
+                { "--progress-width": `${checkingPct}%` } as React.CSSProperties
+              }
             />
             <div
-              className="h-full bg-cat-4 transition-[width]"
-              style={{ width: `${savingsPct}%` }}
+              className="h-full w-(--progress-width) bg-cat-4 transition-width"
+              style={
+                { "--progress-width": `${savingsPct}%` } as React.CSSProperties
+              }
             />
           </div>
         )}

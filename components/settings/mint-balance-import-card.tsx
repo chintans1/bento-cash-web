@@ -226,7 +226,7 @@ export function MintBalanceImportCard({
                   <label
                     htmlFor="mint-trends-file"
                     className={cn(
-                      "inline-flex min-h-10 shrink-0 cursor-pointer items-center rounded-full px-4 text-sm font-medium shadow-[inset_0_0_0_1px_var(--surface-hairline)] transition-[background-color,scale] hover:bg-bento-surface active:scale-[0.96]",
+                      "inline-flex min-h-10 shrink-0 cursor-pointer items-center rounded-full px-4 text-sm font-medium shadow-(--shadow-surface-outline) transition-surface hover:bg-bento-surface active:scale-96",
                       (busy || accountLoading) &&
                         "pointer-events-none opacity-50"
                     )}
@@ -238,7 +238,7 @@ export function MintBalanceImportCard({
                 <label
                   htmlFor="mint-trends-file"
                   className={cn(
-                    "group flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-border bg-bento-raised/50 px-5 py-6 text-center transition-[background-color,border-color,scale] peer-focus-visible:ring-3 peer-focus-visible:ring-ring/30 hover:border-bento-brand/50 hover:bg-bento-raised active:scale-[0.99]",
+                    "group flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-border bg-bento-raised/50 px-5 py-6 text-center transition-dropzone peer-focus-visible:ring-3 peer-focus-visible:ring-ring/30 hover:border-bento-brand/50 hover:bg-bento-raised active:scale-99",
                     (busy || accountLoading) && "pointer-events-none opacity-50"
                   )}
                 >

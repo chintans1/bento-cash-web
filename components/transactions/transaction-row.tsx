@@ -23,7 +23,7 @@ import {
 } from "@/lib/lunchmoney/transaction-state";
 
 export const TRANSACTION_GRID_COLUMNS =
-  "grid-cols-[40px_minmax(0,1fr)_40px_24px] sm:grid-cols-[40px_minmax(0,1fr)_160px_72px_96px_40px_24px] md:grid-cols-[40px_minmax(0,1fr)_220px_72px_96px_40px_24px] lg:grid-cols-[40px_minmax(0,1fr)_260px_72px_96px_40px_24px]";
+  "grid-cols-transaction sm:grid-cols-transaction-sm md:grid-cols-transaction-md lg:grid-cols-transaction-lg";
 
 export type TransactionRowProps = {
   transaction: Transaction;
@@ -75,7 +75,7 @@ export const TransactionRow = memo(function TransactionRow({
       data-tx-row
       data-tx-id={tx.id}
       className={cn(
-        "group/row cursor-pointer transition-[background-color,opacity] focus-within:bg-bento-raised hover:bg-bento-raised",
+        "group/row cursor-pointer transition-row focus-within:bg-bento-raised hover:bg-bento-raised",
         tx.is_pending && "opacity-70 hover:opacity-100",
         selected && "bg-bento-raised"
       )}
@@ -111,7 +111,7 @@ export const TransactionRow = memo(function TransactionRow({
           >
             <span
               className={cn(
-                "flex size-4 items-center justify-center rounded border transition-[color,background-color,border-color]",
+                "flex size-4 items-center justify-center rounded border transition-editable",
                 selected
                   ? "border-bento-brand bg-bento-brand text-bento-brand-fg"
                   : "border-bento-hairline"
@@ -129,19 +129,22 @@ export const TransactionRow = memo(function TransactionRow({
             type="button"
             aria-label={`Open details for ${payee || "transaction"}`}
             onClick={() => onOpen(tx.id)}
-            className="flex size-10 shrink-0 items-center justify-center rounded-full transition-[box-shadow,scale] group-hover/row:shadow-[0_0_0_2px_var(--bento-hairline)] hover:shadow-[0_0_0_2px_var(--bento-hairline)] focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none active:scale-[0.96]"
-            style={{
-              backgroundColor: usesCategoryColor
-                ? `color-mix(in oklab, ${color} var(--chip-tint), transparent)`
-                : "var(--bento-muted)",
-            }}
+            className={cn(
+              "flex size-10 shrink-0 items-center justify-center rounded-full transition-category group-hover/row:shadow-(--shadow-category-outline) hover:shadow-(--shadow-category-outline) focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none active:scale-96",
+              usesCategoryColor ? "bg-item-tint" : "bg-bento-muted"
+            )}
+            style={{ "--item-color": color } as React.CSSProperties}
           >
             <CategoryIcon
               name={categoryName}
-              className="size-4"
-              style={{
-                color: usesCategoryColor ? color : "var(--bento-subtle)",
-              }}
+              className="size-4 text-(--item-color)"
+              style={
+                {
+                  "--item-color": usesCategoryColor
+                    ? color
+                    : "var(--bento-subtle)",
+                } as React.CSSProperties
+              }
             />
           </button>
           <div className="min-w-0 flex-1">
@@ -172,7 +175,7 @@ export const TransactionRow = memo(function TransactionRow({
               >
                 {tx.notes || accountName || "View details"}
               </button>
-              <span className="shrink-0 font-mono text-[10px] text-bento-subtle tabular-nums sm:hidden">
+              <span className="shrink-0 font-mono text-(length:--text-micro) text-bento-subtle tabular-nums sm:hidden">
                 {formatShortDate(tx.date)}
               </span>
             </div>

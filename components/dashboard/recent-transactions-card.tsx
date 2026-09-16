@@ -61,26 +61,20 @@ export function RecentTransactionsCard({
                   className="flex items-center gap-3 rounded-xl px-1 py-1.5 transition-colors hover:bg-bento-raised"
                 >
                   <span
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full"
-                    style={{
-                      backgroundColor: `color-mix(in oklab, ${color} var(--chip-tint), transparent)`,
-                    }}
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-item-tint"
+                    style={{ "--item-color": color } as React.CSSProperties}
                   >
                     <CategoryIcon
                       name={categoryName}
-                      className="size-4"
-                      style={{ color }}
+                      className="size-4 text-(--item-color)"
+                      style={{ "--item-color": color } as React.CSSProperties}
                     />
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-medium">{tx.payee}</p>
-                    <p className="truncate text-[11px] text-bento-subtle">
+                    <p className="truncate text-(length:--text-caption) text-bento-subtle">
                       {formatShortDate(tx.date)} ·{" "}
-                      <span
-                        className={cn(
-                          isUncategorized && "text-cat-3"
-                        )}
-                      >
+                      <span className={cn(isUncategorized && "text-cat-3")}>
                         {categoryName}
                       </span>
                     </p>

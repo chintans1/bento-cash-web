@@ -91,9 +91,9 @@ export function MintImportReview({
             <label
               key={option.value}
               className={cn(
-                "flex min-h-20 cursor-pointer items-start gap-3 rounded-xl bg-bento-raised px-4 py-3 shadow-[inset_0_0_0_1px_var(--surface-hairline)] transition-[background-color,box-shadow,scale] active:scale-[0.99]",
+                "flex min-h-20 cursor-pointer items-start gap-3 rounded-xl bg-bento-raised px-4 py-3 shadow-(--shadow-surface-outline) transition-selection active:scale-99",
                 policy === option.value &&
-                  "bg-bento-brand/10 shadow-[inset_0_0_0_1px_var(--bento-brand)]"
+                  "bg-bento-brand/10 shadow-(--shadow-brand-outline)"
               )}
             >
               <input
@@ -131,7 +131,7 @@ export function MintImportReview({
         </Alert>
       )}
 
-      <div className="max-h-[28rem] overflow-auto rounded-2xl shadow-[inset_0_0_0_1px_var(--surface-hairline)]">
+      <div className="max-h-112 overflow-auto rounded-2xl shadow-(--shadow-surface-outline)">
         <Table>
           <TableHeader className="sticky top-0 z-10 bg-bento-surface">
             <TableRow>

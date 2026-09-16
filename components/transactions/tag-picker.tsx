@@ -68,16 +68,20 @@ export function TagPicker({
                 }
               >
                 <span
-                  className="size-2.5 rounded-full"
-                  style={{ backgroundColor: tag.background_color ?? undefined }}
+                  className="size-2.5 rounded-full bg-(--item-background)"
+                  style={
+                    {
+                      "--item-background": tag.background_color ?? undefined,
+                    } as React.CSSProperties
+                  }
                 />
                 <span className="min-w-0 flex-1 truncate">{tag.name}</span>
                 <Check
                   className={cn(
-                    "size-4 transition-[opacity,scale,filter] duration-300",
+                    "size-4 transition-icon duration-300",
                     active
-                      ? "blur-0 scale-100 opacity-100"
-                      : "scale-[0.25] opacity-0 blur-[4px]"
+                      ? "scale-100 opacity-100 blur-none"
+                      : "scale-25 opacity-0 blur-xs"
                   )}
                 />
               </button>

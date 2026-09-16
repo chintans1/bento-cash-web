@@ -75,8 +75,8 @@ export function RankingRow({
       <div className="flex items-start justify-between gap-4">
         <div className="flex min-w-0 items-center gap-2.5">
           <span
-            className="size-2.5 shrink-0 rounded-full"
-            style={{ backgroundColor: color }}
+            className="size-2.5 shrink-0 rounded-full bg-(--item-background)"
+            style={{ "--item-background": color } as React.CSSProperties}
           />
           <div className="min-w-0">
             <p className="truncate font-medium">{name}</p>
@@ -94,8 +94,13 @@ export function RankingRow({
       </div>
       <div className="mt-2.5 ml-5 h-1.5 overflow-hidden rounded-full bg-bento-raised">
         <div
-          className="h-full rounded-full"
-          style={{ width: `${Math.max(2, share)}%`, backgroundColor: color }}
+          className="h-full w-(--progress-width) rounded-full bg-(--item-background)"
+          style={
+            {
+              "--progress-width": `${Math.max(2, share)}%`,
+              "--item-background": color,
+            } as React.CSSProperties
+          }
         />
       </div>
     </li>

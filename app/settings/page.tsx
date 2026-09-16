@@ -55,7 +55,7 @@ export default function SettingsPage() {
         </p>
       </header>
 
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+      <div className="grid items-start gap-5 lg:grid-cols-settings">
         <div className="flex min-w-0 flex-col gap-5">
           <Card className="w-full">
             {loading ? (

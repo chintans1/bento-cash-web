@@ -58,7 +58,9 @@ const NO_SELECTION = new Set<number>();
 function SortIcon({ active, dir }: { active: boolean; dir: SortDir }) {
   if (!active) return null;
   return (
-    <span className="ml-0.5 text-[10px]">{dir === "asc" ? "↑" : "↓"}</span>
+    <span className="ml-0.5 text-(length:--text-micro)">
+      {dir === "asc" ? "↑" : "↓"}
+    </span>
   );
 }
 
@@ -421,7 +423,7 @@ function TransactionsPage() {
             type="button"
             aria-pressed={reviewFilter === value}
             className={cn(
-              "min-h-10 min-w-0 flex-1 rounded-full px-1 text-xs font-medium whitespace-nowrap transition-[color,background-color,box-shadow] sm:flex-none sm:px-3 sm:text-sm",
+              "min-h-10 min-w-0 flex-1 rounded-full px-1 text-xs font-medium whitespace-nowrap transition-field sm:flex-none sm:px-3 sm:text-sm",
               reviewFilter === value
                 ? "bg-card text-bento-default shadow-sm"
                 : "text-bento-subtle hover:text-bento-default"
@@ -462,7 +464,7 @@ function TransactionsPage() {
       )}
 
       {/* Filters */}
-      <div className="mb-4 grid gap-2 sm:grid-cols-[minmax(0,1fr)_11rem]">
+      <div className="mb-4 grid gap-2 sm:grid-cols-transaction-search">
         <div className="relative min-w-0">
           <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-3.5 -translate-y-1/2 text-bento-subtle" />
           <Input

@@ -157,7 +157,7 @@ export default function InvestmentsPage() {
                       </span>
                     </div>
                   </CardHeader>
-                  <CardContent className="max-h-[480px] overflow-y-auto p-0">
+                  <CardContent className="max-h-120 overflow-y-auto p-0">
                     <InstitutionGroups
                       groups={groupByInstitution(investmentAccounts)}
                       primaryCurrency={primaryCurrency}

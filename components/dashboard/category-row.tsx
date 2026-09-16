@@ -47,22 +47,23 @@ export function CategoryRow({
   return (
     <li>
       <button
-        className="grid w-full grid-cols-[minmax(0,1fr)_9rem_1rem] items-center gap-2 rounded-xl px-1 py-1 text-left transition-colors hover:bg-bento-raised"
+        className="grid w-full grid-cols-category items-center gap-2 rounded-xl px-1 py-1 text-left transition-colors hover:bg-bento-raised"
         onClick={() => setExpanded((v) => !v)}
         aria-expanded={expanded}
       >
         <div
-          className="flex h-9 min-w-0 items-center gap-2 rounded-full px-2.5"
-          style={{
-            width: barWidth,
-            backgroundColor: `color-mix(in oklab, ${color} var(--chip-tint), transparent)`,
-            boxShadow: `inset 0 0 0 1px color-mix(in oklab, ${color} 30%, transparent)`,
-          }}
+          className="flex h-9 w-(--progress-width) min-w-0 items-center gap-2 rounded-full bg-item-tint px-2.5 category-chip-outline"
+          style={
+            {
+              "--progress-width": barWidth,
+              "--item-color": color,
+            } as React.CSSProperties
+          }
         >
           <CategoryIcon
             name={cat.name}
-            className="size-4 shrink-0"
-            style={{ color }}
+            className="size-4 shrink-0 text-(--item-color)"
+            style={{ "--item-color": color } as React.CSSProperties}
           />
           <span className="truncate text-xs font-medium">{cat.name}</span>
         </div>
@@ -76,7 +77,7 @@ export function CategoryRow({
 
         <ChevronDown
           className={cn(
-            "size-3.5 shrink-0 text-bento-subtle transition-transform duration-200 ease-[cubic-bezier(0.25,1,0.5,1)]",
+            "size-3.5 shrink-0 text-bento-subtle transition-transform duration-200 ease-expand",
             expanded && "rotate-180"
           )}
         />
@@ -99,7 +100,7 @@ export function CategoryRow({
             <li className="pt-1">
               <Link
                 href="/transactions"
-                className="text-[11px] text-bento-subtle hover:text-bento-default hover:underline"
+                className="text-(length:--text-caption) text-bento-subtle hover:text-bento-default hover:underline"
               >
                 +{cat.txCount - topTxs.length} more →
               </Link>

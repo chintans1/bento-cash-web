@@ -46,11 +46,8 @@ export function TopMerchantsCard({
               return (
                 <li key={m.payee} className="flex items-center gap-3">
                   <span
-                    className="flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
-                    style={{
-                      backgroundColor: `color-mix(in oklab, ${color} var(--chip-tint), transparent)`,
-                      color: `color-mix(in oklab, ${color} 80%, var(--foreground))`,
-                    }}
+                    className="flex size-8 shrink-0 items-center justify-center rounded-full bg-item-tint text-xs font-semibold text-item-ink"
+                    style={{ "--item-color": color } as React.CSSProperties}
                     aria-hidden="true"
                   >
                     {m.payee.charAt(0).toUpperCase()}
@@ -66,11 +63,15 @@ export function TopMerchantsCard({
                     </div>
                     <div className="h-1.5 overflow-hidden rounded-full bg-bento-hairline">
                       <div
-                        className="h-full rounded-full bg-[var(--series-1)]"
-                        style={{ width: `${(m.spend / maxSpend) * 100}%` }}
+                        className="h-full w-(--progress-width) rounded-full bg-series-1"
+                        style={
+                          {
+                            "--progress-width": `${(m.spend / maxSpend) * 100}%`,
+                          } as React.CSSProperties
+                        }
                       />
                     </div>
-                    <p className="mt-0.5 text-[10px] text-bento-subtle">
+                    <p className="mt-0.5 text-(length:--text-micro) text-bento-subtle">
                       {m.txCount} transaction{m.txCount !== 1 ? "s" : ""}
                     </p>
                   </div>

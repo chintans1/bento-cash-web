@@ -48,7 +48,7 @@ function StatTile({
           aria-label={`${label}: ${value}. View transactions`}
           aria-expanded={open}
           aria-controls="quick-stats-details"
-          className="absolute inset-0 z-10 rounded-[inherit]"
+          className="absolute inset-0 z-10 rounded-inherit"
         >
           <ChevronDown
             aria-hidden="true"
@@ -60,13 +60,15 @@ function StatTile({
         </button>
       )}
       <CardContent>
-        <p className="text-[11px] font-medium tracking-[0.12em] text-bento-subtle uppercase">
+        <p className="text-(length:--text-caption) font-medium tracking-stat text-bento-subtle uppercase">
           {label}
         </p>
         <p className="mt-1.5 font-heading text-2xl font-semibold tabular-nums sm:text-3xl">
           {value}
         </p>
-        <p className="mt-0.5 truncate text-[11px] text-bento-subtle">{hint}</p>
+        <p className="mt-0.5 truncate text-(length:--text-caption) text-bento-subtle">
+          {hint}
+        </p>
       </CardContent>
     </Card>
   );

@@ -65,7 +65,7 @@ function SegmentedControl<T extends string | number>({
           aria-pressed={value === option.value}
           onClick={() => onChange(option.value)}
           className={cn(
-            "min-h-10 rounded-full px-4 text-sm font-medium transition-[color,background-color,scale] duration-150 ease-out active:scale-[0.96]",
+            "min-h-10 rounded-full px-4 text-sm font-medium transition-control duration-150 ease-out active:scale-96",
             value === option.value
               ? "bg-bento-surface text-bento-default shadow-sm"
               : "text-bento-subtle hover:text-bento-default"

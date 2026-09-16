@@ -269,3 +269,200 @@
     cursor: pointer;
   }
 }
+
+/* Compact labels and shared visual tokens retain the existing UI scale. */
+@theme inline {
+  --text-micro: 10px;
+  --text-caption: 11px;
+  --tracking-eyebrow: 0.14em;
+  --tracking-stat: 0.12em;
+  --ease-expand: cubic-bezier(0.25, 1, 0.5, 1);
+  --color-series-1: var(--series-1);
+  --color-footer-brand: #44958c;
+  --color-warning: var(--color-amber-500);
+  --color-warning-foreground: var(--warning-foreground);
+  --shadow-surface-outline: inset 0 0 0 1px var(--surface-hairline);
+  --shadow-brand-outline: inset 0 0 0 1px var(--bento-brand);
+  --shadow-category-outline: 0 0 0 2px var(--bento-hairline);
+}
+
+:root {
+  --warning-foreground: var(--color-amber-700);
+}
+.dark {
+  --warning-foreground: var(--color-amber-300);
+}
+
+/* Layout contracts shared by responsive pages and component primitives. */
+@utility grid-cols-settings {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+}
+@utility grid-cols-transaction-search {
+  grid-template-columns: minmax(0, 1fr) 11rem;
+}
+@utility grid-cols-performance {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+@utility grid-cols-category {
+  grid-template-columns: minmax(0, 1fr) 9rem 1rem;
+}
+@utility grid-cols-icon-content {
+  grid-template-columns: auto 1fr;
+}
+@utility grid-cols-transaction {
+  grid-template-columns: 40px minmax(0, 1fr) 40px 24px;
+}
+@utility grid-cols-transaction-sm {
+  grid-template-columns: 40px minmax(0, 1fr) 160px 72px 96px 40px 24px;
+}
+@utility grid-cols-transaction-md {
+  grid-template-columns: 40px minmax(0, 1fr) 220px 72px 96px 40px 24px;
+}
+@utility grid-cols-transaction-lg {
+  grid-template-columns: 40px minmax(0, 1fr) 260px 72px 96px 40px 24px;
+}
+@utility max-w-viewport-inset {
+  max-width: calc(100vw - 2rem);
+}
+@utility min-h-app-content {
+  min-height: calc(100svh - 73px);
+}
+@utility rounded-inherit {
+  border-radius: inherit;
+}
+
+/* Keep transitions limited to the properties each interaction changes. */
+@utility transition-control {
+  transition-property: color, background-color, scale;
+  transition-timing-function: var(
+    --tw-ease,
+    var(--default-transition-timing-function)
+  );
+  transition-duration: var(--tw-duration, var(--default-transition-duration));
+}
+@utility transition-field {
+  transition-property: color, background-color, box-shadow;
+  transition-timing-function: var(
+    --tw-ease,
+    var(--default-transition-timing-function)
+  );
+  transition-duration: var(--tw-duration, var(--default-transition-duration));
+}
+@utility transition-progress {
+  transition-property: width, background-color;
+  transition-timing-function: var(
+    --tw-ease,
+    var(--default-transition-timing-function)
+  );
+  transition-duration: var(--tw-duration, var(--default-transition-duration));
+}
+@utility transition-link {
+  transition-property: color, scale;
+  transition-timing-function: var(
+    --tw-ease,
+    var(--default-transition-timing-function)
+  );
+  transition-duration: var(--tw-duration, var(--default-transition-duration));
+}
+@utility transition-segmented {
+  transition-property: color, background-color, box-shadow, scale;
+  transition-timing-function: var(
+    --tw-ease,
+    var(--default-transition-timing-function)
+  );
+  transition-duration: var(--tw-duration, var(--default-transition-duration));
+}
+@utility transition-surface {
+  transition-property: background-color, scale;
+  transition-timing-function: var(
+    --tw-ease,
+    var(--default-transition-timing-function)
+  );
+  transition-duration: var(--tw-duration, var(--default-transition-duration));
+}
+@utility transition-dropzone {
+  transition-property: background-color, border-color, scale;
+  transition-timing-function: var(
+    --tw-ease,
+    var(--default-transition-timing-function)
+  );
+  transition-duration: var(--tw-duration, var(--default-transition-duration));
+}
+@utility transition-selection {
+  transition-property: background-color, box-shadow, scale;
+  transition-timing-function: var(
+    --tw-ease,
+    var(--default-transition-timing-function)
+  );
+  transition-duration: var(--tw-duration, var(--default-transition-duration));
+}
+@utility transition-card {
+  transition-property: transform, box-shadow;
+  transition-timing-function: var(
+    --tw-ease,
+    var(--default-transition-timing-function)
+  );
+  transition-duration: var(--tw-duration, var(--default-transition-duration));
+}
+@utility transition-icon {
+  transition-property: opacity, scale, filter;
+  transition-timing-function: var(
+    --tw-ease,
+    var(--default-transition-timing-function)
+  );
+  transition-duration: var(--tw-duration, var(--default-transition-duration));
+}
+@utility transition-row {
+  transition-property: background-color, opacity;
+  transition-timing-function: var(
+    --tw-ease,
+    var(--default-transition-timing-function)
+  );
+  transition-duration: var(--tw-duration, var(--default-transition-duration));
+}
+@utility transition-editable {
+  transition-property: color, background-color, border-color;
+  transition-timing-function: var(
+    --tw-ease,
+    var(--default-transition-timing-function)
+  );
+  transition-duration: var(--tw-duration, var(--default-transition-duration));
+}
+@utility transition-category {
+  transition-property: box-shadow, scale;
+  transition-timing-function: var(
+    --tw-ease,
+    var(--default-transition-timing-function)
+  );
+  transition-duration: var(--tw-duration, var(--default-transition-duration));
+}
+@utility transition-width {
+  transition-property: width;
+  transition-timing-function: var(
+    --tw-ease,
+    var(--default-transition-timing-function)
+  );
+  transition-duration: var(--tw-duration, var(--default-transition-duration));
+}
+@utility content-empty {
+  --tw-content: "";
+  content: var(--tw-content);
+}
+
+/* Category and merchant colors share the same tint and contrast treatment. */
+@theme inline {
+  --color-item-tint: color-mix(
+    in oklab,
+    var(--item-color) var(--chip-tint),
+    transparent
+  );
+  --color-item-ink: color-mix(
+    in oklab,
+    var(--item-color) 80%,
+    var(--foreground)
+  );
+}
+@utility category-chip-outline {
+  box-shadow: inset 0 0 0 1px
+    color-mix(in oklab, var(--item-color) 30%, transparent);
+}

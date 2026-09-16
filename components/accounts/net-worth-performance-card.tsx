@@ -87,7 +87,7 @@ function PerformanceTooltip({
       : GROUPS.find((item) => item.value === group)?.label;
 
   return (
-    <div className="w-80 max-w-[calc(100vw-2rem)] rounded-xl glass px-3 py-2.5 text-xs">
+    <div className="w-80 max-w-viewport-inset rounded-xl glass px-3 py-2.5 text-xs">
       <p className="text-bento-subtle">{monthLabel(point.month)}</p>
       <div className="mt-0.5 flex items-baseline justify-between gap-4 font-medium">
         <span>{label}</span>
@@ -111,7 +111,7 @@ function PerformanceTooltip({
           {point.breakdown.map((account) => (
             <div
               key={account.key}
-              className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-baseline gap-x-3"
+              className="grid grid-cols-performance items-baseline gap-x-3"
             >
               <span className="truncate">{account.name}</span>
               <span className="tabular-nums">
@@ -144,7 +144,7 @@ function Control({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "min-h-10 shrink-0 rounded-full px-3 text-xs font-medium transition-[color,background-color,scale] active:scale-[0.96]",
+        "min-h-10 shrink-0 rounded-full px-3 text-xs font-medium transition-control active:scale-96",
         active
           ? "bg-bento-surface text-bento-default shadow-sm"
           : "text-bento-subtle hover:text-bento-default"

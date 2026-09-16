@@ -83,12 +83,12 @@ export function NetWorthCard({
     <Card className="gap-3 overflow-hidden">
       <CardContent className="pb-1">
         <div className="flex items-center justify-between gap-3">
-          <p className="text-xs font-medium tracking-[0.14em] text-bento-subtle uppercase">
+          <p className="text-xs font-medium tracking-eyebrow text-bento-subtle uppercase">
             Net worth
           </p>
           <Link
             href="/accounts"
-            className="-my-3 inline-flex min-h-10 items-center pl-3 text-xs text-bento-subtle transition-[color,scale] hover:text-bento-default active:scale-[0.96]"
+            className="-my-3 inline-flex min-h-10 items-center pl-3 text-xs text-bento-subtle transition-link hover:text-bento-default active:scale-96"
           >
             Explore →
           </Link>
@@ -154,7 +154,7 @@ export function NetWorthCard({
           </div>
         )}
 
-        <p className="mt-4 text-[11px] text-pretty text-bento-subtle">
+        <p className="mt-4 text-(length:--text-caption) text-pretty text-bento-subtle">
           {charted && latest ? (
             <>
               Month-end balances, {formatMonthKey(history[0].month)} –{" "}

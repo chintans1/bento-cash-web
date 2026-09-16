@@ -138,10 +138,13 @@ export function BudgetProgressCard({
                 <div className="h-1.5 overflow-hidden rounded-full bg-bento-hairline">
                   <div
                     className={cn(
-                      "h-full rounded-full transition-[width,background-color]",
+                      "w-(--progress-width)",
+                      "h-full rounded-full transition-progress",
                       over ? "bg-bento-negative/85" : "bg-bento-brand"
                     )}
-                    style={{ width: `${pct}%` }}
+                    style={
+                      { "--progress-width": `${pct}%` } as React.CSSProperties
+                    }
                   />
                 </div>
               </li>

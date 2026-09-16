@@ -118,7 +118,7 @@ export function SpendingTrendCard({
                 type="button"
                 aria-pressed={view === option}
                 onClick={() => setView(option)}
-                className={`relative h-8 min-w-16 rounded-full px-3 text-xs font-medium capitalize transition-[color,background-color,box-shadow,scale] outline-none before:absolute before:inset-x-0 before:-inset-y-1 before:content-[''] focus-visible:ring-3 focus-visible:ring-ring/30 active:scale-[0.96] ${
+                className={`relative h-8 min-w-16 rounded-full px-3 text-xs font-medium capitalize transition-segmented outline-none before:absolute before:inset-x-0 before:-inset-y-1 before:content-empty focus-visible:ring-3 focus-visible:ring-ring/30 active:scale-96 ${
                   view === option
                     ? "bg-bento-surface text-bento-default shadow-sm"
                     : "text-bento-subtle hover:text-bento-default"
@@ -137,7 +137,7 @@ export function SpendingTrendCard({
       <CardContent>
         <div className="mb-3 flex items-center gap-4 text-xs">
           <span className="flex items-center gap-1.5">
-            <span className="h-0.5 w-4 rounded-full bg-[var(--series-1)]" />
+            <span className="h-0.5 w-4 rounded-full bg-series-1" />
             <span className="text-bento-subtle">This month</span>
           </span>
           <span className="flex items-center gap-1.5">

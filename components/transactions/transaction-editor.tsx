@@ -14,7 +14,12 @@ import {
 import type { CategoryOption } from "./category-picker";
 import { CategoryPicker } from "./category-picker";
 import { TagPicker } from "./tag-picker";
-import { Sheet, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -146,275 +151,290 @@ export function TransactionEditor({
 
   return (
     <Sheet open onOpenChange={(open) => !open && onClose()}>
-      <form
-        className="flex h-full flex-col"
-        onSubmit={(event) => {
-          event.preventDefault();
-          void save();
-        }}
+      <SheetContent
+        showCloseButton={false}
+        className="overflow-hidden bg-card text-card-foreground data-[side=right]:w-full data-[side=right]:sm:max-w-xl"
       >
-        <header className="flex items-start gap-3 border-b border-bento-hairline px-5 py-4 sm:px-6">
-          <div className="min-w-0 flex-1">
-            <SheetTitle className="font-heading text-xl font-bold text-balance">
-              Transaction details
-            </SheetTitle>
-            <SheetDescription className="mt-1 truncate text-sm text-bento-subtle">
-              {transaction.original_name || transaction.payee || "Transaction"}
-            </SheetDescription>
-          </div>
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-lg"
-            aria-label="Close transaction details"
-            onClick={onClose}
-          >
-            <X />
-          </Button>
-        </header>
-
-        <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
-          {transaction.status === "delete_pending" && (
-            <div className="flex gap-3 rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-              <p className="text-pretty">
-                Lunch Money needs you to resolve this deleted bank transaction.
-              </p>
+        <form
+          className="flex h-full flex-col"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void save();
+          }}
+        >
+          <header className="flex items-start gap-3 border-b border-bento-hairline px-5 py-4 sm:px-6">
+            <div className="min-w-0 flex-1">
+              <SheetTitle className="font-heading text-xl font-bold text-balance">
+                Transaction details
+              </SheetTitle>
+              <SheetDescription className="mt-1 truncate text-sm text-bento-subtle">
+                {transaction.original_name ||
+                  transaction.payee ||
+                  "Transaction"}
+              </SheetDescription>
             </div>
-          )}
-          {transaction.is_pending && (
-            <div className="flex gap-3 rounded-xl bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-300">
-              <Clock3 className="mt-0.5 size-4 shrink-0" />
-              <p className="text-pretty">
-                This transaction is pending. Its name or amount may still
-                change.
-              </p>
-            </div>
-          )}
-          {structurallyLocked && (
-            <div className="flex gap-3 rounded-xl bg-bento-raised p-3 text-sm text-bento-subtle">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-              <p className="text-pretty">
-                Split and grouped transactions are read-only here. Use their
-                dedicated Lunch Money workflow to change them.
-              </p>
-            </div>
-          )}
-
-          <section className="space-y-3">
-            <div className="flex items-center justify-between gap-4">
-              <div>
-                <h3 className="text-sm font-semibold">Review</h3>
-                <p className="text-xs text-bento-subtle">
-                  Confirm this transaction is correct.
-                </p>
-              </div>
-              <Button
-                type="button"
-                variant={draft.status === "reviewed" ? "default" : "outline"}
-                className="h-10"
-                disabled={
-                  transaction.is_pending ||
-                  transaction.status === "delete_pending" ||
-                  structurallyLocked
-                }
-                onClick={() =>
-                  setDraft((current) => ({
-                    ...current,
-                    status:
-                      current.status === "reviewed" ? "unreviewed" : "reviewed",
-                  }))
-                }
-              >
-                <Check data-icon="inline-start" />
-                {draft.status === "reviewed" ? "Reviewed" : "Mark reviewed"}
-              </Button>
-            </div>
-          </section>
-
-          <section className="grid gap-4 sm:grid-cols-2">
-            <Field label="Payee" className="sm:col-span-2">
-              <Input
-                value={draft.payee}
-                disabled={structurallyLocked}
-                onChange={(event) => updateDraft("payee", event.target.value)}
-              />
-              {transaction.original_name &&
-                transaction.original_name !== transaction.payee && (
-                  <p className="mt-1.5 truncate px-1 text-xs text-bento-subtle">
-                    Statement: {transaction.original_name}
-                  </p>
-                )}
-            </Field>
-            <Field label="Date">
-              <Input
-                type="date"
-                value={draft.date}
-                disabled={structurallyLocked}
-                onChange={(event) => updateDraft("date", event.target.value)}
-              />
-            </Field>
-            <Field label="Category">
-              <CategoryPicker
-                categoryId={draft.categoryId}
-                categoryName={categoryName}
-                options={categoryOptions}
-                disabled={structurallyLocked}
-                appearance="field"
-                onChange={(categoryId) => updateDraft("categoryId", categoryId)}
-              />
-            </Field>
-            <Field label="Amount">
-              <Input
-                inputMode="decimal"
-                aria-invalid={!amountValid}
-                value={draft.amount}
-                disabled={locked || structurallyLocked}
-                onChange={(event) => updateDraft("amount", event.target.value)}
-              />
-              <p className="mt-1.5 px-1 text-xs text-bento-subtle">
-                Negative amounts are credits.
-              </p>
-            </Field>
-            <Field label="Currency">
-              <Input
-                maxLength={3}
-                aria-invalid={!currencyValid}
-                value={draft.currency}
-                disabled={locked || structurallyLocked}
-                className="uppercase"
-                onChange={(event) =>
-                  updateDraft("currency", event.target.value)
-                }
-              />
-            </Field>
-            <Field label="Account" className="sm:col-span-2">
-              <Select
-                value={draft.account}
-                onValueChange={(value) =>
-                  value && updateDraft("account", value)
-                }
-              >
-                <SelectTrigger
-                  className="h-10 w-full rounded-xl"
-                  disabled={locked || structurallyLocked}
-                >
-                  <SelectValue>
-                    {(value: string) =>
-                      value === "cash"
-                        ? "Cash transaction"
-                        : accounts.find((account) => account.id === value)?.name
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cash">Cash transaction</SelectItem>
-                  {accounts
-                    .filter(isTransactionAccountOption)
-                    .map((account) => (
-                      <SelectItem key={account.id} value={account.id}>
-                        {account.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-              {locked && !structurallyLocked && (
-                <p className="mt-1.5 px-1 text-xs text-bento-subtle">
-                  Amount, currency, and account are locked by this synced
-                  account.
-                </p>
-              )}
-            </Field>
-            <Field label="Recurring item" className="sm:col-span-2">
-              <Select
-                value={draft.recurringId}
-                disabled={structurallyLocked}
-                onValueChange={(value) =>
-                  value && updateDraft("recurringId", value)
-                }
-              >
-                <SelectTrigger className="h-10 w-full rounded-xl">
-                  <SelectValue>
-                    {(value: string) =>
-                      recurringValueName(recurringItems, value)
-                    }
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Not recurring</SelectItem>
-                  {recurringItems
-                    .filter((item) => item.status === "reviewed")
-                    .map((item) => (
-                      <SelectItem key={item.id} value={item.id.toString()}>
-                        {recurringName(item)}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field label="Tags" className="sm:col-span-2">
-              <TagPicker
-                tags={tags.filter((tag) => !tag.archived)}
-                value={draft.tagIds}
-                disabled={structurallyLocked}
-                onChange={(tagIds) => updateDraft("tagIds", tagIds)}
-              />
-            </Field>
-            <Field label="Notes" className="sm:col-span-2">
-              <Textarea
-                rows={4}
-                value={draft.notes}
-                disabled={structurallyLocked}
-                className="resize-none"
-                placeholder="Add context for your future self…"
-                onChange={(event) => updateDraft("notes", event.target.value)}
-              />
-            </Field>
-          </section>
-
-          <section className="rounded-2xl bg-bento-raised p-4 text-xs text-bento-subtle">
-            <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2">
-              <dt>Source</dt>
-              <dd className="text-right text-bento-default capitalize">
-                {transaction.source ?? "Unknown"}
-              </dd>
-              <dt>Updated</dt>
-              <dd className="text-right text-bento-default tabular-nums">
-                {new Date(transaction.updated_at).toLocaleString()}
-              </dd>
-              <dt>Transaction ID</dt>
-              <dd className="text-right font-mono text-bento-default">
-                {transaction.id}
-              </dd>
-            </dl>
-          </section>
-        </div>
-
-        <footer className="border-t border-bento-hairline bg-card px-5 py-4 sm:px-6">
-          {error && (
-            <p role="alert" className="mb-3 text-sm text-bento-negative">
-              {error}
-            </p>
-          )}
-          <div className="flex justify-end gap-2">
             <Button
               type="button"
               variant="ghost"
-              className="h-10"
+              size="icon-lg"
+              aria-label="Close transaction details"
               onClick={onClose}
             >
-              Cancel
+              <X />
             </Button>
-            <Button
-              type="submit"
-              className="h-10"
-              disabled={!valid || !changed || saving || structurallyLocked}
-            >
-              {saving ? "Saving…" : "Save changes"}
-            </Button>
+          </header>
+
+          <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
+            {transaction.status === "delete_pending" && (
+              <div className="flex gap-3 rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                <p className="text-pretty">
+                  Lunch Money needs you to resolve this deleted bank
+                  transaction.
+                </p>
+              </div>
+            )}
+            {transaction.is_pending && (
+              <div className="flex gap-3 rounded-xl bg-warning/10 p-3 text-sm text-warning-foreground dark:text-warning-foreground">
+                <Clock3 className="mt-0.5 size-4 shrink-0" />
+                <p className="text-pretty">
+                  This transaction is pending. Its name or amount may still
+                  change.
+                </p>
+              </div>
+            )}
+            {structurallyLocked && (
+              <div className="flex gap-3 rounded-xl bg-bento-raised p-3 text-sm text-bento-subtle">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                <p className="text-pretty">
+                  Split and grouped transactions are read-only here. Use their
+                  dedicated Lunch Money workflow to change them.
+                </p>
+              </div>
+            )}
+
+            <section className="space-y-3">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h3 className="text-sm font-semibold">Review</h3>
+                  <p className="text-xs text-bento-subtle">
+                    Confirm this transaction is correct.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant={draft.status === "reviewed" ? "default" : "outline"}
+                  className="h-10"
+                  disabled={
+                    transaction.is_pending ||
+                    transaction.status === "delete_pending" ||
+                    structurallyLocked
+                  }
+                  onClick={() =>
+                    setDraft((current) => ({
+                      ...current,
+                      status:
+                        current.status === "reviewed"
+                          ? "unreviewed"
+                          : "reviewed",
+                    }))
+                  }
+                >
+                  <Check data-icon="inline-start" />
+                  {draft.status === "reviewed" ? "Reviewed" : "Mark reviewed"}
+                </Button>
+              </div>
+            </section>
+
+            <section className="grid gap-4 sm:grid-cols-2">
+              <Field label="Payee" className="sm:col-span-2">
+                <Input
+                  value={draft.payee}
+                  disabled={structurallyLocked}
+                  onChange={(event) => updateDraft("payee", event.target.value)}
+                />
+                {transaction.original_name &&
+                  transaction.original_name !== transaction.payee && (
+                    <p className="mt-1.5 truncate px-1 text-xs text-bento-subtle">
+                      Statement: {transaction.original_name}
+                    </p>
+                  )}
+              </Field>
+              <Field label="Date">
+                <Input
+                  type="date"
+                  value={draft.date}
+                  disabled={structurallyLocked}
+                  onChange={(event) => updateDraft("date", event.target.value)}
+                />
+              </Field>
+              <Field label="Category">
+                <CategoryPicker
+                  categoryId={draft.categoryId}
+                  categoryName={categoryName}
+                  options={categoryOptions}
+                  disabled={structurallyLocked}
+                  appearance="field"
+                  onChange={(categoryId) =>
+                    updateDraft("categoryId", categoryId)
+                  }
+                />
+              </Field>
+              <Field label="Amount">
+                <Input
+                  inputMode="decimal"
+                  aria-invalid={!amountValid}
+                  value={draft.amount}
+                  disabled={locked || structurallyLocked}
+                  onChange={(event) =>
+                    updateDraft("amount", event.target.value)
+                  }
+                />
+                <p className="mt-1.5 px-1 text-xs text-bento-subtle">
+                  Negative amounts are credits.
+                </p>
+              </Field>
+              <Field label="Currency">
+                <Input
+                  maxLength={3}
+                  aria-invalid={!currencyValid}
+                  value={draft.currency}
+                  disabled={locked || structurallyLocked}
+                  className="uppercase"
+                  onChange={(event) =>
+                    updateDraft("currency", event.target.value)
+                  }
+                />
+              </Field>
+              <Field label="Account" className="sm:col-span-2">
+                <Select
+                  value={draft.account}
+                  onValueChange={(value) =>
+                    value && updateDraft("account", value)
+                  }
+                >
+                  <SelectTrigger
+                    className="h-10 w-full rounded-xl"
+                    disabled={locked || structurallyLocked}
+                  >
+                    <SelectValue>
+                      {(value: string) =>
+                        value === "cash"
+                          ? "Cash transaction"
+                          : accounts.find((account) => account.id === value)
+                              ?.name
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="cash">Cash transaction</SelectItem>
+                    {accounts
+                      .filter(isTransactionAccountOption)
+                      .map((account) => (
+                        <SelectItem key={account.id} value={account.id}>
+                          {account.name}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+                {locked && !structurallyLocked && (
+                  <p className="mt-1.5 px-1 text-xs text-bento-subtle">
+                    Amount, currency, and account are locked by this synced
+                    account.
+                  </p>
+                )}
+              </Field>
+              <Field label="Recurring item" className="sm:col-span-2">
+                <Select
+                  value={draft.recurringId}
+                  disabled={structurallyLocked}
+                  onValueChange={(value) =>
+                    value && updateDraft("recurringId", value)
+                  }
+                >
+                  <SelectTrigger className="h-10 w-full rounded-xl">
+                    <SelectValue>
+                      {(value: string) =>
+                        recurringValueName(recurringItems, value)
+                      }
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Not recurring</SelectItem>
+                    {recurringItems
+                      .filter((item) => item.status === "reviewed")
+                      .map((item) => (
+                        <SelectItem key={item.id} value={item.id.toString()}>
+                          {recurringName(item)}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field label="Tags" className="sm:col-span-2">
+                <TagPicker
+                  tags={tags.filter((tag) => !tag.archived)}
+                  value={draft.tagIds}
+                  disabled={structurallyLocked}
+                  onChange={(tagIds) => updateDraft("tagIds", tagIds)}
+                />
+              </Field>
+              <Field label="Notes" className="sm:col-span-2">
+                <Textarea
+                  rows={4}
+                  value={draft.notes}
+                  disabled={structurallyLocked}
+                  className="resize-none"
+                  placeholder="Add context for your future self…"
+                  onChange={(event) => updateDraft("notes", event.target.value)}
+                />
+              </Field>
+            </section>
+
+            <section className="rounded-2xl bg-bento-raised p-4 text-xs text-bento-subtle">
+              <dl className="grid grid-cols-icon-content gap-x-4 gap-y-2">
+                <dt>Source</dt>
+                <dd className="text-right text-bento-default capitalize">
+                  {transaction.source ?? "Unknown"}
+                </dd>
+                <dt>Updated</dt>
+                <dd className="text-right text-bento-default tabular-nums">
+                  {new Date(transaction.updated_at).toLocaleString()}
+                </dd>
+                <dt>Transaction ID</dt>
+                <dd className="text-right font-mono text-bento-default">
+                  {transaction.id}
+                </dd>
+              </dl>
+            </section>
           </div>
-        </footer>
-      </form>
+
+          <footer className="border-t border-bento-hairline bg-card px-5 py-4 sm:px-6">
+            {error && (
+              <p role="alert" className="mb-3 text-sm text-bento-negative">
+                {error}
+              </p>
+            )}
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                className="h-10"
+                onClick={onClose}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                className="h-10"
+                disabled={!valid || !changed || saving || structurallyLocked}
+              >
+                {saving ? "Saving…" : "Save changes"}
+              </Button>
+            </div>
+          </footer>
+        </form>
+      </SheetContent>
     </Sheet>
   );
 }

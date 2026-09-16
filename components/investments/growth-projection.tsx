@@ -262,7 +262,7 @@ export function GrowthProjection({
                     changeMonthly(String(Math.round(estimatedContrib)))
                   }
                   aria-label="Use estimated monthly contribution"
-                  className="min-h-10 min-w-10 rounded px-1 text-xs font-medium text-bento-default transition-colors hover:underline active:scale-[0.96]"
+                  className="min-h-10 min-w-10 rounded px-1 text-xs font-medium text-bento-default transition-colors hover:underline active:scale-96"
                 >
                   Use
                 </button>
@@ -308,8 +308,12 @@ export function GrowthProjection({
                           className="flex items-center gap-2 tabular-nums"
                         >
                           <span
-                            className="size-1.5 shrink-0 rounded-full"
-                            style={{ backgroundColor: color }}
+                            className="size-1.5 shrink-0 rounded-full bg-(--item-background)"
+                            style={
+                              {
+                                "--item-background": color,
+                              } as React.CSSProperties
+                            }
                           />
                           <span className="text-bento-subtle">{rateLabel}</span>
                           <span className="ml-auto font-medium">
@@ -354,8 +358,8 @@ export function GrowthProjection({
             <Fragment key={key}>
               <div className="flex items-center gap-1.5">
                 <span
-                  className="inline-block h-1.5 w-3 shrink-0 rounded-full"
-                  style={{ backgroundColor: color }}
+                  className="inline-block h-1.5 w-3 shrink-0 rounded-full bg-(--item-background)"
+                  style={{ "--item-background": color } as React.CSSProperties}
                 />
                 <span className="text-bento-subtle">{label}</span>
               </div>
@@ -432,8 +436,10 @@ export function GrowthProjection({
                   >
                     <div className="flex items-center gap-1.5">
                       <span
-                        className="inline-block h-1.5 w-3 shrink-0 rounded-full"
-                        style={{ backgroundColor: color }}
+                        className="inline-block h-1.5 w-3 shrink-0 rounded-full bg-(--item-background)"
+                        style={
+                          { "--item-background": color } as React.CSSProperties
+                        }
                       />
                       <span className="text-bento-subtle">{label}</span>
                     </div>

@@ -97,18 +97,15 @@ export function UpcomingBillsCard({
                 className="flex items-center gap-3 rounded-xl px-1 py-1.5 transition-colors hover:bg-bento-raised"
               >
                 <span
-                  className="flex size-8 shrink-0 items-center justify-center rounded-full text-xs font-semibold"
-                  style={{
-                    backgroundColor: `color-mix(in oklab, ${color} var(--chip-tint), transparent)`,
-                    color: `color-mix(in oklab, ${color} 80%, var(--foreground))`,
-                  }}
+                  className="flex size-8 shrink-0 items-center justify-center rounded-full bg-item-tint text-xs font-semibold text-item-ink"
+                  style={{ "--item-color": color } as React.CSSProperties}
                   aria-hidden="true"
                 >
                   {bill.name.charAt(0).toUpperCase()}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">{bill.name}</p>
-                  <p className="text-[11px] text-bento-subtle">
+                  <p className="text-(length:--text-caption) text-bento-subtle">
                     {bill.nextDate
                       ? `${bill.cadence} · next ${formatShortDate(bill.nextDate)}`
                       : bill.cadence}

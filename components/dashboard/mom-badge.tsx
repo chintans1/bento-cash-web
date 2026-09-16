@@ -11,7 +11,7 @@ export function MoMBadge({ delta }: { delta: MoMDelta | undefined }) {
     <Badge
       title="vs last month"
       className={cn(
-        "shrink-0 text-[10px] tabular-nums",
+        "shrink-0 text-(length:--text-micro) tabular-nums",
         isUp
           ? "bg-bento-negative/15 text-bento-negative"
           : "bg-bento-positive/15 text-bento-positive"

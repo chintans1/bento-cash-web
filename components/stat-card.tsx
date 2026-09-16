@@ -36,7 +36,7 @@ export function StatCard({
       className={cn(
         "gap-0 py-0",
         onClick &&
-          "cursor-pointer transition-[transform,box-shadow] hover:shadow-lg active:scale-[0.98]",
+          "cursor-pointer transition-card hover:shadow-lg active:scale-98",
         active && activeClassName,
         className
       )}
