@@ -59,7 +59,7 @@ export const BUCKETS: Bucket[] = [
   },
   {
     label: "Retirement — Tax Free",
-    color: "bg-emerald-500",
+    color: "bg-cat-4",
     subtypes: new Set(["roth ira", "roth 401k", "tfsa"]),
   },
   {

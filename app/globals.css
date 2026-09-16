@@ -13,7 +13,9 @@
   --card-foreground: oklch(0.148 0.004 228.8);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.148 0.004 228.8);
-  --primary: oklch(0.508 0.118 165.612);
+  /* Light-theme greens stay deliberately deep: the brand teal is distinct
+     from financial-positive green and both remain legible at small sizes. */
+  --primary: oklch(0.45 0.12 165);
   --primary-foreground: oklch(0.979 0.021 166.113);
   --secondary: oklch(0.967 0.001 286.375);
   --secondary-foreground: oklch(0.21 0.006 285.885);
@@ -33,7 +35,7 @@
   --radius: 0.45rem;
   --sidebar: oklch(0.987 0.002 197.1);
   --sidebar-foreground: oklch(0.148 0.004 228.8);
-  --sidebar-primary: oklch(0.596 0.145 163.225);
+  --sidebar-primary: oklch(0.45 0.12 165);
   --sidebar-primary-foreground: oklch(0.979 0.021 166.113);
   --sidebar-accent: oklch(0.963 0.002 197.1);
   --sidebar-accent-foreground: oklch(0.218 0.008 223.9);
@@ -55,7 +57,7 @@
   /* How strongly a category color tints its chip; dark needs more to read. */
   --chip-tint: 26%;
 
-  --positive: oklch(0.52 0.13 163.5);
+  --positive: oklch(0.46 0.14 145);
   --negative: oklch(0.577 0.245 27.325);
 
   /* Category accents — the dashboard's original spend colors, now tokens so
@@ -63,7 +65,7 @@
   --cat-1: #e85d4a;
   --cat-2: #f97316;
   --cat-3: #eab308;
-  --cat-4: #22c55e;
+  --cat-4: #15803d;
   --cat-5: #06b6d4;
   --cat-6: #8b5cf6;
   --cat-7: #ec4899;
