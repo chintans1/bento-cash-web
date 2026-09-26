@@ -101,21 +101,21 @@ pnpm format
 
 ## Architecture
 
-All data fetching is **client-side only** — there is no server component, API route, or backend. The app is effectively a static shell that reads a Lunch Money API token from `localStorage` and calls the LM API directly from the browser.
+Authentication and Lunch Money credentials are server-side. Better Auth stores users and cookie sessions in SQLite; Bento stores encrypted, user-owned Lunch Money connections in the same database. Client pages still fetch and render data interactively, but Lunch Money calls pass through an authenticated server route.
 
 ```
-localStorage["lm_token"]
+Better Auth cookie + SQLite
        ↓
-hooks/use-token.tsx         # reads/writes the token, points the client at it
+hooks/use-token.tsx         # session + public connection state
        ↓
-lib/lunchmoney/client.ts    # thin wrapper around LunchMoneyClient
+app/api/lunch-money         # ownership check + credential decryption
        ↓
-app/*/page.tsx              # pages fetch data, compute analytics, render
+Lunch Money API
 ```
 
-### No server-side secrets
+### Server-side secrets
 
-The LM API token lives in `localStorage`. There is no `.env`, no server, no proxy. This is intentional — the app is meant to be self-hosted or run locally.
+LM API keys are encrypted with AES-256-GCM before being stored and are never returned to the browser. Set `BETTER_AUTH_SECRET` and optionally a separate `BENTO_CREDENTIAL_ENCRYPTION_KEY`. Authenticated API routes enforce that the selected connection belongs to the current user.
 
 ---
 
@@ -123,17 +123,17 @@ The LM API token lives in `localStorage`. There is no `.env`, no server, no prox
 
 ### `hooks/use-token.tsx`
 
-Owns `localStorage["lm_token"]` and the demo flag, and is the only thing that calls `setActiveClient`. Exposes `{ token, isDemo, isAuthenticated, setToken, signOut, enterDemo }`; every page gates rendering on `isAuthenticated` and otherwise shows `<NoTokenPrompt />`.
+Combines Better Auth's browser session with public connection metadata from `/api/connections`. It supports selecting/removing connections and exposes a non-secret `sessionKey` (`userId:connectionId`) for cache and feature scoping. Old `lm_token` and `bento_auth_v1` credentials migrate into encrypted DB rows after sign-in.
 
-One `sync()` decides which client the current localStorage state implies — demo, real, or none — and every mutator writes storage then calls it, so the rule lives in one place. It also runs at module load, before any render, so an API call can never go out without a client. `signOut` covers both exits: leaving the demo and dropping a real token are the same operation, since `enterDemo` already clears the token.
+The active real account creates a remote LM client backed by the server proxy; demo mode continues to use the in-memory demo client. A session-boundary key remounts page data hooks on account changes so data cannot leak between connections.
 
-Backed by `useSyncExternalStore` rather than an effect: the server snapshot is null/false and the client snapshot reads localStorage, so there's no hydration mismatch and no first-render flash.
+`isReady` stays false until both the Better Auth session and that user's connection context are loaded, preventing an unauthenticated or empty-state flash.
 
 ### `hooks/use-app-data.tsx`
 
 The app-wide fetch — user, accounts, categories, tags, and recurring items — mounted once in `layout.tsx`. These depend on the account, not on the month on screen, so every page reads them from here instead of fetching for itself; `useDashboardData` included.
 
-Results are tagged with the session (`"demo"`, or the token) they were fetched for and `data` is only used when that tag matches, so signing out or switching accounts drops the previous account's data without a reset step — and `loading` falls out of the same check rather than being a flag.
+Results are tagged with the non-secret auth `sessionKey` they were fetched for and `data` is only used when that tag matches, so signing out or switching accounts drops the previous account's data without a reset step — and `loading` falls out of the same check rather than being a flag.
 
 ### `hooks/use-month-transactions.ts`
 
@@ -145,11 +145,11 @@ The last N complete months of transactions, oldest first — what the accounts p
 
 ### `hooks/use-investable-months.ts`
 
-The `investable_months` setting, shared by the settings and accounts pages. Backed by `useSyncExternalStore` so the two stay in agreement and SSR gets a defined snapshot — reading localStorage during render would mismatch the prerendered HTML.
+The typed `investable_months` wrapper around `use-connection-setting.ts`. Real-account values persist through the authenticated settings API under the user/connection pair; demo values remain local-only. The growth projection uses the same generic hook for its contribution and goal settings.
 
 ### `lib/lunchmoney/client.ts`
 
-Thin wrappers around `LunchMoneyClient` from `@lunch-money/lunch-money-js-v2`. The client is cached per token in a module-level singleton (`_client`, `_clientToken`) so navigating between pages doesn't create a new instance each render.
+Defines one `LMClient` interface with two implementations: `createRealClient`, used only by server routes with a decrypted credential, and `createRemoteClient`, used by the browser to call the authenticated proxy. The active singleton is cleared whenever the auth connection changes so cached data never crosses account boundaries.
 
 Exported functions:
 
@@ -270,7 +270,7 @@ Shows net worth hero (assets − liabilities), grouped by institution within Ass
 
 ### `/settings` — Settings (`app/settings/page.tsx`)
 
-Token entry form. On submit, calls `getMe()` to verify the token, then stores it via `useToken`. Shows user name, budget name, primary currency, and API key label when connected.
+Connection manager. Adding an account calls `getMe()` to verify its token and stores the returned Lunch Money account identity and display metadata. Users can switch or remove linked accounts. It also shows the active user name, budget name, primary currency, and API key label.
 
 ---
 

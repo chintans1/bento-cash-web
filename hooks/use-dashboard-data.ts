@@ -78,7 +78,7 @@ export type DashboardData = {
 };
 
 export function useDashboardData(
-  isAuthenticated: boolean,
+  session: string | null,
   year: number,
   month: number
 ): DashboardData {
@@ -91,7 +91,7 @@ export function useDashboardData(
   const [recurringItems, setRecurringItems] = useState<RecurringItem[]>([]);
   const [budgetSummary, setBudgetSummary] =
     useState<AlignedSummaryResponse | null>(null);
-  const balanceHistory = useBalanceHistory(isAuthenticated);
+  const balanceHistory = useBalanceHistory(!!session);
   const {
     accounts,
     primaryCurrency,
@@ -105,16 +105,16 @@ export function useDashboardData(
     message: string;
   } | null>(null);
 
-  const monthKey = `${year}-${month}`;
+  const monthKey = session ? `${session}:${year}-${month}` : `${year}-${month}`;
   // Derived: we're loading whenever what's rendered isn't the month selected
   // and that month hasn't already failed. No flag to keep in sync.
   const isLoading =
-    isAuthenticated && loadedMonth !== monthKey && failure?.month !== monthKey;
+    session !== null && loadedMonth !== monthKey && failure?.month !== monthKey;
   const error = failure?.month === monthKey ? failure.message : null;
 
   // Re-fetch all transaction data whenever the auth state or selected month changes
   useEffect(() => {
-    if (!isAuthenticated) return;
+    if (!session) return;
 
     const prev = prevMonthOf(year, month);
     // Guards against a slow response for a month the user has already left
@@ -155,7 +155,7 @@ export function useDashboardData(
     return () => {
       cancelled = true;
     };
-  }, [isAuthenticated, year, month, monthKey]);
+  }, [session, year, month, monthKey]);
 
   // ── Derived data ────────────────────────────────────────────────────────────
 
@@ -276,7 +276,7 @@ export function useDashboardData(
     budgetSummary,
     netWorth,
     netWorthHistory,
-    netWorthHistoryLoading: isAuthenticated && balanceHistory === null,
+    netWorthHistoryLoading: session !== null && balanceHistory === null,
     loading: (isLoading || appLoading) && transactions.length === 0,
     refreshing: isLoading && transactions.length > 0,
     error,

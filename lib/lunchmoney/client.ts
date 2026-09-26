@@ -209,6 +209,48 @@ export function createRealClient(token: string): LMClient {
   };
 }
 
+async function remoteCall<T>(
+  connectionId: string,
+  action: string,
+  args: unknown[] = []
+): Promise<T> {
+  const response = await fetch("/api/lunch-money", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ connectionId, action, args }),
+  });
+  const payload = (await response.json().catch(() => null)) as {
+    data?: T;
+    error?: string;
+  } | null;
+  if (!response.ok) {
+    throw new Error(payload?.error ?? "Lunch Money request failed");
+  }
+  return payload?.data as T;
+}
+
+/** Browser client backed by an authenticated server-side LM connection. */
+export function createRemoteClient(connectionId: string): LMClient {
+  return {
+    getMe: () => remoteCall(connectionId, "getMe"),
+    getTransactionsForMonth: (year, month) =>
+      remoteCall(connectionId, "getTransactionsForMonth", [year, month]),
+    getCategories: () => remoteCall(connectionId, "getCategories"),
+    getTags: () => remoteCall(connectionId, "getTags"),
+    getAccounts: () => remoteCall(connectionId, "getAccounts"),
+    getRecurringItems: () => remoteCall(connectionId, "getRecurringItems"),
+    getBalanceHistory: () => remoteCall(connectionId, "getBalanceHistory"),
+    getBudgetSummary: (year, month) =>
+      remoteCall(connectionId, "getBudgetSummary", [year, month]),
+    updateManualAccount: (id, data) =>
+      remoteCall(connectionId, "updateManualAccount", [id, data]),
+    updateTransaction: (id, patch) =>
+      remoteCall(connectionId, "updateTransaction", [id, patch]),
+    updateTransactions: (transactions) =>
+      remoteCall(connectionId, "updateTransactions", [transactions]),
+  };
+}
+
 // ── Active client singleton ──────────────────────────────────────────────────
 
 let _activeClient: LMClient | null = null;

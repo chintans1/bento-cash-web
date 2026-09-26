@@ -30,7 +30,7 @@ import {
 const LOOKBACK_MONTHS = 6;
 
 export default function InvestmentsPage() {
-  const { isAuthenticated } = useToken();
+  const { isAuthenticated, sessionKey } = useToken();
   const {
     accounts: allAccounts,
     primaryCurrency,
@@ -42,7 +42,7 @@ export default function InvestmentsPage() {
   // Non-critical: the page renders without it, the averages just stay blank.
   const { months: history } = useTransactionHistory(
     LOOKBACK_MONTHS,
-    isAuthenticated
+    sessionKey
   );
 
   if (!isAuthenticated) return <NoTokenPrompt />;

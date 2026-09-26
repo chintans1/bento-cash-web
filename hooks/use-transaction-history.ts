@@ -24,12 +24,12 @@ const PENDING: History = { months: null, error: null };
  */
 export function useTransactionHistory(
   count: number,
-  enabled: boolean
+  session: string | null
 ): History {
   const [history, setHistory] = useState<History>(PENDING);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!session) return;
 
     let cancelled = false;
 
@@ -53,7 +53,7 @@ export function useTransactionHistory(
     return () => {
       cancelled = true;
     };
-  }, [count, enabled]);
+  }, [count, session]);
 
   return history;
 }

@@ -20,7 +20,7 @@ import { RecentTransactionsCard } from "@/components/dashboard/recent-transactio
 import { AnimatedCollapse } from "@/components/animated-collapse";
 
 function HomePage() {
-  const { isAuthenticated } = useToken();
+  const { isAuthenticated, sessionKey } = useToken();
   const {
     year: selectedYear,
     month: selectedMonth,
@@ -54,7 +54,7 @@ function HomePage() {
     sortedSpendTxs,
     peakDayPanelTxs,
     maxCatSpend,
-  } = useDashboardData(isAuthenticated, selectedYear, selectedMonth);
+  } = useDashboardData(sessionKey, selectedYear, selectedMonth);
 
   const transactionsHref = `/transactions?month=${monthKeyOf(selectedYear, selectedMonth)}`;
 

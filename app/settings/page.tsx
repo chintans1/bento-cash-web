@@ -16,21 +16,20 @@ import { Kbd } from "@/components/ui/kbd";
 import { useToken } from "@/hooks/use-token";
 import { useAppData } from "@/hooks/use-app-data";
 import { useInvestableMonths } from "@/hooks/use-investable-months";
-import { MintBalanceImportCard } from "@/components/settings/mint-balance-import-card";
-
-function initials(name: string): string {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
+import { ConnectAccountForm } from "@/components/connect-account-form";
+import { KeyRound, LogOut, Trash2 } from "lucide-react";
 
 export default function SettingsPage() {
-  const { signOut, isAuthenticated, isDemo } = useToken();
-  const { user, loading, refreshAccounts } = useAppData();
+  const {
+    accounts,
+    activeAccount,
+    signOut,
+    switchAccount,
+    removeAccount,
+    isAuthenticated,
+    isDemo,
+  } = useToken();
+  const { user, loading } = useAppData();
 
   const { months: floorMonths, setMonths } = useInvestableMonths();
   // The field holds its own text so a half-typed value ("" while retyping)
@@ -42,137 +41,168 @@ export default function SettingsPage() {
     setMonths(Number(raw));
   }
 
+  function handleRemoveAccount(accountId: string, label: string) {
+    if (
+      window.confirm(
+        `Remove ${label} from this browser? You will need its API key to add it again.`
+      )
+    ) {
+      removeAccount(accountId);
+    }
+  }
+
   if (!isAuthenticated) return <NoTokenPrompt />;
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pt-8 pb-12 sm:px-6">
-      <header>
-        <h1 className="font-heading text-3xl font-bold tracking-tight text-balance">
-          Settings
-        </h1>
-        <p className="mt-1 text-sm text-pretty text-bento-subtle">
-          Manage your Lunch Money connection, cash reserve, and historical data.
-        </p>
-      </header>
-
-      <div className="grid items-start gap-5 lg:grid-cols-settings">
-        <div className="flex min-w-0 flex-col gap-5">
-          <Card className="w-full">
-            {loading ? (
-              <CardContent className="flex min-h-64 items-center justify-center text-sm text-bento-subtle">
-                Loading account…
-              </CardContent>
-            ) : user ? (
-              <>
-                <CardHeader>
-                  <CardTitle className="text-lg">Account</CardTitle>
-                  <CardDescription>
-                    Your connected Lunch Money budget
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="flex flex-1 flex-col gap-5">
-                  <div className="flex items-center gap-3">
-                    <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-bento-brand/10 font-heading text-sm font-semibold text-bento-brand">
-                      {initials(user.name)}
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate font-heading text-lg font-medium">
-                        {user.name}
-                      </p>
-                      <p className="truncate text-sm text-bento-subtle">
-                        {user.budget_name}
-                      </p>
-                    </div>
-                  </div>
-
-                  <dl className="divide-y divide-border rounded-xl bg-bento-raised px-4 text-sm">
-                    <div className="flex min-h-11 items-center justify-between gap-4 py-2">
-                      <dt className="shrink-0 text-bento-subtle">Email</dt>
-                      <dd className="truncate font-medium">{user.email}</dd>
-                    </div>
-                    <div className="flex min-h-11 items-center justify-between gap-4 py-2">
-                      <dt className="text-bento-subtle">Currency</dt>
-                      <dd className="font-mono font-medium uppercase tabular-nums">
-                        {user.primary_currency}
-                      </dd>
-                    </div>
-                    {user.api_key_label && (
-                      <div className="flex min-h-11 items-center justify-between gap-4 py-2">
-                        <dt className="shrink-0 text-bento-subtle">API key</dt>
-                        <dd className="truncate font-medium">
-                          {user.api_key_label}
-                        </dd>
-                      </div>
-                    )}
-                  </dl>
-                </CardContent>
-                <CardFooter className="mt-auto">
-                  <Button variant="outline" size="lg" onClick={signOut}>
-                    {isDemo ? "Connect your account" : "Change token"}
-                  </Button>
-                </CardFooter>
-              </>
-            ) : (
-              <CardContent className="flex min-h-64 items-center justify-center text-sm text-bento-subtle">
-                Not connected
-              </CardContent>
-            )}
-          </Card>
-
-          <Card className="w-full">
+    <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-4 pt-6 pb-10 sm:px-6">
+      <h1 className="w-full font-heading text-2xl font-bold">Settings</h1>
+      {/* User Card */}
+      <Card className="w-full max-w-md">
+        {loading ? (
+          <CardContent className="py-8 text-center text-base text-bento-subtle">
+            Loading…
+          </CardContent>
+        ) : user ? (
+          <>
             <CardHeader>
-              <CardTitle className="text-lg">Cash reserve</CardTitle>
-              <CardDescription>
-                Set the savings buffer used in your investment plan
+              <CardTitle className="text-xl">{user.name}</CardTitle>
+              <CardDescription className="text-base">
+                {user.budget_name}
               </CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-1 flex-col gap-4">
-              <div className="flex items-center justify-between gap-3 rounded-xl bg-bento-raised p-3">
-                <div className="min-w-0">
-                  <label htmlFor="savings-months" className="block font-medium">
-                    Emergency fund
-                  </label>
-                  <p className="mt-1 text-xs text-pretty text-bento-subtle">
-                    Target months of average expenses
-                  </p>
+            <CardContent>
+              <dl className="flex flex-col gap-3 text-base">
+                <div className="flex justify-between gap-4">
+                  <dt className="text-bento-subtle">Email</dt>
+                  <dd className="font-medium">{user.email}</dd>
                 </div>
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <Input
-                    id="savings-months"
-                    aria-describedby="savings-months-help"
-                    onBlur={() => setFloorMonthsInput(null)}
-                    type="number"
-                    min={1}
-                    max={24}
-                    step={1}
-                    value={floorMonthsInput ?? String(floorMonths)}
-                    onChange={(e) => handleFloorMonthsChange(e.target.value)}
-                    className="h-10 w-14 appearance-none px-2 py-0 text-center font-mono text-base leading-none tabular-nums [&::-webkit-inner-spin-button]:m-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-outer-spin-button]:appearance-none"
-                  />
-                  <span className="text-sm text-bento-subtle">months</span>
+                <div className="flex justify-between gap-4">
+                  <dt className="text-bento-subtle">Currency</dt>
+                  <dd className="font-medium uppercase">
+                    {user.primary_currency}
+                  </dd>
                 </div>
-              </div>
-              <p
-                id="savings-months-help"
-                className="text-sm leading-relaxed text-pretty text-bento-subtle"
-              >
-                Checking always keeps one additional month for cash flow. Choose
-                1–24 whole months; changes save automatically.
-              </p>
+                {user.api_key_label && (
+                  <div className="flex justify-between gap-4">
+                    <dt className="text-bento-subtle">API key</dt>
+                    <dd className="font-medium">{user.api_key_label}</dd>
+                  </div>
+                )}
+              </dl>
             </CardContent>
-          </Card>
-        </div>
+            <CardFooter>
+              <Button variant="outline" onClick={signOut}>
+                <LogOut data-icon="inline-start" />
+                {isDemo ? "Connect your account" : "Sign out"}
+              </Button>
+            </CardFooter>
+          </>
+        ) : (
+          <CardContent className="py-8 text-center text-base text-bento-subtle">
+            Not connected
+          </CardContent>
+        )}
+      </Card>
 
-        <div className="min-w-0">
-          <MintBalanceImportCard
-            currency={user?.primary_currency ?? "usd"}
-            isDemo={isDemo}
-            accountLoading={loading}
-            onImported={refreshAccounts}
-          />
-        </div>
-      </div>
-      <p className="text-center font-mono text-xs text-bento-subtle">
+      {!isDemo && (
+        <Card id="connections" className="w-full max-w-md scroll-mt-28">
+          <CardHeader>
+            <CardTitle className="text-xl">Lunch Money accounts</CardTitle>
+            <CardDescription className="text-base">
+              Switch budgets without replacing an API key. Connections belong to
+              your Bento Cash user and can hold account-specific features.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-5">
+            <div className="flex flex-col gap-2">
+              {accounts.map((account) => {
+                const selected = account.id === activeAccount?.id;
+                return (
+                  <div
+                    key={account.id}
+                    className="flex min-h-14 items-center gap-3 rounded-2xl bg-bento-raised px-3 py-2 shadow-[inset_0_0_0_1px_var(--surface-hairline)]"
+                  >
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-bento-surface shadow-sm">
+                      <KeyRound className="size-4 text-bento-subtle" />
+                    </div>
+                    <button
+                      type="button"
+                      className="min-h-10 min-w-0 flex-1 text-left"
+                      onClick={() => switchAccount(account.id)}
+                      aria-pressed={selected}
+                    >
+                      <span className="block truncate text-sm font-medium">
+                        {account.label}
+                      </span>
+                      <span className="block truncate text-xs text-bento-subtle">
+                        {selected ? "Active" : account.email || "API key"}
+                      </span>
+                    </button>
+                    <Button
+                      variant="ghost"
+                      size="icon-lg"
+                      aria-label={`Remove ${account.label}`}
+                      onClick={() =>
+                        handleRemoveAccount(account.id, account.label)
+                      }
+                    >
+                      <Trash2 className="text-bento-subtle" />
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="border-t border-bento-hairline pt-5">
+              <ConnectAccountForm buttonLabel="Add another account" />
+            </div>
+            <p className="text-xs text-bento-subtle">
+              API keys are encrypted in Bento Cash&apos;s database and never
+              sent back to your browser. These records can hold OAuth
+              credentials when Lunch Money supports that flow.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Investable Cash Card */}
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle className="text-xl">Investable Cash</CardTitle>
+          <CardDescription className="text-base">
+            How many months of expenses your savings should cover as an
+            emergency fund. Checking always keeps 1 month for cash flow.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3">
+            <Input
+              id="savings-months"
+              aria-describedby="savings-months-help"
+              onBlur={() => setFloorMonthsInput(null)}
+              type="number"
+              min={1}
+              max={24}
+              step={1}
+              value={floorMonthsInput ?? String(floorMonths)}
+              onChange={(e) => handleFloorMonthsChange(e.target.value)}
+              className="h-11 w-24 text-center font-mono text-base"
+            />
+            <label
+              htmlFor="savings-months"
+              className="text-base text-bento-subtle"
+            >
+              months savings target
+            </label>
+          </div>
+          <p
+            id="savings-months-help"
+            className="mt-3 text-xs text-bento-subtle"
+          >
+            Choose 1–24 whole months. Changes save automatically.
+          </p>
+        </CardContent>
+      </Card>
+      <p className="font-mono text-sm text-bento-subtle">
         Press <Kbd>d</Kbd> to toggle dark mode
       </p>
     </div>

@@ -11,6 +11,7 @@ import { useToken } from "@/hooks/use-token";
 import { Button } from "@/components/ui/button";
 import { AnimatedCollapse } from "@/components/animated-collapse";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AccountSwitcher } from "@/components/account-switcher";
 
 const NAV_LINKS = [
   { href: "/", label: "Overview" },
@@ -64,6 +65,9 @@ export function Header() {
               ))}
           </nav>
 
+          {isAuthenticated && !isDemo && (
+            <AccountSwitcher className="hidden md:flex" />
+          )}
           <ThemeToggle />
 
           {/* Mobile hamburger */}
@@ -110,6 +114,7 @@ export function Header() {
           aria-label="Mobile navigation"
           className="border-t border-bento-hairline/60 px-4 pb-4 md:hidden"
         >
+          {!isDemo && <AccountSwitcher className="mt-3 w-full" />}
           {NAV_LINKS.map(({ href, label }) => (
             <Link
               key={href}
