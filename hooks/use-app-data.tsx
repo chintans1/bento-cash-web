@@ -54,9 +54,7 @@ const EMPTY: AppData = {
 const AppDataContext = createContext<AppDataContextValue | null>(null);
 
 export function AppDataProvider({ children }: { children: React.ReactNode }) {
-  const { token, isDemo } = useToken();
-  /** Which account this data belongs to; null when signed out. */
-  const session = isDemo ? "demo" : token;
+  const { sessionKey: session } = useToken();
 
   const [loaded, setLoaded] = useState<{
     session: string;

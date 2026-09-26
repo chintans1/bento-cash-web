@@ -1,5 +1,9 @@
 # dependencies
 /node_modules
+/.pnpm-store/
+/data/*.db
+/data/*.db-shm
+/data/*.db-wal
 /.pnp
 .pnp.*
 .yarn/*

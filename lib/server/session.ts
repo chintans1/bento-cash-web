@@ -1,0 +1,18 @@
+import { auth } from "@/lib/server/auth";
+
+export async function getRequestUser(request: Request) {
+  const session = await auth.api.getSession({ headers: request.headers });
+  return session?.user ?? null;
+}
+
+/** Custom cookie-authenticated mutations require a same-origin browser request. */
+export function hasSameOrigin(request: Request): boolean {
+  const origin = request.headers.get("origin");
+  const configuredOrigin = process.env.BETTER_AUTH_URL
+    ? new URL(process.env.BETTER_AUTH_URL).origin
+    : null;
+  return (
+    origin !== null &&
+    (origin === new URL(request.url).origin || origin === configuredOrigin)
+  );
+}

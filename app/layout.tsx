@@ -3,7 +3,7 @@ import { Geist_Mono, Public_Sans, Playfair_Display } from "next/font/google";
 
 import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
-import { TokenProvider } from "@/hooks/use-token";
+import { AuthProvider } from "@/hooks/use-token";
 import { AppDataProvider } from "@/hooks/use-app-data";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
@@ -55,13 +55,13 @@ export default function RootLayout({
     >
       <body className="flex min-h-svh flex-col">
         <ThemeProvider>
-          <TokenProvider>
+          <AuthProvider>
             <AppDataProvider>
               <Header />
               <SessionGate>{children}</SessionGate>
               <Footer />
             </AppDataProvider>
-          </TokenProvider>
+          </AuthProvider>
           <Analytics />
         </ThemeProvider>
       </body>

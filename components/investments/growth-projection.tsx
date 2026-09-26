@@ -14,6 +14,7 @@ import type { Transaction } from "@/lib/lunchmoney/client";
 import type { CategoryInfo } from "@/lib/lunchmoney/categories";
 import { estimateMonthlyContrib } from "@/lib/lunchmoney/analytics";
 import { cn } from "@/lib/utils";
+import { useConnectionSetting } from "@/hooks/use-connection-setting";
 
 // Theme tokens rather than fixed hex: the old slate/amber/green were picked
 // for light mode and the slate line all but vanished on dark glass.
@@ -127,19 +128,21 @@ export function GrowthProjection({
   monthlyHistories?: Transaction[][];
   catMap?: Map<number, CategoryInfo>;
 }) {
-  const [monthlyInput, setMonthlyInput] = useState<string>(() => {
-    if (typeof window === "undefined") return "0";
-    return localStorage.getItem("monthly_contribution") ?? "0";
-  });
+  const { value: savedMonthly, setValue: saveMonthly } = useConnectionSetting(
+    "monthly_contribution",
+    "0"
+  );
+  const { value: savedGoal, setValue: saveGoal } = useConnectionSetting(
+    "investment_goal",
+    "1000000"
+  );
+  const [monthlyDraft, setMonthlyDraft] = useState(savedMonthly);
   const [contribWindow, setContribWindow] = useState<3 | 6>(6);
-
-  const [goalInput, setGoalInput] = useState<string>(() => {
-    if (typeof window === "undefined") return "1000000";
-    return localStorage.getItem("investment_goal") ?? "1000000";
-  });
-
+  const [goalDraft, setGoalDraft] = useState(savedGoal);
   const [monthlyFocused, setMonthlyFocused] = useState(false);
   const [goalFocused, setGoalFocused] = useState(false);
+  const monthlyInput = monthlyFocused ? monthlyDraft : savedMonthly;
+  const goalInput = goalFocused ? goalDraft : savedGoal;
 
   const monthly = useMemo(() => {
     const n = parseFloat(monthlyInput);
@@ -159,18 +162,18 @@ export function GrowthProjection({
 
   // A half-typed value stays on screen but isn't persisted.
   function changeMonthly(raw: string) {
-    setMonthlyInput(raw);
+    setMonthlyDraft(raw);
     const n = parseFloat(raw);
     if (Number.isFinite(n) && n >= 0) {
-      localStorage.setItem("monthly_contribution", String(n));
+      saveMonthly(String(n));
     }
   }
 
   function changeGoal(raw: string) {
-    setGoalInput(raw);
+    setGoalDraft(raw);
     const n = parseFloat(raw);
     if (Number.isFinite(n) && n > 0) {
-      localStorage.setItem("investment_goal", String(n));
+      saveGoal(String(n));
     }
   }
 
@@ -218,7 +221,10 @@ export function GrowthProjection({
                 value={
                   monthlyFocused ? monthlyInput : formatNumber(monthlyInput)
                 }
-                onFocus={() => setMonthlyFocused(true)}
+                onFocus={() => {
+                  setMonthlyDraft(savedMonthly);
+                  setMonthlyFocused(true);
+                }}
                 onBlur={() => setMonthlyFocused(false)}
                 onChange={(e) =>
                   changeMonthly(e.target.value.replace(/[^0-9.]/g, ""))
@@ -392,7 +398,10 @@ export function GrowthProjection({
                   type="text"
                   inputMode="decimal"
                   value={goalFocused ? goalInput : formatNumber(goalInput)}
-                  onFocus={() => setGoalFocused(true)}
+                  onFocus={() => {
+                    setGoalDraft(savedGoal);
+                    setGoalFocused(true);
+                  }}
                   onBlur={() => setGoalFocused(false)}
                   onChange={(e) =>
                     changeGoal(e.target.value.replace(/[^0-9.]/g, ""))

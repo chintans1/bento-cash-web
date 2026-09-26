@@ -71,7 +71,7 @@ function parseCategoryFilter(value: string | null): number | null {
 }
 
 function TransactionsPage() {
-  const { token, isDemo, isAuthenticated } = useToken();
+  const { sessionKey, isAuthenticated } = useToken();
   const {
     primaryCurrency,
     categoryMap,
@@ -101,11 +101,7 @@ function TransactionsPage() {
     errors,
     update,
     reviewMany,
-  } = useMonthTransactions(
-    selectedYear,
-    selectedMonth,
-    isDemo ? "demo" : token
-  );
+  } = useMonthTransactions(selectedYear, selectedMonth, sessionKey);
 
   // Categories come from the app-level fetch, so rows wait on them too — a row
   // rendered before they land would read "Uncategorized".
@@ -246,7 +242,7 @@ function TransactionsPage() {
     [catGroups]
   );
 
-  const payeeSuggestions = usePayeeSuggestions(isAuthenticated);
+  const payeeSuggestions = usePayeeSuggestions(sessionKey);
 
   /*
     Mirrors `filtered` so the row callbacks below don't have to depend on it.

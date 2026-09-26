@@ -23,11 +23,11 @@ const NO_PAYEES: string[] = [];
  * Non-blocking — the field is editable before this resolves, it just has
  * nothing to suggest yet.
  */
-export function usePayeeSuggestions(enabled: boolean): string[] {
+export function usePayeeSuggestions(session: string | null): string[] {
   const [payees, setPayees] = useState<string[]>(NO_PAYEES);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!session) return;
 
     let cancelled = false;
 
@@ -65,7 +65,7 @@ export function usePayeeSuggestions(enabled: boolean): string[] {
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, [session]);
 
   return payees;
 }

@@ -24,12 +24,12 @@ import { NetWorthPerformanceCard } from "@/components/accounts/net-worth-perform
 const SPEND_LOOKBACK_MONTHS = 3;
 
 export default function AccountsPage() {
-  const { isAuthenticated } = useToken();
+  const { isAuthenticated, sessionKey } = useToken();
   const { accounts, primaryCurrency, categoryMap, loading, error } =
     useAppData();
   const { months: floorMonths } = useInvestableMonths();
-  const history = useTransactionHistory(SPEND_LOOKBACK_MONTHS, isAuthenticated);
-  const netWorthHistory = useBalanceHistory(isAuthenticated);
+  const history = useTransactionHistory(SPEND_LOOKBACK_MONTHS, sessionKey);
+  const netWorthHistory = useBalanceHistory(!!sessionKey);
   const [showInactive, setShowInactive] = useState(false);
 
   const active = useMemo(
