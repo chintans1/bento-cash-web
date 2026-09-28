@@ -1,9 +1,10 @@
 # Authentication architecture
 
 Bento Cash uses [Better Auth](https://www.better-auth.com/) with SQLite. The
-system separates two identities:
+system separates identity from financial-data access:
 
-- **Bento user** — an email/password identity with a server-managed session.
+- **Bento user** — a provider-backed identity with a server-managed session.
+  Google is the only provider today; Bento does not accept passwords.
 - **Lunch Money connection** — one budgeting account linked to that Bento user
   through an API key today or OAuth later.
 
@@ -36,18 +37,38 @@ credential. The allowed RPC operations are explicitly listed server-side.
 Previously browser-local `lm_token` and `bento_auth_v1` keys are imported after
 the user signs in, then removed after every connection is stored successfully.
 
-## OAuth migration
+## Provider and OAuth migration
 
-The connection record already has an `authMethod` discriminator. An OAuth flow
-can store encrypted access/refresh credentials in the same server-only field
-without changing connection ownership, active-account switching, feature
-settings, or client cache scopes. Token refresh belongs in the server
+Better Auth's `account` table owns sign-in-provider identities independently of
+Bento's Lunch Money connections. Google currently creates the Bento user. When
+Lunch Money OAuth becomes available, one authorization callback can do both:
+
+1. create or resolve the Better Auth user through the Lunch Money provider;
+2. upsert that Lunch Money account's `lunch_money_connection`; and
+3. select the connection in `bento_user_context`.
+
+An existing Google-authenticated user should add Lunch Money through an
+explicit account-linking flow. Do not merge users by an unverified matching
+email address. A returning user can then use Lunch Money itself as the sole
+sign-in provider, while users who previously linked Google keep both provider
+accounts attached to the same Bento user.
+
+The connection record already has an `authMethod` discriminator. The OAuth
+flow can store encrypted access/refresh credentials in the same server-only
+field without changing connection ownership, active-account switching,
+feature settings, or client cache scopes. Token refresh belongs in the server
 connection resolver; OAuth credentials must never be returned through the
 connections API.
 
+The API-token UI is intentionally presented as a temporary connection method,
+not as the user's Bento identity. Browser-local tokens from versions before
+server auth are imported after provider sign-in, removed from local storage,
+and acknowledged to the user in a one-time confirmation dialog.
+
 ## Operations
 
-- Copy `.env.example` to `.env.local` and set `BETTER_AUTH_SECRET`.
+- Copy `.env.example` to `.env.local` and set `BETTER_AUTH_SECRET`,
+  `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET`.
 - `pnpm db:migrate` applies every unapplied migration transactionally.
 - `pnpm dev` and `pnpm start` run migrations before starting the app.
 - Back up `data/bento.db` and retain the credential-encryption secret. Losing or

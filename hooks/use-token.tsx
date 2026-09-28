@@ -34,6 +34,14 @@ interface ConnectionsResponse {
   activeAccountId: string | null;
 }
 
+interface ConnectionCreatedResponse {
+  account: LinkedAccount;
+}
+
+export interface LegacyImportNotice {
+  accounts: LinkedAccount[];
+}
+
 interface TokenContextValue {
   /** API keys never enter client state; retained as a null compatibility field. */
   token: null;
@@ -47,10 +55,12 @@ interface TokenContextValue {
   activeAccount: LinkedAccount | null;
   sessionKey: string | null;
   error: string | null;
-  connectAccount: (token: string) => Promise<void>;
+  legacyImportNotice: LegacyImportNotice | null;
+  dismissLegacyImportNotice: () => void;
+  connectAccount: (token: string) => Promise<LinkedAccount>;
   switchAccount: (accountId: string) => Promise<void>;
   removeAccount: (accountId: string) => Promise<void>;
-  setToken: (value: string) => Promise<void>;
+  setToken: (value: string) => Promise<LinkedAccount>;
   signOut: () => Promise<void>;
   enterDemo: () => void;
   refreshConnections: () => Promise<void>;
@@ -68,7 +78,7 @@ async function apiRequest<T>(url: string, init?: RequestInit): Promise<T> {
 }
 
 /** Moves previously browser-local keys into encrypted, user-owned DB rows. */
-async function migrateLegacyConnections(): Promise<void> {
+async function migrateLegacyConnections(): Promise<LinkedAccount[]> {
   const raw = localStorage.getItem(LEGACY_AUTH_KEY);
   const tokens: string[] = [];
   if (raw) {
@@ -90,11 +100,11 @@ async function migrateLegacyConnections(): Promise<void> {
   }
   const singleToken = localStorage.getItem(LEGACY_TOKEN_KEY);
   if (singleToken) tokens.push(singleToken);
-  if (tokens.length === 0) return;
+  if (tokens.length === 0) return [];
 
   const results = await Promise.allSettled(
     [...new Set(tokens)].map((token) =>
-      apiRequest("/api/connections", {
+      apiRequest<ConnectionCreatedResponse>("/api/connections", {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ token }),
@@ -106,6 +116,9 @@ async function migrateLegacyConnections(): Promise<void> {
     localStorage.removeItem(LEGACY_TOKEN_KEY);
     localStorage.removeItem("lm_demo");
   }
+  return results.flatMap((result) =>
+    result.status === "fulfilled" ? [result.value.account] : []
+  );
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -116,6 +129,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   >(null);
   const [isDemo, setIsDemo] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [legacyImportNotice, setLegacyImportNotice] =
+    useState<LegacyImportNotice | null>(null);
 
   const refreshConnections = useCallback(async () => {
     if (!user) return;
@@ -127,9 +142,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!user) return;
     let cancelled = false;
     migrateLegacyConnections()
-      .then(() => apiRequest<ConnectionsResponse>("/api/connections"))
-      .then((data) => {
-        if (!cancelled) setConnectionState({ ...data, userId: user.id });
+      .then(async (importedAccounts) => ({
+        importedAccounts,
+        connections: await apiRequest<ConnectionsResponse>("/api/connections"),
+      }))
+      .then(({ importedAccounts, connections }) => {
+        if (!cancelled) {
+          setConnectionState({ ...connections, userId: user.id });
+          if (importedAccounts.length > 0) {
+            const uniqueAccounts = [
+              ...new Map(
+                importedAccounts.map((account) => [account.id, account])
+              ).values(),
+            ];
+            setLegacyImportNotice({ accounts: uniqueAccounts });
+          }
+        }
       })
       .catch((cause: unknown) => {
         if (!cancelled) {
@@ -169,13 +197,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   async function connectAccount(token: string) {
     setError(null);
     try {
-      await apiRequest("/api/connections", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ token }),
-      });
+      const { account } = await apiRequest<ConnectionCreatedResponse>(
+        "/api/connections",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ token }),
+        }
+      );
       setIsDemo(false);
       await refreshConnections();
+      return account;
     } catch (cause) {
       setError(
         cause instanceof Error ? cause.message : "Couldn't connect account"
@@ -208,6 +240,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setError(
         cause instanceof Error ? cause.message : "Couldn't remove account"
       );
+      throw cause;
     }
   }
 
@@ -218,6 +251,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     await authClient.signOut();
     setConnectionState(null);
+    setLegacyImportNotice(null);
   }
 
   function enterDemo() {
@@ -241,6 +275,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         activeAccount,
         sessionKey,
         error,
+        legacyImportNotice,
+        dismissLegacyImportNotice: () => setLegacyImportNotice(null),
         connectAccount,
         switchAccount,
         removeAccount,

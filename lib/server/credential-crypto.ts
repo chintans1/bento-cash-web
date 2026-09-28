@@ -5,9 +5,15 @@ import {
   randomBytes,
 } from "node:crypto";
 
-type StoredCredential =
+export type StoredCredential =
   | { type: "api_key"; token: string }
-  | { type: "oauth"; accessToken: string; refreshToken?: string };
+  | {
+      type: "oauth";
+      accessToken: string;
+      refreshToken?: string;
+      expiresAt?: string;
+      scope?: string[];
+    };
 
 function encryptionKey(): Buffer {
   const secret =

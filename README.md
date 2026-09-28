@@ -41,15 +41,16 @@ Press `d` or use the toggle in the header. Works across all pages.
 
 ## How it works
 
-Bento Cash uses Better Auth with a SQLite database for email/password accounts
-and cookie sessions. Each Bento user can link multiple Lunch Money accounts and
-switch between them. API keys are encrypted at rest and used only by
-authenticated server routes; they are never returned to the browser after
-being connected.
+Bento Cash uses Better Auth with Google sign-in and cookie sessions. There is
+no Bento password to create or store. Each Bento user can link multiple Lunch
+Money accounts and switch between them. API keys are encrypted at rest and used
+only by authenticated server routes; they are never returned to the browser
+after being connected.
 
-The data model separates the Bento user from linked Lunch Money connections, so
-features and preferences can belong to a specific user/account combination and
-connections can adopt OAuth later. See
+The data model separates identity providers from linked Lunch Money
+connections, so features and preferences can belong to a specific
+user/account combination. When Lunch Money supports OAuth, its authorization
+can create the Bento identity and connection in one flow. See
 [the auth architecture](docs/auth-architecture.md).
 
 ## Getting started
@@ -65,12 +66,12 @@ pnpm install
 pnpm dev
 ```
 
-Copy `.env.example` to `.env.local`, set a high-entropy
-`BETTER_AUTH_SECRET`, then run `pnpm dev`. Startup applies committed SQLite
-migrations automatically.
+Copy `.env.example` to `.env.local`, set a high-entropy `BETTER_AUTH_SECRET`,
+and add a Google OAuth client ID and secret. Then run `pnpm dev`. Startup
+applies committed SQLite migrations automatically.
 
-Open [http://localhost:3000](http://localhost:3000), create a Bento Cash
-account, and connect one or more Lunch Money API tokens.
+Open [http://localhost:3000](http://localhost:3000), continue with Google, and
+connect one or more Lunch Money API tokens.
 
 ## Stack
 

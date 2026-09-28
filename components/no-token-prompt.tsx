@@ -2,20 +2,25 @@
 
 import { useToken } from "@/hooks/use-token";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ConnectAccountForm } from "@/components/connect-account-form";
+import { Badge } from "@/components/ui/badge";
 import { Kbd } from "./ui/kbd";
+import { ArrowRight, WalletCards } from "lucide-react";
 
 export function NoTokenPrompt() {
   const { accounts, user, enterDemo, switchAccount, signOut } = useToken();
 
   return (
-    <div className="mx-auto flex max-w-sm flex-col items-center gap-8 px-6 pt-12 pb-10 text-center sm:pt-20">
-      <div className="flex flex-col gap-2">
-        <h1 className="font-heading text-5xl font-bold">Bento Cash</h1>
+    <div className="mx-auto flex w-full max-w-md flex-col items-center gap-7 px-5 pt-10 pb-12 text-center sm:pt-16">
+      <div className="flex flex-col items-center gap-3">
+        <div className="flex size-11 items-center justify-center rounded-2xl bg-bento-brand/10 text-bento-brand shadow-[inset_0_0_0_1px_var(--surface-hairline)]">
+          <WalletCards className="size-5" />
+        </div>
+        <h1 className="font-heading text-4xl font-bold">Connect Lunch Money</h1>
         <p className="text-bento-subtle">
-          Richer analytics for your Lunch Money finances.
+          Add a budget to start exploring your real financial picture.
         </p>
+        <Badge variant="secondary">API token for now</Badge>
       </div>
 
       {user && (
@@ -30,10 +35,6 @@ export function NoTokenPrompt() {
           </button>
         </p>
       )}
-
-      <Button size="lg" className="w-full" onClick={enterDemo}>
-        Try Demo
-      </Button>
 
       {accounts.length > 0 && (
         <div className="flex w-full flex-col gap-2 text-left">
@@ -54,22 +55,18 @@ export function NoTokenPrompt() {
         </div>
       )}
 
-      <div className="flex w-full items-center gap-3">
-        <div className="h-px flex-1 bg-bento-hairline" />
-        <span className="text-xs text-bento-subtle">
-          or connect your account
-        </span>
-        <div className="h-px flex-1 bg-bento-hairline" />
+      <div className="w-full rounded-3xl glass p-5 sm:p-6">
+        <ConnectAccountForm buttonLabel="Connect Lunch Money" />
       </div>
 
-      <Alert className="text-left">
-        <AlertDescription>
-          Your API token is encrypted before it is stored. Bento Cash uses it
-          only on the server to connect to Lunch Money.
-        </AlertDescription>
-      </Alert>
-
-      <ConnectAccountForm />
+      <button
+        type="button"
+        className="group inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-sm font-medium text-bento-subtle transition-colors hover:text-bento-default"
+        onClick={enterDemo}
+      >
+        Use demo data instead
+        <ArrowRight className="size-4 transition-transform duration-150 group-hover:translate-x-0.5" />
+      </button>
 
       <p className="font-mono text-sm text-bento-subtle">
         Press <Kbd>d</Kbd> to toggle dark mode
