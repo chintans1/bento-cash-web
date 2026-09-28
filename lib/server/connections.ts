@@ -3,6 +3,7 @@ import { database } from "@/lib/server/database";
 import {
   decryptCredential,
   encryptCredential,
+  type StoredCredential,
 } from "@/lib/server/credential-crypto";
 
 export interface LunchMoneyConnection {
@@ -65,9 +66,10 @@ export function listConnections(userId: string): {
   return { accounts: rows.map(publicConnection), activeAccountId };
 }
 
-export function upsertApiKeyConnection(
+function upsertConnection(
   userId: string,
-  token: string,
+  authMethod: LunchMoneyConnection["authMethod"],
+  credential: StoredCredential,
   profile: {
     name: string;
     budgetName: string;
@@ -90,8 +92,8 @@ export function upsertApiKeyConnection(
     label: profile.budgetName || profile.name || "Lunch Money",
     budgetName: profile.budgetName || null,
     email: profile.email || null,
-    authMethod: "api_key",
-    credentialCiphertext: encryptCredential({ type: "api_key", token }),
+    authMethod,
+    credentialCiphertext: encryptCredential(credential),
     createdAt: existing?.createdAt ?? now,
   };
 
@@ -122,6 +124,38 @@ export function upsertApiKeyConnection(
   })();
 
   return publicConnection(row);
+}
+
+export function upsertApiKeyConnection(
+  userId: string,
+  token: string,
+  profile: {
+    name: string;
+    budgetName: string;
+    email: string;
+    externalAccountId: string | number;
+  }
+): LunchMoneyConnection {
+  return upsertConnection(
+    userId,
+    "api_key",
+    { type: "api_key", token },
+    profile
+  );
+}
+
+/** Used by the Lunch Money OAuth callback once the provider is available. */
+export function upsertOAuthConnection(
+  userId: string,
+  credential: Extract<StoredCredential, { type: "oauth" }>,
+  profile: {
+    name: string;
+    budgetName: string;
+    email: string;
+    externalAccountId: string | number;
+  }
+): LunchMoneyConnection {
+  return upsertConnection(userId, "oauth", credential, profile);
 }
 
 export function setActiveConnection(userId: string, connectionId: string) {
@@ -169,12 +203,20 @@ export function removeConnection(
 }
 
 export function getApiKey(userId: string, connectionId: string): string | null {
+  const credential = getConnectionCredential(userId, connectionId);
+  return credential?.type === "api_key" ? credential.token : null;
+}
+
+/** Server-only credential resolver shared by API-key and future OAuth clients. */
+export function getConnectionCredential(
+  userId: string,
+  connectionId: string
+): StoredCredential | null {
   const row = database
     .prepare(
       'select "credentialCiphertext" from "lunch_money_connection" where "id" = ? and "userId" = ?'
     )
     .get(connectionId, userId) as { credentialCiphertext: string } | undefined;
   if (!row) return null;
-  const credential = decryptCredential(row.credentialCiphertext);
-  return credential.type === "api_key" ? credential.token : null;
+  return decryptCredential(row.credentialCiphertext);
 }

@@ -115,4 +115,35 @@ describe("Lunch Money connection persistence", () => {
     );
     expect(settings.getFeatureSetting(ownerId, account.id, "months")).toBe("6");
   });
+
+  it("can upgrade a connection to OAuth without changing its identity", () => {
+    const original = connections.listConnections(ownerId).accounts[0];
+    const upgraded = connections.upsertOAuthConnection(
+      ownerId,
+      {
+        type: "oauth",
+        accessToken: "oauth-access-token",
+        refreshToken: "oauth-refresh-token",
+        expiresAt: "2030-01-01T00:00:00.000Z",
+        scope: ["read", "write"],
+      },
+      {
+        name: "Owner",
+        budgetName: original.budgetName ?? original.label,
+        email: original.email ?? "owner@example.com",
+        externalAccountId: original.externalAccountId,
+      }
+    );
+
+    expect(upgraded.id).toBe(original.id);
+    expect(upgraded.authMethod).toBe("oauth");
+    expect(connections.getApiKey(ownerId, upgraded.id)).toBeNull();
+    expect(connections.getConnectionCredential(ownerId, upgraded.id)).toEqual({
+      type: "oauth",
+      accessToken: "oauth-access-token",
+      refreshToken: "oauth-refresh-token",
+      expiresAt: "2030-01-01T00:00:00.000Z",
+      scope: ["read", "write"],
+    });
+  });
 });
