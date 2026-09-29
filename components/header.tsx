@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CircleAlert, Menu, X } from "lucide-react";
+import { CircleAlert, LogOut, Menu, X } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { DURATION, EASE } from "@/lib/motion";
@@ -25,7 +25,8 @@ const NAV_LINKS = [
 export function Header() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { isDemo, hasDataSource, error, clearError, signOut } = useAuth();
+  const { isDemo, isSignedIn, hasDataSource, error, clearError, signOut } =
+    useAuth();
 
   return (
     <header className="sticky top-0 z-20 border-b border-bento-hairline bg-bento-surface">
@@ -69,6 +70,12 @@ export function Header() {
             <AccountSwitcher className="hidden md:flex" />
           )}
           <ThemeToggle />
+          {isSignedIn && !isDemo && (
+            <Button variant="ghost" size="sm" onClick={() => void signOut()}>
+              <LogOut data-icon="inline-start" />
+              Sign out
+            </Button>
+          )}
 
           {/* Mobile hamburger */}
           {hasDataSource && (
