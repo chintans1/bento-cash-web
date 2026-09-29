@@ -58,21 +58,18 @@ export function AuthPrompt() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-md flex-col items-center gap-8 px-5 pt-10 pb-12 text-center sm:pt-20">
-      <div className="flex max-w-sm flex-col gap-3">
+    <div className="mx-auto w-full max-w-md px-5 pt-10 pb-12 text-center sm:pt-16">
+      <section className="flex w-full flex-col gap-5 rounded-[2rem] glass p-5 sm:p-6">
         <div className="mx-auto flex size-11 items-center justify-center rounded-2xl bg-bento-brand/10 text-bento-brand shadow-[inset_0_0_0_1px_var(--surface-hairline)]">
           <ShieldCheck className="size-5" strokeWidth={2} />
         </div>
-        <h1 className="font-heading text-4xl font-bold sm:text-5xl">
-          Your money, clearly.
-        </h1>
-        <p className="text-sm leading-6 text-bento-subtle sm:text-base">
-          Sign in once to keep your Lunch Money accounts, preferences, and
-          future features in sync.
-        </p>
-      </div>
+        <div className="flex flex-col gap-2">
+          <h1 className="font-heading text-4xl font-bold">Bento Cash</h1>
+          <p className="text-sm leading-6 text-bento-subtle">
+            Sign in to keep your Lunch Money accounts and preferences together.
+          </p>
+        </div>
 
-      <div className="flex w-full flex-col gap-4 rounded-[2rem] glass p-5 sm:p-6">
         <Button
           type="button"
           size="lg"
@@ -97,16 +94,18 @@ export function AuthPrompt() {
         <p className="text-xs leading-5 text-bento-subtle">
           {primaryIdentityProvider.explanation}
         </p>
-      </div>
 
-      <button
-        type="button"
-        className="inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-sm font-medium text-bento-subtle transition-colors hover:text-bento-default"
-        onClick={enterDemo}
-      >
-        Explore with demo data
-        <ArrowRight className="size-4" />
-      </button>
+        <div className="border-t border-bento-hairline pt-3">
+          <button
+            type="button"
+            className="inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-sm font-medium text-bento-subtle transition-colors hover:text-bento-default"
+            onClick={enterDemo}
+          >
+            Explore with demo data
+            <ArrowRight className="size-4" />
+          </button>
+        </div>
+      </section>
     </div>
   );
 }
