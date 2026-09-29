@@ -62,11 +62,12 @@ describe("Lunch Money connection persistence", () => {
     );
 
     const state = connections.listConnections(ownerId);
-    expect(state.accounts).toEqual([account]);
-    expect(state.activeAccountId).toBe(account.id);
-    expect(connections.getApiKey(ownerId, account.id)).toBe(
-      "super-secret-api-key"
-    );
+    expect(state.connections).toEqual([account]);
+    expect(state.activeConnectionId).toBe(account.id);
+    expect(connections.getConnectionCredential(ownerId, account.id)).toEqual({
+      type: "api_key",
+      token: "super-secret-api-key",
+    });
 
     const stored = appDatabase
       .prepare(
@@ -78,7 +79,7 @@ describe("Lunch Money connection persistence", () => {
   });
 
   it("persists active-account switching", () => {
-    const first = connections.listConnections(ownerId).accounts[0];
+    const first = connections.listConnections(ownerId).connections[0];
     const second = connections.upsertApiKeyConnection(
       ownerId,
       "second-secret-api-key",
@@ -89,27 +90,29 @@ describe("Lunch Money connection persistence", () => {
         externalAccountId: 84,
       }
     );
-    expect(connections.listConnections(ownerId).activeAccountId).toBe(
+    expect(connections.listConnections(ownerId).activeConnectionId).toBe(
       second.id
     );
     expect(connections.setActiveConnection(ownerId, first.id)).toBe(true);
-    expect(connections.listConnections(ownerId).activeAccountId).toBe(first.id);
+    expect(connections.listConnections(ownerId).activeConnectionId).toBe(
+      first.id
+    );
   });
 
   it("enforces ownership for selection, settings, credentials, and deletion", () => {
-    const account = connections.listConnections(ownerId).accounts[0];
+    const account = connections.listConnections(ownerId).connections[0];
     expect(connections.setActiveConnection(otherId, account.id)).toBe(false);
-    expect(connections.getApiKey(otherId, account.id)).toBeNull();
+    expect(connections.getConnectionCredential(otherId, account.id)).toBeNull();
     expect(
       settings.setFeatureSetting(otherId, account.id, "test", "value")
     ).toBe(false);
     expect(settings.getFeatureSetting(otherId, account.id, "test")).toBeNull();
     expect(connections.removeConnection(otherId, account.id)).toBe(false);
-    expect(connections.listConnections(ownerId).accounts).toHaveLength(2);
+    expect(connections.listConnections(ownerId).connections).toHaveLength(2);
   });
 
   it("persists feature settings for the owning user/account pair", () => {
-    const account = connections.listConnections(ownerId).accounts[0];
+    const account = connections.listConnections(ownerId).connections[0];
     expect(settings.setFeatureSetting(ownerId, account.id, "months", "6")).toBe(
       true
     );
@@ -117,7 +120,7 @@ describe("Lunch Money connection persistence", () => {
   });
 
   it("can upgrade a connection to OAuth without changing its identity", () => {
-    const original = connections.listConnections(ownerId).accounts[0];
+    const original = connections.listConnections(ownerId).connections[0];
     const upgraded = connections.upsertOAuthConnection(
       ownerId,
       {
@@ -137,7 +140,6 @@ describe("Lunch Money connection persistence", () => {
 
     expect(upgraded.id).toBe(original.id);
     expect(upgraded.authMethod).toBe("oauth");
-    expect(connections.getApiKey(ownerId, upgraded.id)).toBeNull();
     expect(connections.getConnectionCredential(ownerId, upgraded.id)).toEqual({
       type: "oauth",
       accessToken: "oauth-access-token",

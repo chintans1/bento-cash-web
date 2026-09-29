@@ -20,7 +20,7 @@ import {
 } from "@/lib/lunchmoney/analytics";
 import { type NormalizedAccount, normalizeAccounts } from "@/lib/account-utils";
 import type { CategoryInfo } from "@/lib/lunchmoney/categories";
-import { useToken } from "@/hooks/use-token";
+import { useAuth } from "@/hooks/use-auth";
 
 /** Everything that depends only on the account, not on the month on screen. */
 type AppData = {
@@ -54,7 +54,7 @@ const EMPTY: AppData = {
 const AppDataContext = createContext<AppDataContextValue | null>(null);
 
 export function AppDataProvider({ children }: { children: React.ReactNode }) {
-  const { sessionKey: session } = useToken();
+  const { dataScopeKey: session } = useAuth();
 
   const [loaded, setLoaded] = useState<{
     session: string;

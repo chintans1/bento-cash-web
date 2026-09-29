@@ -7,11 +7,15 @@ import {
 } from "@/lib/lunchmoney/client";
 
 /** All balance snapshots, or null while the request is pending. */
-export function useBalanceHistory(enabled: boolean) {
+export function useBalanceHistory(dataScopeKey: string | null) {
   const [history, setHistory] = useState<BalanceHistoryAccount[] | null>(null);
 
   useEffect(() => {
-    if (!enabled) return;
+    if (!dataScopeKey) {
+      setHistory(null);
+      return;
+    }
+    setHistory(null);
     let cancelled = false;
 
     getBalanceHistory()
@@ -25,7 +29,7 @@ export function useBalanceHistory(enabled: boolean) {
     return () => {
       cancelled = true;
     };
-  }, [enabled]);
+  }, [dataScopeKey]);
 
   return history;
 }

@@ -1,8 +1,6 @@
 import { betterAuth } from "better-auth";
 import { database } from "@/lib/server/database";
-
-const googleClientId = process.env.GOOGLE_CLIENT_ID;
-const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+import { identityProviderOptions } from "@/lib/server/identity-provider";
 
 export const auth = betterAuth({
   database,
@@ -11,13 +9,5 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: false,
   },
-  socialProviders:
-    googleClientId && googleClientSecret
-      ? {
-          google: {
-            clientId: googleClientId,
-            clientSecret: googleClientSecret,
-          },
-        }
-      : {},
+  socialProviders: identityProviderOptions(),
 });

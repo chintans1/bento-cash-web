@@ -2,7 +2,7 @@
 
 import { useId, useState } from "react";
 import { KeyRound, LockKeyhole } from "lucide-react";
-import { useAuth } from "@/hooks/use-token";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -13,7 +13,7 @@ export function ConnectAccountForm({
   onConnected?: () => void;
   buttonLabel?: string;
 }) {
-  const { connectAccount } = useAuth();
+  const { connectWithApiKey } = useAuth();
   const inputId = useId();
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -26,7 +26,7 @@ export function ConnectAccountForm({
     setLoading(true);
     setError(null);
     try {
-      await connectAccount(token);
+      await connectWithApiKey(token);
       setInput("");
       onConnected?.();
     } catch {

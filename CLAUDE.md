@@ -106,7 +106,7 @@ Authentication and Lunch Money credentials are server-side. Better Auth stores u
 ```
 Better Auth cookie + SQLite
        ↓
-hooks/use-token.tsx         # session + public connection state
+hooks/use-auth.tsx          # identity session + public connection state
        ↓
 app/api/lunch-money         # ownership check + credential decryption
        ↓
@@ -121,9 +121,9 @@ LM API keys are encrypted with AES-256-GCM before being stored and are never ret
 
 ## Key Files
 
-### `hooks/use-token.tsx`
+### `hooks/use-auth.tsx`
 
-Combines Better Auth's browser session with public connection metadata from `/api/connections`. It supports selecting/removing connections and exposes a non-secret `sessionKey` (`userId:connectionId`) for cache and feature scoping. Old `lm_token` and `bento_auth_v1` credentials migrate into encrypted DB rows after sign-in.
+Combines Better Auth's browser session with public connection metadata from `/api/connections`. It supports selecting/removing connections and exposes a non-secret `dataScopeKey` (`userId:connectionId`) for cache and feature scoping. Old `lm_token` and `bento_auth_v1` credentials migrate into encrypted DB rows after sign-in.
 
 The active real account creates a remote LM client backed by the server proxy; demo mode continues to use the in-memory demo client. A session-boundary key remounts page data hooks on account changes so data cannot leak between connections.
 
@@ -133,7 +133,7 @@ The active real account creates a remote LM client backed by the server proxy; d
 
 The app-wide fetch — user, accounts, categories, tags, and recurring items — mounted once in `layout.tsx`. These depend on the account, not on the month on screen, so every page reads them from here instead of fetching for itself; `useDashboardData` included.
 
-Results are tagged with the non-secret auth `sessionKey` they were fetched for and `data` is only used when that tag matches, so signing out or switching accounts drops the previous account's data without a reset step — and `loading` falls out of the same check rather than being a flag.
+Results are tagged with the non-secret auth `dataScopeKey` they were fetched for and `data` is only used when that tag matches, so signing out or switching connections drops the previous account's data without a reset step — and `loading` falls out of the same check rather than being a flag.
 
 ### `hooks/use-month-transactions.ts`
 
@@ -149,7 +149,7 @@ The typed `investable_months` wrapper around `use-connection-setting.ts`. Real-a
 
 ### `lib/lunchmoney/client.ts`
 
-Defines one `LMClient` interface with two implementations: `createRealClient`, used only by server routes with a decrypted credential, and `createRemoteClient`, used by the browser to call the authenticated proxy. The active singleton is cleared whenever the auth connection changes so cached data never crosses account boundaries.
+Defines one `LMClient` interface with two implementations: `createApiKeyClient`, used only by server routes with a decrypted credential, and `createRemoteClient`, used by the browser to call the authenticated proxy. The active singleton is cleared whenever the auth connection changes so cached data never crosses account boundaries.
 
 Exported functions:
 

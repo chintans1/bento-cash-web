@@ -5,18 +5,11 @@ import {
   encryptCredential,
   type StoredCredential,
 } from "@/lib/server/credential-crypto";
-
-export interface LunchMoneyConnection {
-  id: string;
-  userId: string;
-  provider: "lunch_money";
-  authMethod: "api_key" | "oauth";
-  label: string;
-  budgetName: string | null;
-  email: string | null;
-  externalAccountId: string;
-  createdAt: string;
-}
+import type {
+  ConnectionAuthMethod,
+  LunchMoneyConnection,
+  LunchMoneyConnectionsState,
+} from "@/lib/lunchmoney/connection-types";
 
 interface ConnectionRow {
   id: string;
@@ -25,7 +18,7 @@ interface ConnectionRow {
   label: string;
   budgetName: string | null;
   email: string | null;
-  authMethod: "api_key" | "oauth";
+  authMethod: ConnectionAuthMethod;
   credentialCiphertext: string;
   createdAt: string;
 }
@@ -44,10 +37,7 @@ function publicConnection(row: ConnectionRow): LunchMoneyConnection {
   };
 }
 
-export function listConnections(userId: string): {
-  accounts: LunchMoneyConnection[];
-  activeAccountId: string | null;
-} {
+export function listConnections(userId: string): LunchMoneyConnectionsState {
   const rows = database
     .prepare(
       'select * from "lunch_money_connection" where "userId" = ? order by "createdAt" asc'
@@ -58,12 +48,12 @@ export function listConnections(userId: string): {
       'select "activeConnectionId" from "bento_user_context" where "userId" = ?'
     )
     .get(userId) as { activeConnectionId: string | null } | undefined;
-  const activeAccountId = rows.some(
+  const activeConnectionId = rows.some(
     (row) => row.id === context?.activeConnectionId
   )
     ? (context?.activeConnectionId ?? null)
     : (rows[0]?.id ?? null);
-  return { accounts: rows.map(publicConnection), activeAccountId };
+  return { connections: rows.map(publicConnection), activeConnectionId };
 }
 
 function upsertConnection(
@@ -200,11 +190,6 @@ export function removeConnection(
       .run(next?.id ?? null, new Date().toISOString(), userId);
     return true;
   })();
-}
-
-export function getApiKey(userId: string, connectionId: string): string | null {
-  const credential = getConnectionCredential(userId, connectionId);
-  return credential?.type === "api_key" ? credential.token : null;
 }
 
 /** Server-only credential resolver shared by API-key and future OAuth clients. */

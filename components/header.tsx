@@ -3,11 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { CircleAlert, Menu, X } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { DURATION, EASE } from "@/lib/motion";
-import { useToken } from "@/hooks/use-token";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { AnimatedCollapse } from "@/components/animated-collapse";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -25,7 +25,7 @@ const NAV_LINKS = [
 export function Header() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { isDemo, isAuthenticated, signOut } = useToken();
+  const { isDemo, hasDataSource, error, clearError, signOut } = useAuth();
 
   return (
     <header className="sticky top-0 z-20 border-b border-bento-hairline bg-bento-surface">
@@ -40,7 +40,7 @@ export function Header() {
             aria-label="Main navigation"
             className="hidden items-center gap-1 md:flex"
           >
-            {isAuthenticated &&
+            {hasDataSource &&
               NAV_LINKS.map(({ href, label }) => (
                 <Link
                   key={href}
@@ -65,13 +65,13 @@ export function Header() {
               ))}
           </nav>
 
-          {isAuthenticated && !isDemo && (
+          {hasDataSource && !isDemo && (
             <AccountSwitcher className="hidden md:flex" />
           )}
           <ThemeToggle />
 
           {/* Mobile hamburger */}
-          {isAuthenticated && (
+          {hasDataSource && (
             <button
               className="flex size-10 items-center justify-center rounded-lg text-bento-subtle transition-colors hover:bg-bento-raised hover:text-bento-default md:hidden"
               onClick={() => setMenuOpen((o) => !o)}
@@ -91,24 +91,34 @@ export function Header() {
 
       {/* Demo mode banner */}
       {isDemo && (
-        <div className="flex flex-col items-center justify-center gap-1 border-t border-bento-hairline bg-bento-brand/10 px-4 py-2 text-center text-sm sm:flex-row sm:gap-3">
-          <span className="text-bento-subtle">
-            Viewing demo data —{" "}
-            <button
-              onClick={signOut}
-              className="font-medium text-bento-default underline-offset-4 hover:underline"
-            >
-              Connect your account
-            </button>
-          </span>
+        <div className="flex items-center justify-center gap-2 border-t border-bento-hairline bg-bento-brand/10 px-4 py-2 text-center text-sm">
+          <span className="text-bento-subtle">Viewing demo data</span>
           <Button variant="ghost" size="sm" onClick={signOut}>
-            Exit demo
+            Connect Lunch Money
           </Button>
         </div>
       )}
 
+      {error && (
+        <div
+          role="alert"
+          className="flex items-center justify-center gap-2 border-t border-bento-danger/20 bg-bento-danger/10 px-4 py-2 text-sm text-bento-danger"
+        >
+          <CircleAlert className="size-4 shrink-0" />
+          <span>{error}</span>
+          <button
+            type="button"
+            aria-label="Dismiss error"
+            className="flex size-8 shrink-0 items-center justify-center rounded-full transition-[color,background-color,scale] hover:bg-bento-danger/10 active:scale-[0.96]"
+            onClick={clearError}
+          >
+            <X className="size-4" />
+          </button>
+        </div>
+      )}
+
       {/* Mobile dropdown menu */}
-      <AnimatedCollapse open={menuOpen && isAuthenticated}>
+      <AnimatedCollapse open={menuOpen && hasDataSource}>
         <nav
           id="mobile-navigation"
           aria-label="Mobile navigation"

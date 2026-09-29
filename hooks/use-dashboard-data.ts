@@ -91,7 +91,7 @@ export function useDashboardData(
   const [recurringItems, setRecurringItems] = useState<RecurringItem[]>([]);
   const [budgetSummary, setBudgetSummary] =
     useState<AlignedSummaryResponse | null>(null);
-  const balanceHistory = useBalanceHistory(!!session);
+  const balanceHistory = useBalanceHistory(session);
   const {
     accounts,
     primaryCurrency,

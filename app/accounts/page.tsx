@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useToken } from "@/hooks/use-token";
+import { useAuth } from "@/hooks/use-auth";
 import { computeNetWorth } from "@/lib/account-utils";
 import { useAppData } from "@/hooks/use-app-data";
 import { useInvestableMonths } from "@/hooks/use-investable-months";
@@ -13,7 +13,7 @@ import {
 import { InvestableCashCard } from "@/components/accounts/investable-cash-card";
 import { AccountSection } from "@/components/accounts/account-section";
 import { AnimatedCollapse } from "@/components/animated-collapse";
-import { NoTokenPrompt } from "@/components/no-token-prompt";
+import { ConnectionPrompt } from "@/components/connection-prompt";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -24,12 +24,12 @@ import { NetWorthPerformanceCard } from "@/components/accounts/net-worth-perform
 const SPEND_LOOKBACK_MONTHS = 3;
 
 export default function AccountsPage() {
-  const { isAuthenticated, sessionKey } = useToken();
+  const { hasDataSource, dataScopeKey } = useAuth();
   const { accounts, primaryCurrency, categoryMap, loading, error } =
     useAppData();
   const { months: floorMonths } = useInvestableMonths();
-  const history = useTransactionHistory(SPEND_LOOKBACK_MONTHS, sessionKey);
-  const netWorthHistory = useBalanceHistory(!!sessionKey);
+  const history = useTransactionHistory(SPEND_LOOKBACK_MONTHS, dataScopeKey);
+  const netWorthHistory = useBalanceHistory(dataScopeKey);
   const [showInactive, setShowInactive] = useState(false);
 
   const active = useMemo(
@@ -48,7 +48,7 @@ export default function AccountsPage() {
     };
   }, [history, active, categoryMap, floorMonths]);
 
-  if (!isAuthenticated) return <NoTokenPrompt />;
+  if (!hasDataSource) return <ConnectionPrompt />;
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">

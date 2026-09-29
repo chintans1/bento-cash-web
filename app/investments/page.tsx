@@ -1,6 +1,6 @@
 "use client";
 
-import { useToken } from "@/hooks/use-token";
+import { useAuth } from "@/hooks/use-auth";
 import { groupByInstitution, sumBalances } from "@/lib/account-utils";
 import { isInvestment } from "@/lib/investment-utils";
 import { isCheckingAccount, isSavingsAccount } from "@/lib/investable-utils";
@@ -15,7 +15,7 @@ import { GrowthProjection } from "@/components/investments/growth-projection";
 import { InstitutionGroups } from "@/components/investments/institution-groups";
 import { CashOverview } from "@/components/investments/cash-overview";
 import { StatsStrip } from "@/components/investments/stats-strip";
-import { NoTokenPrompt } from "@/components/no-token-prompt";
+import { ConnectionPrompt } from "@/components/connection-prompt";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/format";
 import {
@@ -30,7 +30,7 @@ import {
 const LOOKBACK_MONTHS = 6;
 
 export default function InvestmentsPage() {
-  const { isAuthenticated, sessionKey } = useToken();
+  const { hasDataSource, dataScopeKey } = useAuth();
   const {
     accounts: allAccounts,
     primaryCurrency,
@@ -42,10 +42,10 @@ export default function InvestmentsPage() {
   // Non-critical: the page renders without it, the averages just stay blank.
   const { months: history } = useTransactionHistory(
     LOOKBACK_MONTHS,
-    sessionKey
+    dataScopeKey
   );
 
-  if (!isAuthenticated) return <NoTokenPrompt />;
+  if (!hasDataSource) return <ConnectionPrompt />;
 
   const accounts = allAccounts.filter((a) => a.status !== "closed");
   const investmentAccounts = accounts.filter(isInvestment);

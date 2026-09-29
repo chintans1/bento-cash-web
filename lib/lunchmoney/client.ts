@@ -94,7 +94,7 @@ const MAX_TRANSACTION_PAGES = 40;
 
 // ── Factory ─────────────────────────────────────────────────────────────────
 
-export function createRealClient(token: string): LMClient {
+export function createApiKeyClient(token: string): LMClient {
   const sdk = new LunchMoneyClient({ apiKey: token });
 
   return {

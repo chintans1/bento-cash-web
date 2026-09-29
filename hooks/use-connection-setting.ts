@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useAuth } from "@/hooks/use-token";
+import { useAuth } from "@/hooks/use-auth";
 
 export function useConnectionSetting(key: string, defaultValue: string) {
-  const { activeAccount, isDemo } = useAuth();
-  const scope = isDemo ? "demo" : (activeAccount?.id ?? null);
+  const { activeConnection, isDemo } = useAuth();
+  const scope = isDemo ? "demo" : (activeConnection?.id ?? null);
   const [stored, setStored] = useState<{
     scope: string;
     key: string;
