@@ -8,6 +8,12 @@ system separates identity from financial-data access:
 - **Lunch Money connection** — one budgeting account linked to that Bento user
   through an API key today or OAuth later.
 
+Migration `003_google_identity_migration.sql` retires accounts from the brief
+email/password prototype. It invalidates their old sessions, removes the
+disabled credential login, and allows the same Bento user (and its existing
+Lunch Money connections) to be claimed through Google's verified email. This
+keeps Better Auth's strict default linking policy intact for future providers.
+
 ## Persistence and ownership
 
 Better Auth owns the `user`, `session`, `account`, and `verification` tables.

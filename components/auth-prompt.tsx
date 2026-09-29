@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import { ArrowRight } from "lucide-react";
 import { signInWithPrimaryIdentityProvider } from "@/lib/auth-client";
@@ -37,6 +37,24 @@ export function AuthPrompt() {
   const { enterDemo } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const authError = url.searchParams.get("error");
+    if (!authError) return;
+
+    const message =
+      authError === "account_not_linked"
+        ? "This sign-in method wasn't connected to your account. Please try signing in again."
+        : `Couldn't sign in with ${primaryIdentityProvider.name}. Please try again.`;
+    queueMicrotask(() => setError(message));
+    url.searchParams.delete("error");
+    window.history.replaceState(
+      {},
+      "",
+      `${url.pathname}${url.search}${url.hash}`
+    );
+  }, []);
 
   async function startSignIn() {
     setLoading(true);
