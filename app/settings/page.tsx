@@ -145,16 +145,7 @@ export default function SettingsPage() {
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-bento-surface shadow-sm">
                     <KeyRound className="size-4 text-bento-subtle" />
                   </div>
-                  <button
-                    type="button"
-                    className="min-h-10 min-w-0 flex-1 rounded-lg text-left"
-                    onClick={() =>
-                      void switchConnection(connection.id).catch(
-                        () => undefined
-                      )
-                    }
-                    aria-pressed={selected}
-                  >
+                  <div className="min-w-0 flex-1">
                     <span className="flex items-center gap-2">
                       <span className="truncate text-sm font-medium">
                         {connection.label}
@@ -168,7 +159,21 @@ export default function SettingsPage() {
                     <span className="mt-0.5 block truncate text-xs text-bento-subtle">
                       {connection.email || "Connected with an API token"}
                     </span>
-                  </button>
+                  </div>
+                  {!selected && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      aria-label={`Switch to ${connection.label}`}
+                      onClick={() =>
+                        void switchConnection(connection.id).catch(
+                          () => undefined
+                        )
+                      }
+                    >
+                      Switch
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon-lg"
