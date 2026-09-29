@@ -53,7 +53,7 @@ export function UserMenu() {
           <Button
             type="button"
             variant="ghost"
-            size="sm"
+            size="lg"
             aria-label={`Open account menu for ${user.name}`}
             className="max-w-44 text-bento-subtle hover:text-bento-default"
           />
