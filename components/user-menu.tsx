@@ -90,7 +90,8 @@ export function UserMenu() {
                   aria-pressed={active}
                   className={cn(
                     menuItemClassName,
-                    active && "bg-bento-brand/10 text-bento-brand"
+                    active &&
+                      "bg-bento-brand/10 text-bento-brand-accent ring-1 ring-bento-brand-accent/20 ring-inset dark:bg-bento-brand/20"
                   )}
                   onClick={() => selectConnection(connection.id)}
                 >
