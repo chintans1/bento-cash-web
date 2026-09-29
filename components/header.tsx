@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CircleAlert, LogOut, Menu, X } from "lucide-react";
+import { CircleAlert, Menu, X } from "lucide-react";
 import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { DURATION, EASE } from "@/lib/motion";
@@ -11,7 +11,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { AnimatedCollapse } from "@/components/animated-collapse";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { AccountSwitcher } from "@/components/account-switcher";
+import { UserMenu } from "@/components/user-menu";
 
 const NAV_LINKS = [
   { href: "/", label: "Overview" },
@@ -19,14 +19,12 @@ const NAV_LINKS = [
   { href: "/reports", label: "Reports" },
   { href: "/accounts", label: "Accounts" },
   { href: "/investments", label: "Investments" },
-  { href: "/settings", label: "Settings" },
 ];
 
 export function Header() {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { isDemo, isSignedIn, hasDataSource, error, clearError, signOut } =
-    useAuth();
+  const { isDemo, hasDataSource, error, clearError, signOut } = useAuth();
 
   return (
     <header className="sticky top-0 z-20 border-b border-bento-hairline bg-bento-surface">
@@ -66,20 +64,7 @@ export function Header() {
               ))}
           </nav>
 
-          {hasDataSource && !isDemo && (
-            <AccountSwitcher className="hidden md:flex" />
-          )}
-          {isSignedIn && !isDemo && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-bento-subtle hover:text-bento-default"
-              onClick={() => void signOut()}
-            >
-              <LogOut data-icon="inline-start" />
-              Sign out
-            </Button>
-          )}
+          <UserMenu />
           <ThemeToggle />
 
           {/* Mobile hamburger */}
@@ -136,7 +121,6 @@ export function Header() {
           aria-label="Mobile navigation"
           className="border-t border-bento-hairline/60 px-4 pb-4 md:hidden"
         >
-          {!isDemo && <AccountSwitcher className="mt-3 w-full" />}
           {NAV_LINKS.map(({ href, label }) => (
             <Link
               key={href}
