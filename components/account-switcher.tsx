@@ -2,7 +2,7 @@
 
 import { WalletCards } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/hooks/use-token";
+import { useAuth } from "@/hooks/use-auth";
 import { cn } from "@/lib/utils";
 import {
   Select,
@@ -19,33 +19,33 @@ const MANAGE_VALUE = "__manage_accounts__";
 
 export function AccountSwitcher({ className }: { className?: string }) {
   const router = useRouter();
-  const { accounts, activeAccount, switchAccount } = useAuth();
+  const { connections, activeConnection, switchConnection } = useAuth();
 
-  if (!activeAccount) return null;
+  if (!activeConnection) return null;
 
   function handleValueChange(value: string | null) {
     if (!value) return;
     if (value === MANAGE_VALUE) router.push("/settings#connections");
-    else void switchAccount(value);
+    else void switchConnection(value).catch(() => undefined);
   }
 
   return (
-    <Select value={activeAccount.id} onValueChange={handleValueChange}>
+    <Select value={activeConnection.id} onValueChange={handleValueChange}>
       <SelectTrigger
         aria-label="Switch Lunch Money account"
         className={cn("h-10", className)}
       >
         <WalletCards className="size-4 text-bento-subtle" />
         <SelectValue>
-          <span className="max-w-40 truncate">{activeAccount.label}</span>
+          <span className="max-w-40 truncate">{activeConnection.label}</span>
         </SelectValue>
       </SelectTrigger>
       <SelectContent align="end" alignItemWithTrigger={false}>
         <SelectGroup>
           <SelectLabel>Lunch Money accounts</SelectLabel>
-          {accounts.map((account) => (
-            <SelectItem key={account.id} value={account.id}>
-              {account.label}
+          {connections.map((connection) => (
+            <SelectItem key={connection.id} value={connection.id}>
+              {connection.label}
             </SelectItem>
           ))}
         </SelectGroup>

@@ -1,5 +1,4 @@
-import { createRealClient } from "@/lib/lunchmoney/client";
-import { getApiKey } from "@/lib/server/connections";
+import { resolveLunchMoneyClient } from "@/lib/server/lunch-money-client";
 import { getRequestUser, hasSameOrigin } from "@/lib/server/session";
 
 type RpcBody = {
@@ -23,10 +22,17 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const token = getApiKey(user.id, body.connectionId);
-  if (!token)
+  const resolved = resolveLunchMoneyClient(user.id, body.connectionId);
+  if (resolved.status === "not_found") {
     return Response.json({ error: "Connection not found" }, { status: 404 });
-  const client = createRealClient(token);
+  }
+  if (resolved.status === "unsupported_auth") {
+    return Response.json(
+      { error: "This connection method is not available yet" },
+      { status: 409 }
+    );
+  }
+  const { client } = resolved;
 
   try {
     let data: unknown;

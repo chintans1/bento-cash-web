@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { ArrowRight, ShieldCheck } from "lucide-react";
-import { authClient } from "@/lib/auth-client";
-import { useAuth } from "@/hooks/use-token";
+import { signInWithPrimaryIdentityProvider } from "@/lib/auth-client";
+import { primaryIdentityProvider } from "@/lib/auth/identity-provider";
+import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
-function GoogleMark() {
+/** Provider mark isolated here so the future Lunch Money swap stays local. */
+function IdentityProviderMark() {
   return (
     <svg viewBox="0 0 24 24" aria-hidden="true" className="size-4">
       <path
@@ -35,20 +37,22 @@ export function AuthPrompt() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function signInWithGoogle() {
+  async function startSignIn() {
     setLoading(true);
     setError(null);
     try {
-      const result = await authClient.signIn.social({
-        provider: "google",
-        callbackURL: "/",
-      });
+      const result = await signInWithPrimaryIdentityProvider();
       if (result.error) {
-        setError(result.error.message || "Couldn't sign in with Google");
+        setError(
+          result.error.message ||
+            `Couldn't sign in with ${primaryIdentityProvider.name}`
+        );
         setLoading(false);
       }
     } catch {
-      setError("Couldn't start Google sign-in. Please try again.");
+      setError(
+        `Couldn't start ${primaryIdentityProvider.name} sign-in. Please try again.`
+      );
       setLoading(false);
     }
   }
@@ -68,18 +72,20 @@ export function AuthPrompt() {
         </p>
       </div>
 
-      <div className="flex w-full flex-col gap-4 rounded-3xl glass p-5 sm:p-6">
+      <div className="flex w-full flex-col gap-4 rounded-[2rem] glass p-5 sm:p-6">
         <Button
           type="button"
           size="lg"
           variant="outline"
           className="h-12 w-full justify-between rounded-2xl bg-bento-surface px-4"
-          onClick={signInWithGoogle}
+          onClick={startSignIn}
           disabled={loading}
         >
           <span className="flex items-center gap-3">
-            <GoogleMark />
-            {loading ? "Opening Google…" : "Continue with Google"}
+            <IdentityProviderMark />
+            {loading
+              ? primaryIdentityProvider.pendingLabel
+              : primaryIdentityProvider.signInLabel}
           </span>
           <ArrowRight className="size-4 text-bento-subtle" />
         </Button>
@@ -89,18 +95,17 @@ export function AuthPrompt() {
           </Alert>
         )}
         <p className="text-xs leading-5 text-bento-subtle">
-          No password to create. Google is used only to identify your Bento Cash
-          account.
+          {primaryIdentityProvider.explanation}
         </p>
       </div>
 
       <button
         type="button"
-        className="group inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-sm font-medium text-bento-subtle transition-colors hover:text-bento-default"
+        className="inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-sm font-medium text-bento-subtle transition-colors hover:text-bento-default"
         onClick={enterDemo}
       >
         Explore with demo data
-        <ArrowRight className="size-4 transition-transform duration-150 group-hover:translate-x-0.5" />
+        <ArrowRight className="size-4" />
       </button>
     </div>
   );

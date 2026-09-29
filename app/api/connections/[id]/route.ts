@@ -1,4 +1,5 @@
 import {
+  listConnections,
   removeConnection,
   setActiveConnection,
 } from "@/lib/server/connections";
@@ -16,7 +17,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   if (!setActiveConnection(user.id, id)) {
     return Response.json({ error: "Connection not found" }, { status: 404 });
   }
-  return Response.json({ activeAccountId: id });
+  return Response.json({ activeConnectionId: id });
 }
 
 export async function DELETE(request: Request, { params }: RouteContext) {
@@ -29,5 +30,5 @@ export async function DELETE(request: Request, { params }: RouteContext) {
   if (!removeConnection(user.id, id)) {
     return Response.json({ error: "Connection not found" }, { status: 404 });
   }
-  return Response.json({ ok: true });
+  return Response.json(listConnections(user.id));
 }

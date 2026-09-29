@@ -1,4 +1,4 @@
-import { createRealClient } from "@/lib/lunchmoney/client";
+import { createApiKeyClient } from "@/lib/lunchmoney/client";
 import {
   listConnections,
   upsertApiKeyConnection,
@@ -30,14 +30,17 @@ export async function POST(request: Request) {
   }
 
   try {
-    const profile = await createRealClient(body.token).getMe();
+    const profile = await createApiKeyClient(body.token).getMe();
     const account = upsertApiKeyConnection(user.id, body.token, {
       name: profile.name,
       budgetName: profile.budget_name,
       email: profile.email,
       externalAccountId: profile.account_id,
     });
-    return Response.json({ account }, { status: 201 });
+    return Response.json(
+      { account, state: listConnections(user.id) },
+      { status: 201 }
+    );
   } catch {
     return Response.json(
       { error: "Couldn't connect — check your token and try again." },

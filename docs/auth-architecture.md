@@ -19,8 +19,8 @@ Bento's migrations add:
 
 Every connection query includes the authenticated Better Auth user ID. API
 routes return `404` rather than accepting a connection owned by another user.
-Client caches use `<bento-user-id>:<connection-id>` as a non-secret session
-scope and are remounted when that scope changes.
+Client caches use `<bento-user-id>:<connection-id>` as a non-secret data scope
+and are remounted when that scope changes.
 
 ## Credential handling
 
@@ -59,6 +59,17 @@ field without changing connection ownership, active-account switching,
 feature settings, or client cache scopes. Token refresh belongs in the server
 connection resolver; OAuth credentials must never be returned through the
 connections API.
+
+Provider-specific code stays behind two boundaries:
+
+- `lib/server/identity-provider.ts` configures the current Better Auth identity
+  provider.
+- `lib/server/lunch-money-client.ts` turns a stored connection credential into
+  a Lunch Money API client.
+
+The future OAuth implementation belongs in those adapters and its callback;
+pages, account switching, feature settings, and browser RPC do not need to
+change.
 
 The API-token UI is intentionally presented as a temporary connection method,
 not as the user's Bento identity. Browser-local tokens from versions before

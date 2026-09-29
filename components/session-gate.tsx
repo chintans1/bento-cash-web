@@ -1,18 +1,18 @@
 "use client";
 
 import { LoaderCircle } from "lucide-react";
-import { useToken } from "@/hooks/use-token";
+import { useAuth } from "@/hooks/use-auth";
 import { AuthPrompt } from "@/components/auth-prompt";
 import { LegacyImportDialog } from "@/components/legacy-import-dialog";
 
 export function SessionGate({ children }: { children: React.ReactNode }) {
-  const { isReady, isSignedIn, isDemo, sessionKey } = useToken();
+  const { isReady, isSignedIn, isDemo, dataScopeKey } = useAuth();
 
   return (
     // A connection switch remounts page-level data hooks. No prior account's
     // transient state can remain visible while the next account loads.
     <>
-      <main key={sessionKey ?? "signed-out"} className="flex-1">
+      <main key={dataScopeKey ?? "signed-out"} className="flex-1">
         {!isReady ? (
           <div
             role="status"

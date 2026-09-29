@@ -20,12 +20,12 @@ import { TransactionEditor } from "@/components/transactions/transaction-editor"
 import { usePayeeSuggestions } from "@/hooks/use-payee-suggestions";
 import { formatCurrency } from "@/lib/format";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useToken } from "@/hooks/use-token";
+import { useAuth } from "@/hooks/use-auth";
 import { useAppData } from "@/hooks/use-app-data";
 import { useMonthTransactions } from "@/hooks/use-month-transactions";
 import { filterSpendTransactions } from "@/lib/lunchmoney/analytics";
 import { UNCATEGORIZED } from "@/lib/lunchmoney/categories";
-import { NoTokenPrompt } from "@/components/no-token-prompt";
+import { ConnectionPrompt } from "@/components/connection-prompt";
 import { useMonthNavigation } from "@/hooks/use-month-navigation";
 import { isCurrentOrFutureMonth } from "@/lib/date-utils";
 import { Button } from "@/components/ui/button";
@@ -71,7 +71,7 @@ function parseCategoryFilter(value: string | null): number | null {
 }
 
 function TransactionsPage() {
-  const { sessionKey, isAuthenticated } = useToken();
+  const { dataScopeKey, hasDataSource } = useAuth();
   const {
     primaryCurrency,
     categoryMap,
@@ -101,7 +101,7 @@ function TransactionsPage() {
     errors,
     update,
     reviewMany,
-  } = useMonthTransactions(selectedYear, selectedMonth, sessionKey);
+  } = useMonthTransactions(selectedYear, selectedMonth, dataScopeKey);
 
   // Categories come from the app-level fetch, so rows wait on them too — a row
   // rendered before they land would read "Uncategorized".
@@ -242,7 +242,7 @@ function TransactionsPage() {
     [catGroups]
   );
 
-  const payeeSuggestions = usePayeeSuggestions(sessionKey);
+  const payeeSuggestions = usePayeeSuggestions(dataScopeKey);
 
   /*
     Mirrors `filtered` so the row callbacks below don't have to depend on it.
@@ -377,7 +377,7 @@ function TransactionsPage() {
       : (transactions.find((transaction) => transaction.id === editing.id) ??
         null);
 
-  if (!isAuthenticated) return <NoTokenPrompt />;
+  if (!hasDataSource) return <ConnectionPrompt />;
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">

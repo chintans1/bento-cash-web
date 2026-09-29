@@ -1,13 +1,13 @@
 "use client";
 
 import { Check, KeyRound, ShieldCheck } from "lucide-react";
-import { useAuth } from "@/hooks/use-token";
+import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 export function LegacyImportDialog() {
   const { legacyImportNotice, dismissLegacyImportNotice } = useAuth();
-  const accounts = legacyImportNotice?.accounts ?? [];
+  const importedConnections = legacyImportNotice?.connections ?? [];
 
   return (
     <Dialog
@@ -32,16 +32,16 @@ export function LegacyImportDialog() {
       </div>
 
       <div className="mt-5 flex flex-col gap-2">
-        {accounts.map((account) => (
+        {importedConnections.map((connection) => (
           <div
-            key={account.id}
+            key={connection.id}
             className="flex items-center gap-3 rounded-2xl bg-bento-raised p-3 shadow-[inset_0_0_0_1px_var(--surface-hairline)]"
           >
             <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-bento-surface shadow-sm">
               <KeyRound className="size-4 text-bento-subtle" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium">{account.label}</p>
+              <p className="truncate text-sm font-medium">{connection.label}</p>
               <p className="truncate text-xs text-bento-subtle">
                 Stored securely for this sign-in
               </p>

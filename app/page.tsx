@@ -2,9 +2,9 @@
 
 import { Suspense } from "react";
 import { monthKeyOf } from "@/lib/date-utils";
-import { useToken } from "@/hooks/use-token";
+import { useAuth } from "@/hooks/use-auth";
 import { useDashboardData } from "@/hooks/use-dashboard-data";
-import { NoTokenPrompt } from "@/components/no-token-prompt";
+import { ConnectionPrompt } from "@/components/connection-prompt";
 import { useMonthNavigation } from "@/hooks/use-month-navigation";
 import { MonthSelector } from "@/components/dashboard/month-selector";
 import { UncategorizedBanner } from "@/components/dashboard/uncategorized-banner";
@@ -20,7 +20,7 @@ import { RecentTransactionsCard } from "@/components/dashboard/recent-transactio
 import { AnimatedCollapse } from "@/components/animated-collapse";
 
 function HomePage() {
-  const { isAuthenticated, sessionKey } = useToken();
+  const { hasDataSource, dataScopeKey } = useAuth();
   const {
     year: selectedYear,
     month: selectedMonth,
@@ -54,12 +54,12 @@ function HomePage() {
     sortedSpendTxs,
     peakDayPanelTxs,
     maxCatSpend,
-  } = useDashboardData(sessionKey, selectedYear, selectedMonth);
+  } = useDashboardData(dataScopeKey, selectedYear, selectedMonth);
 
   const transactionsHref = `/transactions?month=${monthKeyOf(selectedYear, selectedMonth)}`;
 
-  if (!isAuthenticated) {
-    return <NoTokenPrompt />;
+  if (!hasDataSource) {
+    return <ConnectionPrompt />;
   }
 
   return (

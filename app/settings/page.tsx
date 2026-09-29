@@ -11,9 +11,10 @@ import {
   UserRound,
   WalletCards,
 } from "lucide-react";
-import { NoTokenPrompt } from "@/components/no-token-prompt";
+import { ConnectionPrompt } from "@/components/connection-prompt";
 import { ConnectAccountForm } from "@/components/connect-account-form";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -26,25 +27,30 @@ import {
 import { Dialog, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Kbd } from "@/components/ui/kbd";
-import { useAuth, type LinkedAccount } from "@/hooks/use-token";
+import { useAuth } from "@/hooks/use-auth";
+import type { LunchMoneyConnection } from "@/lib/lunchmoney/connection-types";
+import { primaryIdentityProvider } from "@/lib/auth/identity-provider";
 import { useInvestableMonths } from "@/hooks/use-investable-months";
 
 export default function SettingsPage() {
   const {
-    accounts,
-    activeAccount,
+    connections,
+    activeConnection,
     user,
     signOut,
-    switchAccount,
-    removeAccount,
-    isAuthenticated,
+    switchConnection,
+    removeConnection,
+    hasDataSource,
     isDemo,
   } = useAuth();
   const { months: floorMonths, setMonths } = useInvestableMonths();
   const [floorMonthsInput, setFloorMonthsInput] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
-  const [removeTarget, setRemoveTarget] = useState<LinkedAccount | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<LunchMoneyConnection | null>(
+    null
+  );
   const [removing, setRemoving] = useState(false);
+  const [removeError, setRemoveError] = useState<string | null>(null);
 
   function handleFloorMonthsChange(raw: string) {
     setFloorMonthsInput(raw);
@@ -54,22 +60,29 @@ export default function SettingsPage() {
   async function confirmRemove() {
     if (!removeTarget) return;
     setRemoving(true);
+    setRemoveError(null);
     try {
-      await removeAccount(removeTarget.id);
+      await removeConnection(removeTarget.id);
       setRemoveTarget(null);
+    } catch (cause) {
+      setRemoveError(
+        cause instanceof Error ? cause.message : "Couldn't remove account"
+      );
     } finally {
       setRemoving(false);
     }
   }
 
-  if (!isAuthenticated) return <NoTokenPrompt />;
+  if (!hasDataSource) return <ConnectionPrompt />;
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-4 pt-7 pb-12 sm:px-6 sm:pt-10">
       <div className="flex flex-col gap-1">
         <h1 className="font-heading text-3xl font-bold">Settings</h1>
         <p className="text-sm text-bento-subtle">
-          Manage your sign-in, connected budgets, and Bento preferences.
+          {isDemo
+            ? "Adjust how Bento Cash calculates your demo insights."
+            : "Manage your sign-in, connected budgets, and Bento preferences."}
         </p>
       </div>
 
@@ -84,7 +97,7 @@ export default function SettingsPage() {
               This identity owns your connections and account-specific settings.
             </CardDescription>
             <CardAction>
-              <Badge variant="secondary">Google</Badge>
+              <Badge variant="secondary">{primaryIdentityProvider.name}</Badge>
             </CardAction>
           </CardHeader>
           <CardContent className="flex items-center gap-3">
@@ -122,11 +135,11 @@ export default function SettingsPage() {
             </CardAction>
           </CardHeader>
           <CardContent className="flex flex-col gap-2">
-            {accounts.map((account) => {
-              const selected = account.id === activeAccount?.id;
+            {connections.map((connection) => {
+              const selected = connection.id === activeConnection?.id;
               return (
                 <div
-                  key={account.id}
+                  key={connection.id}
                   className="flex min-h-16 items-center gap-3 rounded-2xl bg-bento-raised p-3 shadow-[inset_0_0_0_1px_var(--surface-hairline)]"
                 >
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-bento-surface shadow-sm">
@@ -135,12 +148,16 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     className="min-h-10 min-w-0 flex-1 rounded-lg text-left"
-                    onClick={() => switchAccount(account.id)}
+                    onClick={() =>
+                      void switchConnection(connection.id).catch(
+                        () => undefined
+                      )
+                    }
                     aria-pressed={selected}
                   >
                     <span className="flex items-center gap-2">
                       <span className="truncate text-sm font-medium">
-                        {account.label}
+                        {connection.label}
                       </span>
                       {selected && (
                         <Badge variant="secondary" className="shrink-0">
@@ -149,14 +166,17 @@ export default function SettingsPage() {
                       )}
                     </span>
                     <span className="mt-0.5 block truncate text-xs text-bento-subtle">
-                      {account.email || "Connected with an API token"}
+                      {connection.email || "Connected with an API token"}
                     </span>
                   </button>
                   <Button
                     variant="ghost"
                     size="icon-lg"
-                    aria-label={`Remove ${account.label}`}
-                    onClick={() => setRemoveTarget(account)}
+                    aria-label={`Remove ${connection.label}`}
+                    onClick={() => {
+                      setRemoveError(null);
+                      setRemoveTarget(connection);
+                    }}
                   >
                     <Trash2 className="text-bento-subtle" />
                   </Button>
@@ -165,9 +185,8 @@ export default function SettingsPage() {
             })}
             <p className="mt-2 flex items-start gap-2 text-xs leading-5 text-bento-subtle">
               <ShieldCheck className="mt-0.5 size-3.5 shrink-0" />
-              API tokens are encrypted on the server. When Lunch Money OAuth
-              arrives, these connections can upgrade without changing your saved
-              settings.
+              Connection credentials are encrypted on the server and are never
+              sent back to your browser.
             </p>
           </CardContent>
         </Card>
@@ -248,6 +267,11 @@ export default function SettingsPage() {
             access.
           </DialogDescription>
         </div>
+        {removeError && (
+          <Alert variant="destructive" className="mt-5 text-left">
+            <AlertDescription>{removeError}</AlertDescription>
+          </Alert>
+        )}
         <div className="mt-6 flex justify-end gap-2">
           <Button
             variant="outline"
