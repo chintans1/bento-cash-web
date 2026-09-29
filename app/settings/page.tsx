@@ -4,7 +4,6 @@ import { useState } from "react";
 import {
   Check,
   KeyRound,
-  LogOut,
   Plus,
   ShieldCheck,
   Trash2,
@@ -37,7 +36,6 @@ export default function SettingsPage() {
     connections,
     activeConnection,
     user,
-    signOut,
     switchConnection,
     removeConnection,
     hasDataSource,
@@ -108,10 +106,6 @@ export default function SettingsPage() {
               <p className="truncate font-medium">{user.name}</p>
               <p className="truncate text-sm text-bento-subtle">{user.email}</p>
             </div>
-            <Button variant="outline" onClick={signOut}>
-              <LogOut data-icon="inline-start" />
-              Sign out
-            </Button>
           </CardContent>
         </Card>
       )}
