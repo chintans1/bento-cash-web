@@ -90,7 +90,7 @@ export default function SettingsPage() {
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
-              <UserRound className="size-5 text-bento-subtle" />
+              <UserRound className="size-5 text-bento-brand" />
               Your Bento account
             </CardTitle>
             <CardDescription>
@@ -120,7 +120,7 @@ export default function SettingsPage() {
         <Card id="connections" className="scroll-mt-28">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-xl">
-              <WalletCards className="size-5 text-bento-subtle" />
+              <WalletCards className="size-5 text-bento-brand" />
               Lunch Money accounts
             </CardTitle>
             <CardDescription>
@@ -143,7 +143,10 @@ export default function SettingsPage() {
                   className="flex min-h-16 items-center gap-3 rounded-2xl bg-bento-raised p-3 shadow-[inset_0_0_0_1px_var(--surface-hairline)]"
                 >
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-bento-surface shadow-sm">
-                    <KeyRound className="size-4 text-bento-subtle" />
+                    <KeyRound
+                      className="size-4 text-bento-brand"
+                      strokeWidth={1.5}
+                    />
                   </div>
                   <div className="min-w-0 flex-1">
                     <span className="flex items-center gap-2">
@@ -189,7 +192,10 @@ export default function SettingsPage() {
               );
             })}
             <p className="mt-2 flex items-start gap-2 text-xs leading-5 text-bento-subtle">
-              <ShieldCheck className="mt-0.5 size-3.5 shrink-0" />
+              <ShieldCheck
+                className="mt-0.5 size-3.5 shrink-0 text-bento-brand"
+                strokeWidth={1.5}
+              />
               Connection credentials are encrypted on the server and are never
               sent back to your browser.
             </p>
