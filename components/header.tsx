@@ -69,13 +69,18 @@ export function Header() {
           {hasDataSource && !isDemo && (
             <AccountSwitcher className="hidden md:flex" />
           )}
-          <ThemeToggle />
           {isSignedIn && !isDemo && (
-            <Button variant="ghost" size="sm" onClick={() => void signOut()}>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-bento-subtle hover:text-bento-default"
+              onClick={() => void signOut()}
+            >
               <LogOut data-icon="inline-start" />
               Sign out
             </Button>
           )}
+          <ThemeToggle />
 
           {/* Mobile hamburger */}
           {hasDataSource && (
