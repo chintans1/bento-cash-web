@@ -9,5 +9,10 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: false,
   },
+  account: {
+    accountLinking: {
+      updateUserInfoOnLink: true,
+    },
+  },
   socialProviders: identityProviderOptions(),
 });

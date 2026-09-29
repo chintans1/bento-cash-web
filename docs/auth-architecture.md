@@ -13,6 +13,8 @@ email/password prototype. It invalidates their old sessions, removes the
 disabled credential login, and allows the same Bento user (and its existing
 Lunch Money connections) to be claimed through Google's verified email. This
 keeps Better Auth's strict default linking policy intact for future providers.
+The configured identity provider supplies the user's display name and avatar
+when it is linked, so no profile data from the retired login remains visible.
 
 ## Persistence and ownership
 
