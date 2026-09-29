@@ -16,9 +16,11 @@ export type StoredCredential =
     };
 
 function encryptionKey(): Buffer {
+  const configuredCredentialKey = process.env.BENTO_CREDENTIAL_ENCRYPTION_KEY;
+  const authSecret = process.env.BETTER_AUTH_SECRET;
   const secret =
-    process.env.BENTO_CREDENTIAL_ENCRYPTION_KEY ??
-    process.env.BETTER_AUTH_SECRET ??
+    (configuredCredentialKey?.trim() ? configuredCredentialKey : undefined) ??
+    (authSecret?.trim() ? authSecret : undefined) ??
     (process.env.NODE_ENV === "production"
       ? null
       : "bento-cash-development-credential-key");
