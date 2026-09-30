@@ -121,7 +121,7 @@ export function EditableText({
               <Autocomplete.Item
                 key={name}
                 value={name}
-                className="flex cursor-default items-center rounded-2xl px-2.5 py-1.5 text-sm outline-none select-none data-highlighted:bg-foreground/10"
+                className="flex min-h-10 cursor-default items-center rounded-2xl px-2.5 py-1.5 text-sm outline-none select-none data-highlighted:bg-foreground/10"
               >
                 <span className="truncate">{name}</span>
               </Autocomplete.Item>

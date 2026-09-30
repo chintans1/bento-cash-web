@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { formatCurrency, formatShortDate } from "@/lib/format";
 
 type Draft = {
   payee: string;
@@ -143,6 +144,7 @@ export function TransactionEditor({
     categoryOptions.find((option) => option.id === (draft.categoryId ?? -1))
       ?.name ?? "Uncategorized";
   const changed = Object.keys(patch).length > 0;
+  const amount = Number(draft.amount);
 
   async function save() {
     if (!valid || !changed) return;
@@ -164,14 +166,24 @@ export function TransactionEditor({
         >
           <header className="flex items-start gap-3 border-b border-bento-hairline px-5 py-4 sm:px-6">
             <div className="min-w-0 flex-1">
-              <SheetTitle className="font-heading text-xl font-bold text-balance">
+              <p className="mb-2 text-xs font-medium tracking-wide text-bento-subtle uppercase">
                 Transaction details
+              </p>
+              <SheetTitle className="font-heading text-xl font-bold text-balance [overflow-wrap:anywhere]">
+                {draft.payee || transaction.original_name || "Transaction"}
               </SheetTitle>
-              <SheetDescription className="mt-1 truncate text-sm text-bento-subtle">
-                {transaction.original_name ||
-                  transaction.payee ||
-                  "Transaction"}
+              <SheetDescription className="mt-1 text-sm text-bento-subtle tabular-nums">
+                {draft.date ? formatShortDate(draft.date) : "Date needed"} ·{" "}
+                {categoryName}
               </SheetDescription>
+              {draft.amount.trim() !== "" && Number.isFinite(amount) && (
+                <p className="mt-3 font-mono text-lg font-semibold text-bento-default tabular-nums">
+                  {formatCurrency(Math.abs(amount), draft.currency, true)}
+                  <span className="ml-2 text-xs font-normal text-bento-subtle">
+                    {amount < 0 ? "Credit" : "Debit"}
+                  </span>
+                </p>
+              )}
             </div>
             <Button
               type="button"
@@ -255,7 +267,7 @@ export function TransactionEditor({
                 />
                 {transaction.original_name &&
                   transaction.original_name !== transaction.payee && (
-                    <p className="mt-1.5 truncate px-1 text-xs text-bento-subtle">
+                    <p className="mt-1.5 px-1 text-xs [overflow-wrap:anywhere] text-bento-subtle">
                       Statement: {transaction.original_name}
                     </p>
                   )}
@@ -384,7 +396,7 @@ export function TransactionEditor({
                   rows={4}
                   value={draft.notes}
                   disabled={structurallyLocked}
-                  className="resize-none"
+                  className="max-h-none resize-none overflow-y-hidden [overflow-wrap:anywhere]"
                   placeholder="Add context for your future self…"
                   onChange={(event) => updateDraft("notes", event.target.value)}
                 />
@@ -394,15 +406,15 @@ export function TransactionEditor({
             <section className="rounded-2xl bg-bento-raised p-4 text-xs text-bento-subtle">
               <dl className="grid grid-cols-icon-content gap-x-4 gap-y-2">
                 <dt>Source</dt>
-                <dd className="text-right text-bento-default capitalize">
+                <dd className="min-w-0 text-right [overflow-wrap:anywhere] text-bento-default capitalize">
                   {transaction.source ?? "Unknown"}
                 </dd>
                 <dt>Updated</dt>
-                <dd className="text-right text-bento-default tabular-nums">
+                <dd className="min-w-0 text-right [overflow-wrap:anywhere] text-bento-default tabular-nums">
                   {new Date(transaction.updated_at).toLocaleString()}
                 </dd>
                 <dt>Transaction ID</dt>
-                <dd className="text-right font-mono text-bento-default">
+                <dd className="min-w-0 text-right font-mono [overflow-wrap:anywhere] text-bento-default">
                   {transaction.id}
                 </dd>
               </dl>
