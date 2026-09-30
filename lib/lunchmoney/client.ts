@@ -242,6 +242,14 @@ export function createRemoteClient(connectionId: string): LMClient {
     getBalanceHistory: () => remoteCall(connectionId, "getBalanceHistory"),
     getBudgetSummary: (year, month) =>
       remoteCall(connectionId, "getBudgetSummary", [year, month]),
+    createManualAccount: (data) =>
+      remoteCall(connectionId, "createManualAccount", [data]),
+    upsertBalanceHistory: (accountType, accountId, balances) =>
+      remoteCall(connectionId, "upsertBalanceHistory", [
+        accountType,
+        accountId,
+        balances,
+      ]),
     updateManualAccount: (id, data) =>
       remoteCall(connectionId, "updateManualAccount", [id, data]),
     updateTransaction: (id, patch) =>

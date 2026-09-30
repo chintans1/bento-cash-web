@@ -11,11 +11,7 @@ export function useBalanceHistory(dataScopeKey: string | null) {
   const [history, setHistory] = useState<BalanceHistoryAccount[] | null>(null);
 
   useEffect(() => {
-    if (!dataScopeKey) {
-      setHistory(null);
-      return;
-    }
-    setHistory(null);
+    if (!dataScopeKey) return;
     let cancelled = false;
 
     getBalanceHistory()

@@ -17,7 +17,7 @@ export function LegacyImportDialog() {
       }}
     >
       <div className="flex flex-col gap-5 pr-7">
-        <div className="flex size-11 items-center justify-center rounded-2xl bg-bento-positive/10 text-bento-positive shadow-[inset_0_0_0_1px_var(--surface-hairline)]">
+        <div className="flex size-11 items-center justify-center rounded-2xl bg-bento-positive/10 text-bento-positive shadow-(--shadow-surface-outline)">
           <Check className="size-5" strokeWidth={2.5} />
         </div>
         <div className="flex flex-col gap-2">
@@ -35,7 +35,7 @@ export function LegacyImportDialog() {
         {importedConnections.map((connection) => (
           <div
             key={connection.id}
-            className="flex items-center gap-3 rounded-2xl bg-bento-raised p-3 shadow-[inset_0_0_0_1px_var(--surface-hairline)]"
+            className="flex items-center gap-3 rounded-2xl bg-bento-raised p-3 shadow-(--shadow-surface-outline)"
           >
             <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-bento-surface shadow-sm">
               <KeyRound className="size-4 text-bento-subtle" />

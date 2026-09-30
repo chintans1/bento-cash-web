@@ -25,6 +25,8 @@ const client = {
   getRecurringItems: vi.fn(),
   getBalanceHistory: vi.fn(),
   getBudgetSummary: vi.fn(),
+  createManualAccount: vi.fn(),
+  upsertBalanceHistory: vi.fn(),
   updateManualAccount: vi.fn(),
   updateTransaction: vi.fn(),
   updateTransactions: vi.fn(),
@@ -140,6 +142,18 @@ describe("authenticated Lunch Money RPC", () => {
     ["getRecurringItems", [], "getRecurringItems", []],
     ["getBalanceHistory", [], "getBalanceHistory", []],
     ["getBudgetSummary", [2026, 9], "getBudgetSummary", [2026, 9]],
+    [
+      "createManualAccount",
+      [{ name: "Mint account", type_name: "cash", balance: "10" }],
+      "createManualAccount",
+      [{ name: "Mint account", type_name: "cash", balance: "10" }],
+    ],
+    [
+      "upsertBalanceHistory",
+      ["manual", 7, [{ date: "2026-09-30", balance: "10" }]],
+      "upsertBalanceHistory",
+      ["manual", 7, [{ date: "2026-09-30", balance: "10" }]],
+    ],
     [
       "updateManualAccount",
       [7, { balance: "12" }],

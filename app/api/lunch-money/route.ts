@@ -61,6 +61,16 @@ export async function POST(request: Request) {
       case "getBudgetSummary":
         data = await client.getBudgetSummary(body.args[0], body.args[1]);
         break;
+      case "createManualAccount":
+        data = await client.createManualAccount(body.args[0]);
+        break;
+      case "upsertBalanceHistory":
+        data = await client.upsertBalanceHistory(
+          body.args[0],
+          body.args[1],
+          body.args[2]
+        );
+        break;
       case "updateManualAccount":
         data = await client.updateManualAccount(body.args[0], body.args[1]);
         break;
