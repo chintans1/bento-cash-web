@@ -12,7 +12,6 @@ import {
   type ChartConfig,
 } from "@/components/ui/chart";
 import { cn } from "@/lib/utils";
-import { NumberFlip } from "@/components/ui/number-flip";
 import { formatCurrency } from "@/lib/format";
 import { MONTH_NAMES, formatMonthKey, monthKeyOf } from "@/lib/date-utils";
 import type { NetWorthPoint } from "@/lib/lunchmoney/net-worth-history";
@@ -105,11 +104,7 @@ export function NetWorthCard({
           </div>
         ) : shown ? (
           <p className="mt-1 font-heading text-4xl font-bold tracking-tight tabular-nums sm:text-5xl">
-            <NumberFlip
-              value={shown.netWorth}
-              formatted={formatCurrency(shown.netWorth, primaryCurrency, true)}
-              stagger
-            />
+            {formatCurrency(shown.netWorth, primaryCurrency, true)}
           </p>
         ) : (
           <p className="mt-2 text-sm text-bento-subtle">
