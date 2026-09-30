@@ -81,7 +81,7 @@ export function AccountRow({
             transition={{ duration: DURATION.quick, ease: EASE }}
             className="flex flex-col gap-3"
           >
-            <span className="min-w-0 text-sm font-medium [overflow-wrap:anywhere] break-words">
+            <span className="min-w-0 text-sm font-medium wrap-anywhere">
               {account.name}
             </span>
             <div className="flex flex-wrap items-end gap-3">

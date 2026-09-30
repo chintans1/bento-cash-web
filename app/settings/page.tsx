@@ -30,6 +30,8 @@ import { useAuth } from "@/hooks/use-auth";
 import type { LunchMoneyConnection } from "@/lib/lunchmoney/connection-types";
 import { primaryIdentityProvider } from "@/lib/auth/identity-provider";
 import { useInvestableMonths } from "@/hooks/use-investable-months";
+import { useAppData } from "@/hooks/use-app-data";
+import { MintBalanceImportCard } from "@/components/settings/mint-balance-import-card";
 
 export default function SettingsPage() {
   const {
@@ -41,6 +43,11 @@ export default function SettingsPage() {
     hasDataSource,
     isDemo,
   } = useAuth();
+  const {
+    user: lunchMoneyUser,
+    loading: accountLoading,
+    refreshAccounts,
+  } = useAppData();
   const { months: floorMonths, setMonths } = useInvestableMonths();
   const [floorMonthsInput, setFloorMonthsInput] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -134,7 +141,7 @@ export default function SettingsPage() {
               return (
                 <div
                   key={connection.id}
-                  className="flex min-h-16 items-center gap-3 rounded-2xl bg-bento-raised p-3 shadow-[inset_0_0_0_1px_var(--surface-hairline)]"
+                  className="flex min-h-16 items-center gap-3 rounded-2xl bg-bento-raised p-3 shadow-(--shadow-surface-outline)"
                 >
                   <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-bento-surface shadow-sm">
                     <KeyRound
@@ -233,6 +240,13 @@ export default function SettingsPage() {
           </p>
         </CardContent>
       </Card>
+
+      <MintBalanceImportCard
+        currency={lunchMoneyUser?.primary_currency ?? "usd"}
+        isDemo={isDemo}
+        accountLoading={accountLoading}
+        onImported={refreshAccounts}
+      />
 
       <p className="text-center font-mono text-sm text-bento-subtle">
         Press <Kbd>d</Kbd> to toggle dark mode

@@ -295,6 +295,10 @@
   --ease-expand: cubic-bezier(0.25, 1, 0.5, 1);
   --color-series-1: var(--series-1);
   --color-footer-brand: #44958c;
+  --color-google-blue: #4285f4;
+  --color-google-green: #34a853;
+  --color-google-yellow: #fbbc05;
+  --color-google-red: #ea4335;
   --color-warning: var(--color-amber-500);
   --color-warning-foreground: var(--warning-foreground);
   --shadow-surface-outline: inset 0 0 0 1px var(--surface-hairline);

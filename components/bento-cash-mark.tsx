@@ -10,10 +10,7 @@ export function BentoCashMark({ className }: { className?: string }) {
       height={72}
       priority
       unoptimized
-      className={cn(
-        "mx-auto size-16 object-contain sm:size-[4.5rem]",
-        className
-      )}
+      className={cn("mx-auto size-16 object-contain sm:size-18", className)}
     />
   );
 }

@@ -10,7 +10,7 @@ export function ConnectionPrompt() {
 
   return (
     <div className="mx-auto w-full max-w-md px-5 pt-10 pb-12 text-center sm:pt-16">
-      <section className="flex w-full flex-col gap-5 rounded-[2rem] glass p-5 sm:p-6">
+      <section className="flex w-full flex-col gap-5 rounded-4xl glass p-5 sm:p-6">
         <BentoCashMark />
         <div className="flex flex-col gap-2">
           <h1 className="font-heading text-4xl font-bold">

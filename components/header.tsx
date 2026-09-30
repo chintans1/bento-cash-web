@@ -106,7 +106,7 @@ export function Header() {
           <button
             type="button"
             aria-label="Dismiss error"
-            className="flex size-8 shrink-0 items-center justify-center rounded-full transition-[color,background-color,scale] hover:bg-bento-danger/10 active:scale-[0.96]"
+            className="flex size-8 shrink-0 items-center justify-center rounded-full transition-control hover:bg-bento-danger/10 active:scale-96"
             onClick={clearError}
           >
             <X className="size-4" />

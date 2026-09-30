@@ -4,11 +4,11 @@ import { useMemo, useState } from "react";
 import { CashFlowReport } from "@/components/reports/cash-flow-report";
 import { IncomeReport } from "@/components/reports/income-report";
 import { SpendingReport } from "@/components/reports/spending-report";
-import { NoTokenPrompt } from "@/components/no-token-prompt";
+import { ConnectionPrompt } from "@/components/connection-prompt";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAppData } from "@/hooks/use-app-data";
-import { useToken } from "@/hooks/use-token";
+import { useAuth } from "@/hooks/use-auth";
 import { useTransactionHistory } from "@/hooks/use-transaction-history";
 import { lastFullMonths } from "@/lib/date-utils";
 import { buildReportData } from "@/lib/lunchmoney/reports";
@@ -79,11 +79,11 @@ function SegmentedControl<T extends string | number>({
 }
 
 export default function ReportsPage() {
-  const { isAuthenticated } = useToken();
+  const { hasDataSource, dataScopeKey } = useAuth();
   const { categoryMap, primaryCurrency } = useAppData();
   const [activeReport, setActiveReport] = useState<ReportId>("cash-flow");
   const [range, setRange] = useState(6);
-  const history = useTransactionHistory(range, isAuthenticated);
+  const history = useTransactionHistory(range, dataScopeKey);
   const periods = useMemo(() => lastFullMonths(range), [range]);
   const report = useMemo(
     () =>
@@ -94,7 +94,7 @@ export default function ReportsPage() {
   );
   const selected = REPORTS.find(({ id }) => id === activeReport)!;
 
-  if (!isAuthenticated) return <NoTokenPrompt />;
+  if (!hasDataSource) return <ConnectionPrompt />;
 
   return (
     <main className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
