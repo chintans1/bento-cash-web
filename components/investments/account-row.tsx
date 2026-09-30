@@ -81,7 +81,9 @@ export function AccountRow({
             transition={{ duration: DURATION.quick, ease: EASE }}
             className="flex flex-col gap-3"
           >
-            <span className="text-sm font-medium">{account.name}</span>
+            <span className="min-w-0 text-sm font-medium [overflow-wrap:anywhere] break-words">
+              {account.name}
+            </span>
             <div className="flex flex-wrap items-end gap-3">
               <div className="flex flex-col gap-1">
                 <label className="text-xs text-bento-subtle">Type</label>
@@ -162,8 +164,9 @@ export function AccountRow({
             <div className="min-w-0 flex-1">
               <div className="flex items-center gap-2">
                 <span
+                  title={account.name}
                   className={cn(
-                    "text-sm font-medium",
+                    "min-w-0 truncate text-sm font-medium",
                     isInactive && "text-bento-subtle"
                   )}
                 >

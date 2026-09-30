@@ -54,7 +54,10 @@ export function TopMerchantsCard({
                   </span>
                   <div className="min-w-0 flex-1">
                     <div className="mb-1 flex items-center justify-between">
-                      <span className="truncate text-xs font-medium">
+                      <span
+                        className="min-w-0 truncate text-xs font-medium"
+                        title={m.payee}
+                      >
                         {m.payee}
                       </span>
                       <span className="ml-3 shrink-0 font-mono text-xs text-bento-subtle tabular-nums">
