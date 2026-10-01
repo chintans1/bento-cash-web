@@ -1,13 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import authMigration from "../../migrations/001_better_auth.sql?raw";
-import connectionsMigration from "../../migrations/002_bento_connections.sql?raw";
-import identityMigration from "../../migrations/003_google_identity_migration.sql?raw";
-
-const migrations = [
-  ["001_better_auth.sql", authMigration],
-  ["002_bento_connections.sql", connectionsMigration],
-  ["003_google_identity_migration.sql", identityMigration],
-] as const;
+import { migrations } from "./migrations";
 
 export type DatabaseValue = string | number | null;
 export type DatabaseCommand = { sql: string; params: DatabaseValue[] };

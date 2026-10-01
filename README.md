@@ -78,6 +78,9 @@ connect one or more Lunch Money API tokens.
 produces the Cloudflare Workers build, and `pnpm deploy` deploys it. The
 `BENTO_DB` binding points to the SQLite-backed `BentoDatabase` Durable Object.
 Local data is kept under `.cloudflare/state/`; deployed data is separate.
+Migrations run when the Durable Object starts. With the app running, use
+`pnpm db:migrate` to trigger and verify them explicitly. Set
+`BENTO_MIGRATE_URL` to the deployed app's base URL to check that environment.
 Set the Worker secrets `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`,
 `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` in Cloudflare before deployment.
 Set `BENTO_CREDENTIAL_ENCRYPTION_KEY` there too if credentials were encrypted

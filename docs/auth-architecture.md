@@ -92,6 +92,8 @@ and acknowledged to the user in a one-time confirmation dialog.
 - `pnpm dev` uses a locally persisted Durable Object under `.cloudflare/state/`.
 - The object applies unapplied SQL migrations transactionally when it starts,
   both locally and after deployment.
+- With the app running, `pnpm db:migrate` triggers the object and verifies that
+  all committed migrations are applied.
 - Retain the credential-encryption secret. Losing or changing it makes stored
   Lunch Money credentials unreadable.
 
