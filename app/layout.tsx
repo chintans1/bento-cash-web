@@ -9,7 +9,6 @@ import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { SessionGate } from "@/components/session-gate";
 import { cn } from "@/lib/utils";
-import { Analytics } from "@vercel/analytics/react";
 
 const fontHeading = Playfair_Display({
   subsets: ["latin"],
@@ -62,7 +61,6 @@ export default function RootLayout({
               <Footer />
             </AppDataProvider>
           </AuthProvider>
-          <Analytics />
         </ThemeProvider>
       </body>
     </html>

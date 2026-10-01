@@ -15,9 +15,12 @@
 # testing
 /coverage
 
-# next.js
+# generated framework output
 /.next/
 /out/
+/dist/
+/.vinext/
+/.cloudflare/
 
 # production
 /build
