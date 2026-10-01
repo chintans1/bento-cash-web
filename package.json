@@ -16,7 +16,7 @@
     "format:check": "prettier --check .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "vinext typegen && tsc --noEmit",
     "db:generate": "auth generate --config lib/server/auth.ts --output migrations/001_better_auth.sql --yes",
     "db:migrate": "node scripts/migrate.mjs",
     "prepare": "husky",
