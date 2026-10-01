@@ -73,9 +73,12 @@ applies committed SQLite migrations automatically.
 Open [http://localhost:3000](http://localhost:3000), continue with Google, and
 connect one or more Lunch Money API tokens.
 
+`pnpm dev` runs the vinext development server on port 3000. `pnpm build`
+produces the Cloudflare Workers build, and `pnpm deploy` deploys it.
+
 ## Stack
 
-- [Next.js 16](https://nextjs.org) (App Router, Turbopack)
+- [vinext](https://vinext.dev) (App Router on Vite and Cloudflare Workers)
 - [Tailwind CSS v4](https://tailwindcss.com) + [shadcn/ui](https://ui.shadcn.com)
 - [Recharts](https://recharts.org)
 - [`@lunch-money/lunch-money-js-v2`](https://github.com/lunch-money/lunch-money-js)
