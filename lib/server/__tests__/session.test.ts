@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const getSession = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/server/auth", () => ({
-  auth: { api: { getSession } },
+  getAuth: vi.fn(async () => ({ api: { getSession } })),
 }));
 
 import { getRequestUser, hasSameOrigin } from "@/lib/server/session";

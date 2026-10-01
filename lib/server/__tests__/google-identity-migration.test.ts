@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import Database from "better-sqlite3";
+import { DatabaseSync } from "node:sqlite";
 import { describe, expect, it } from "vitest";
 
 function migration(name: string) {
@@ -9,8 +9,8 @@ function migration(name: string) {
 
 describe("Google-only identity migration", () => {
   it("retires password access while preserving the Bento user's data", () => {
-    const database = new Database(":memory:");
-    database.pragma("foreign_keys = ON");
+    const database = new DatabaseSync(":memory:");
+    database.exec("pragma foreign_keys = ON");
     database.exec(migration("001_better_auth.sql"));
     database.exec(migration("002_bento_connections.sql"));
 

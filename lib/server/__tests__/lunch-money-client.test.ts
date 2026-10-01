@@ -17,7 +17,7 @@ import { resolveLunchMoneyClient } from "@/lib/server/lunch-money-client";
 beforeEach(() => vi.clearAllMocks());
 
 describe("Lunch Money client resolution", () => {
-  it("builds an API-key client only after resolving an owned credential", () => {
+  it("builds an API-key client only after resolving an owned credential", async () => {
     const client = { getMe: vi.fn() };
     mocks.getConnectionCredential.mockReturnValue({
       type: "api_key",
@@ -25,7 +25,7 @@ describe("Lunch Money client resolution", () => {
     });
     mocks.createApiKeyClient.mockReturnValue(client);
 
-    expect(resolveLunchMoneyClient("user-1", "connection-1")).toEqual({
+    expect(await resolveLunchMoneyClient("user-1", "connection-1")).toEqual({
       status: "ready",
       client,
     });
@@ -36,23 +36,23 @@ describe("Lunch Money client resolution", () => {
     expect(mocks.createApiKeyClient).toHaveBeenCalledWith("secret-token");
   });
 
-  it("does not create a client for a missing or unowned connection", () => {
+  it("does not create a client for a missing or unowned connection", async () => {
     mocks.getConnectionCredential.mockReturnValue(null);
 
-    expect(resolveLunchMoneyClient("user-1", "connection-2")).toEqual({
+    expect(await resolveLunchMoneyClient("user-1", "connection-2")).toEqual({
       status: "not_found",
     });
     expect(mocks.createApiKeyClient).not.toHaveBeenCalled();
   });
 
-  it("keeps future OAuth credentials behind the resolver boundary", () => {
+  it("keeps future OAuth credentials behind the resolver boundary", async () => {
     mocks.getConnectionCredential.mockReturnValue({
       type: "oauth",
       accessToken: "access-token",
       refreshToken: "refresh-token",
     });
 
-    expect(resolveLunchMoneyClient("user-1", "connection-1")).toEqual({
+    expect(await resolveLunchMoneyClient("user-1", "connection-1")).toEqual({
       status: "unsupported_auth",
       authMethod: "oauth",
     });

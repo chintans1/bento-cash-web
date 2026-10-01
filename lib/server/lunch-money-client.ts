@@ -13,11 +13,11 @@ type ConnectionClientResult =
  * OAuth token refresh and client construction belong in the OAuth branch when
  * Lunch Money publishes that contract; routes and browser code stay unchanged.
  */
-export function resolveLunchMoneyClient(
+export async function resolveLunchMoneyClient(
   userId: string,
   connectionId: string
-): ConnectionClientResult {
-  const credential = getConnectionCredential(userId, connectionId);
+): Promise<ConnectionClientResult> {
+  const credential = await getConnectionCredential(userId, connectionId);
   if (!credential) return { status: "not_found" };
 
   if (credential.type === "api_key") {

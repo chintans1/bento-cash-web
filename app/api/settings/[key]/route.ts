@@ -25,10 +25,10 @@ export async function GET(request: Request, { params }: RouteContext) {
   if (!validKey(key)) {
     return Response.json({ error: "Invalid setting key" }, { status: 400 });
   }
-  if (!ownsConnection(user.id, id)) {
+  if (!(await ownsConnection(user.id, id))) {
     return Response.json({ error: "Connection not found" }, { status: 404 });
   }
-  return Response.json({ value: getFeatureSetting(user.id, id, key) });
+  return Response.json({ value: await getFeatureSetting(user.id, id, key) });
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
@@ -48,7 +48,7 @@ export async function PUT(request: Request, { params }: RouteContext) {
   if (!validKey(key)) {
     return Response.json({ error: "Invalid setting key" }, { status: 400 });
   }
-  if (!setFeatureSetting(user.id, id, key, body.value)) {
+  if (!(await setFeatureSetting(user.id, id, key, body.value))) {
     return Response.json({ error: "Connection not found" }, { status: 404 });
   }
   return Response.json({ ok: true });

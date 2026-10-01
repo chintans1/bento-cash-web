@@ -1,23 +1,124 @@
-import Database from "better-sqlite3";
-import { dirname, join } from "node:path";
-import { mkdirSync } from "node:fs";
+import { env } from "cloudflare:workers";
+import {
+  SqliteAdapter,
+  SqliteIntrospector,
+  SqliteQueryCompiler,
+  type CompiledQuery,
+  type DatabaseConnection,
+  type Dialect,
+  type Driver,
+  type Kysely,
+  type QueryResult,
+} from "kysely";
+import type {
+  DatabaseCommand,
+  DatabaseResult,
+  DatabaseValue,
+} from "./database-object";
 
-const databasePath =
-  process.env.BENTO_DATABASE_PATH ?? join(process.cwd(), "data", "bento.db");
+export type SqlParams = readonly DatabaseValue[];
+export type SqlCommand = { sql: string; params?: SqlParams };
 
-if (databasePath !== ":memory:")
-  mkdirSync(dirname(databasePath), { recursive: true });
+export interface SqlStore {
+  first<T>(sql: string, params?: SqlParams): Promise<T | undefined>;
+  all<T>(sql: string, params?: SqlParams): Promise<T[]>;
+  run(sql: string, params?: SqlParams): Promise<{ changes: number }>;
+  batch(commands: readonly SqlCommand[]): Promise<void>;
+}
 
-const globalDatabase = globalThis as typeof globalThis & {
-  __bentoDatabase?: Database.Database;
+type DatabaseStub = {
+  query(command: DatabaseCommand): Promise<DatabaseResult>;
+  batch(commands: DatabaseCommand[]): Promise<DatabaseResult[]>;
 };
 
-export const database =
-  globalDatabase.__bentoDatabase ?? new Database(databasePath);
+function getStub(): DatabaseStub {
+  const namespace = env.BENTO_DB;
+  if (!namespace) throw new Error("BENTO_DB Durable Object binding is missing");
+  return namespace.get(
+    namespace.idFromName("bento")
+  ) as unknown as DatabaseStub;
+}
 
-database.pragma("journal_mode = WAL");
-database.pragma("foreign_keys = ON");
+async function query(
+  sql: string,
+  params: SqlParams = []
+): Promise<DatabaseResult> {
+  return getStub().query({ sql, params: [...params] });
+}
 
-if (process.env.NODE_ENV !== "production") {
-  globalDatabase.__bentoDatabase = database;
+const connection: DatabaseConnection = {
+  async executeQuery<R>(compiledQuery: CompiledQuery): Promise<QueryResult<R>> {
+    const result = await query(
+      compiledQuery.sql,
+      compiledQuery.parameters as DatabaseValue[]
+    );
+    return {
+      rows: result.results as R[],
+      numAffectedRows: BigInt(result.changes),
+      insertId: BigInt(result.lastRowId),
+    };
+  },
+  streamQuery() {
+    throw new Error("Streaming SQL queries are unsupported");
+  },
+};
+
+class DurableObjectDialect implements Dialect {
+  createDriver(): Driver {
+    return {
+      async init() {},
+      async acquireConnection() {
+        return connection;
+      },
+      async beginTransaction() {
+        throw new Error("Interactive SQL transactions are unsupported");
+      },
+      async commitTransaction() {
+        throw new Error("Interactive SQL transactions are unsupported");
+      },
+      async rollbackTransaction() {
+        throw new Error("Interactive SQL transactions are unsupported");
+      },
+      async releaseConnection() {},
+      async destroy() {},
+    };
+  }
+
+  createQueryCompiler() {
+    return new SqliteQueryCompiler();
+  }
+
+  createAdapter() {
+    return new SqliteAdapter();
+  }
+
+  createIntrospector(db: Kysely<unknown>) {
+    return new SqliteIntrospector(db);
+  }
+}
+
+export const authDatabase = {
+  dialect: new DurableObjectDialect(),
+  type: "sqlite" as const,
+  transaction: false,
+};
+
+export async function getStore(): Promise<SqlStore> {
+  return {
+    async first<T>(sql: string, params: SqlParams = []) {
+      return (await query(sql, params)).results[0] as T | undefined;
+    },
+    async all<T>(sql: string, params: SqlParams = []) {
+      return (await query(sql, params)).results as T[];
+    },
+    async run(sql: string, params: SqlParams = []) {
+      return { changes: (await query(sql, params)).changes };
+    },
+    async batch(commands: readonly SqlCommand[]) {
+      if (commands.length === 0) return;
+      await getStub().batch(
+        commands.map(({ sql, params = [] }) => ({ sql, params: [...params] }))
+      );
+    },
+  };
 }

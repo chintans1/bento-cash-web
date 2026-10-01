@@ -8,14 +8,17 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock("better-auth", () => ({ betterAuth: mocks.betterAuth }));
-vi.mock("@/lib/server/database", () => ({ database: { test: true } }));
+vi.mock("@/lib/server/database", () => ({
+  authDatabase: { test: true },
+}));
 vi.mock("@/lib/server/identity-provider", () => ({
   identityProviderOptions: mocks.identityProviderOptions,
 }));
 
 describe("Better Auth configuration", () => {
   it("uses provider-only identity and preserves account linking metadata", async () => {
-    await import("@/lib/server/auth");
+    const { getAuth } = await import("@/lib/server/auth");
+    await getAuth();
 
     expect(mocks.betterAuth).toHaveBeenCalledOnce();
     expect(mocks.betterAuth).toHaveBeenCalledWith(

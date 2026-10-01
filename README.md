@@ -55,7 +55,7 @@ can create the Bento identity and connection in one flow. See
 
 ## Getting started
 
-**Prerequisites:** Node.js 22+, pnpm, and a
+**Prerequisites:** Node.js 22.13+, pnpm, and a
 [Lunch Money](https://lunchmoney.app) account with an API token (Settings →
 Developers → Request API Access).
 
@@ -67,14 +67,24 @@ pnpm dev
 ```
 
 Copy `.env.example` to `.env.local`, set a high-entropy `BETTER_AUTH_SECRET`,
-and add a Google OAuth client ID and secret. Then run `pnpm dev`. Startup
-applies committed SQLite migrations automatically.
+and add a Google OAuth client ID and secret. Then run `pnpm dev`. This runs
+vinext in Cloudflare's local Worker runtime with a locally persisted
+SQLite-backed Durable Object. Committed migrations run when the object starts.
 
 Open [http://localhost:3000](http://localhost:3000), continue with Google, and
 connect one or more Lunch Money API tokens.
 
 `pnpm dev` runs the vinext development server on port 3000. `pnpm build`
-produces the Cloudflare Workers build, and `pnpm deploy` deploys it.
+produces the Cloudflare Workers build, and `pnpm deploy` deploys it. The
+`BENTO_DB` binding points to the SQLite-backed `BentoDatabase` Durable Object.
+Local data is kept under `.cloudflare/state/`; deployed data is separate.
+Set the Worker secrets `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`,
+`GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` in Cloudflare before deployment.
+Set `BENTO_CREDENTIAL_ENCRYPTION_KEY` there too if credentials were encrypted
+with a separate key. Local `pnpm dev` reads these from `.env.local`.
+If a dev server was already running when the Durable Object binding was added,
+restart it once to load the new binding. Existing SQLite files and D1 databases
+are not automatically imported into the Durable Object.
 
 ## Stack
 

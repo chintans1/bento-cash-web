@@ -19,6 +19,7 @@
 /.next/
 /out/
 /dist/
+/.output/
 /.vinext/
 /.cloudflare/
 

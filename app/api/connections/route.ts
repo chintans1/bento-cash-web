@@ -8,7 +8,7 @@ import { getRequestUser, hasSameOrigin } from "@/lib/server/session";
 export async function GET(request: Request) {
   const user = await getRequestUser(request);
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
-  return Response.json(listConnections(user.id));
+  return Response.json(await listConnections(user.id));
 }
 
 export async function POST(request: Request) {
@@ -31,14 +31,14 @@ export async function POST(request: Request) {
 
   try {
     const profile = await createApiKeyClient(body.token).getMe();
-    const account = upsertApiKeyConnection(user.id, body.token, {
+    const account = await upsertApiKeyConnection(user.id, body.token, {
       name: profile.name,
       budgetName: profile.budget_name,
       email: profile.email,
       externalAccountId: profile.account_id,
     });
     return Response.json(
-      { account, state: listConnections(user.id) },
+      { account, state: await listConnections(user.id) },
       { status: 201 }
     );
   } catch {

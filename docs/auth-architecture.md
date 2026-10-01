@@ -1,6 +1,7 @@
 # Authentication architecture
 
-Bento Cash uses [Better Auth](https://www.better-auth.com/) with SQLite. The
+Bento Cash uses [Better Auth](https://www.better-auth.com/) with a SQLite-backed
+Cloudflare Durable Object. The
 system separates identity from financial-data access:
 
 - **Bento user** — a provider-backed identity with a server-managed session.
@@ -88,11 +89,12 @@ and acknowledged to the user in a one-time confirmation dialog.
 
 - Copy `.env.example` to `.env.local` and set `BETTER_AUTH_SECRET`,
   `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET`.
-- `pnpm db:migrate` applies every unapplied migration transactionally.
-- `pnpm dev` and `pnpm start` run migrations before starting the app.
-- Back up `data/bento.db` and retain the credential-encryption secret. Losing or
-  changing the secret makes stored Lunch Money credentials unreadable.
+- `pnpm dev` uses a locally persisted Durable Object under `.cloudflare/state/`.
+- The object applies unapplied SQL migrations transactionally when it starts,
+  both locally and after deployment.
+- Retain the credential-encryption secret. Losing or changing it makes stored
+  Lunch Money credentials unreadable.
 
-SQLite is appropriate for a single long-running Bento Cash deployment. A
-multi-instance or serverless deployment should move the same schema to a
-network database supported by Better Auth.
+The app uses one named Durable Object for its shared identity and connection
+database. Existing SQLite files or D1 databases need a separate import if their
+data must be retained.

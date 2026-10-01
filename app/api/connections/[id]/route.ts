@@ -14,7 +14,7 @@ export async function PATCH(request: Request, { params }: RouteContext) {
   const user = await getRequestUser(request);
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
-  if (!setActiveConnection(user.id, id)) {
+  if (!(await setActiveConnection(user.id, id))) {
     return Response.json({ error: "Connection not found" }, { status: 404 });
   }
   return Response.json({ activeConnectionId: id });
@@ -27,8 +27,8 @@ export async function DELETE(request: Request, { params }: RouteContext) {
   const user = await getRequestUser(request);
   if (!user) return Response.json({ error: "Unauthorized" }, { status: 401 });
   const { id } = await params;
-  if (!removeConnection(user.id, id)) {
+  if (!(await removeConnection(user.id, id))) {
     return Response.json({ error: "Connection not found" }, { status: 404 });
   }
-  return Response.json(listConnections(user.id));
+  return Response.json(await listConnections(user.id));
 }

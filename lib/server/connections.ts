@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { database } from "@/lib/server/database";
+import { getStore } from "@/lib/server/database";
 import {
   decryptCredential,
   encryptCredential,
@@ -37,17 +37,18 @@ function publicConnection(row: ConnectionRow): LunchMoneyConnection {
   };
 }
 
-export function listConnections(userId: string): LunchMoneyConnectionsState {
-  const rows = database
-    .prepare(
-      'select * from "lunch_money_connection" where "userId" = ? order by "createdAt" asc'
-    )
-    .all(userId) as ConnectionRow[];
-  const context = database
-    .prepare(
-      'select "activeConnectionId" from "bento_user_context" where "userId" = ?'
-    )
-    .get(userId) as { activeConnectionId: string | null } | undefined;
+export async function listConnections(
+  userId: string
+): Promise<LunchMoneyConnectionsState> {
+  const store = await getStore();
+  const rows = await store.all<ConnectionRow>(
+    'select * from "lunch_money_connection" where "userId" = ? order by "createdAt" asc',
+    [userId]
+  );
+  const context = await store.first<{ activeConnectionId: string | null }>(
+    'select "activeConnectionId" from "bento_user_context" where "userId" = ?',
+    [userId]
+  );
   const activeConnectionId = rows.some(
     (row) => row.id === context?.activeConnectionId
   )
@@ -56,7 +57,7 @@ export function listConnections(userId: string): LunchMoneyConnectionsState {
   return { connections: rows.map(publicConnection), activeConnectionId };
 }
 
-function upsertConnection(
+async function upsertConnection(
   userId: string,
   authMethod: LunchMoneyConnection["authMethod"],
   credential: StoredCredential,
@@ -66,14 +67,12 @@ function upsertConnection(
     email: string;
     externalAccountId: string | number;
   }
-): LunchMoneyConnection {
-  const existing = database
-    .prepare(
-      'select * from "lunch_money_connection" where "userId" = ? and "externalAccountId" = ?'
-    )
-    .get(userId, String(profile.externalAccountId)) as
-    | ConnectionRow
-    | undefined;
+): Promise<LunchMoneyConnection> {
+  const store = await getStore();
+  const existing = await store.first<ConnectionRow>(
+    'select * from "lunch_money_connection" where "userId" = ? and "externalAccountId" = ?',
+    [userId, String(profile.externalAccountId)]
+  );
   const now = new Date().toISOString();
   const row: ConnectionRow = {
     id: existing?.id ?? `lma_${randomUUID()}`,
@@ -87,36 +86,45 @@ function upsertConnection(
     createdAt: existing?.createdAt ?? now,
   };
 
-  database.transaction(() => {
-    database
-      .prepare(
-        `insert into "lunch_money_connection"
+  await store.batch([
+    {
+      sql: `insert into "lunch_money_connection"
           ("id", "userId", "externalAccountId", "label", "budgetName", "email", "authMethod", "credentialCiphertext", "createdAt", "updatedAt")
-         values (@id, @userId, @externalAccountId, @label, @budgetName, @email, @authMethod, @credentialCiphertext, @createdAt, @updatedAt)
+         values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          on conflict ("userId", "externalAccountId") do update set
           "label" = excluded."label",
           "budgetName" = excluded."budgetName",
           "email" = excluded."email",
           "authMethod" = excluded."authMethod",
           "credentialCiphertext" = excluded."credentialCiphertext",
-          "updatedAt" = excluded."updatedAt"`
-      )
-      .run({ ...row, updatedAt: now });
-    database
-      .prepare(
-        `insert into "bento_user_context" ("userId", "activeConnectionId", "updatedAt")
+          "updatedAt" = excluded."updatedAt"`,
+      params: [
+        row.id,
+        row.userId,
+        row.externalAccountId,
+        row.label,
+        row.budgetName,
+        row.email,
+        row.authMethod,
+        row.credentialCiphertext,
+        row.createdAt,
+        now,
+      ],
+    },
+    {
+      sql: `insert into "bento_user_context" ("userId", "activeConnectionId", "updatedAt")
          values (?, ?, ?)
          on conflict ("userId") do update set
           "activeConnectionId" = excluded."activeConnectionId",
-          "updatedAt" = excluded."updatedAt"`
-      )
-      .run(userId, row.id, now);
-  })();
+          "updatedAt" = excluded."updatedAt"`,
+      params: [userId, row.id, now],
+    },
+  ]);
 
   return publicConnection(row);
 }
 
-export function upsertApiKeyConnection(
+export async function upsertApiKeyConnection(
   userId: string,
   token: string,
   profile: {
@@ -125,7 +133,7 @@ export function upsertApiKeyConnection(
     email: string;
     externalAccountId: string | number;
   }
-): LunchMoneyConnection {
+): Promise<LunchMoneyConnection> {
   return upsertConnection(
     userId,
     "api_key",
@@ -135,7 +143,7 @@ export function upsertApiKeyConnection(
 }
 
 /** Used by the Lunch Money OAuth callback once the provider is available. */
-export function upsertOAuthConnection(
+export async function upsertOAuthConnection(
   userId: string,
   credential: Extract<StoredCredential, { type: "oauth" }>,
   profile: {
@@ -144,64 +152,69 @@ export function upsertOAuthConnection(
     email: string;
     externalAccountId: string | number;
   }
-): LunchMoneyConnection {
+): Promise<LunchMoneyConnection> {
   return upsertConnection(userId, "oauth", credential, profile);
 }
 
-export function setActiveConnection(userId: string, connectionId: string) {
-  const ownsConnection = database
-    .prepare(
-      'select 1 from "lunch_money_connection" where "id" = ? and "userId" = ?'
-    )
-    .get(connectionId, userId);
+export async function setActiveConnection(
+  userId: string,
+  connectionId: string
+): Promise<boolean> {
+  const store = await getStore();
+  const ownsConnection = await store.first(
+    'select 1 from "lunch_money_connection" where "id" = ? and "userId" = ?',
+    [connectionId, userId]
+  );
   if (!ownsConnection) return false;
-  database
-    .prepare(
-      `insert into "bento_user_context" ("userId", "activeConnectionId", "updatedAt")
+  await store.run(
+    `insert into "bento_user_context" ("userId", "activeConnectionId", "updatedAt")
        values (?, ?, ?)
        on conflict ("userId") do update set
         "activeConnectionId" = excluded."activeConnectionId",
-        "updatedAt" = excluded."updatedAt"`
-    )
-    .run(userId, connectionId, new Date().toISOString());
+        "updatedAt" = excluded."updatedAt"`,
+    [userId, connectionId, new Date().toISOString()]
+  );
   return true;
 }
 
-export function removeConnection(
+export async function removeConnection(
   userId: string,
   connectionId: string
-): boolean {
-  return database.transaction(() => {
-    const result = database
-      .prepare(
-        'delete from "lunch_money_connection" where "id" = ? and "userId" = ?'
-      )
-      .run(connectionId, userId);
-    if (result.changes === 0) return false;
-    const next = database
-      .prepare(
-        'select "id" from "lunch_money_connection" where "userId" = ? order by "createdAt" asc limit 1'
-      )
-      .get(userId) as { id: string } | undefined;
-    database
-      .prepare(
-        'update "bento_user_context" set "activeConnectionId" = ?, "updatedAt" = ? where "userId" = ?'
-      )
-      .run(next?.id ?? null, new Date().toISOString(), userId);
-    return true;
-  })();
+): Promise<boolean> {
+  const store = await getStore();
+  const existing = await store.first(
+    'select 1 from "lunch_money_connection" where "id" = ? and "userId" = ?',
+    [connectionId, userId]
+  );
+  if (!existing) return false;
+  await store.batch([
+    {
+      sql: 'delete from "lunch_money_connection" where "id" = ? and "userId" = ?',
+      params: [connectionId, userId],
+    },
+    {
+      sql: `update "bento_user_context"
+            set "activeConnectionId" = (
+              select "id" from "lunch_money_connection"
+              where "userId" = ? order by "createdAt" asc limit 1
+            ), "updatedAt" = ?
+            where "userId" = ?`,
+      params: [userId, new Date().toISOString(), userId],
+    },
+  ]);
+  return true;
 }
 
 /** Server-only credential resolver shared by API-key and future OAuth clients. */
-export function getConnectionCredential(
+export async function getConnectionCredential(
   userId: string,
   connectionId: string
-): StoredCredential | null {
-  const row = database
-    .prepare(
-      'select "credentialCiphertext" from "lunch_money_connection" where "id" = ? and "userId" = ?'
-    )
-    .get(connectionId, userId) as { credentialCiphertext: string } | undefined;
+): Promise<StoredCredential | null> {
+  const store = await getStore();
+  const row = await store.first<{ credentialCiphertext: string }>(
+    'select "credentialCiphertext" from "lunch_money_connection" where "id" = ? and "userId" = ?',
+    [connectionId, userId]
+  );
   if (!row) return null;
   return decryptCredential(row.credentialCiphertext);
 }

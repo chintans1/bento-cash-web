@@ -22,7 +22,7 @@ export async function POST(request: Request) {
     return Response.json({ error: "Invalid request" }, { status: 400 });
   }
 
-  const resolved = resolveLunchMoneyClient(user.id, body.connectionId);
+  const resolved = await resolveLunchMoneyClient(user.id, body.connectionId);
   if (resolved.status === "not_found") {
     return Response.json({ error: "Connection not found" }, { status: 404 });
   }
