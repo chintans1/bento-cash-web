@@ -14,7 +14,6 @@ jobs:
     timeout-minutes: 15
     env:
       BETTER_AUTH_SECRET: ci-only-better-auth-secret-at-least-32-characters
-      BETTER_AUTH_URL: http://localhost:3000
       GOOGLE_CLIENT_ID: ci-google-client-id
       GOOGLE_CLIENT_SECRET: ci-google-client-secret
       BENTO_CREDENTIAL_ENCRYPTION_KEY: ci-only-credential-key

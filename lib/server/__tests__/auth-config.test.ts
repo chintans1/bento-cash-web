@@ -23,6 +23,14 @@ describe("Better Auth configuration", () => {
     expect(mocks.betterAuth).toHaveBeenCalledOnce();
     expect(mocks.betterAuth).toHaveBeenCalledWith(
       expect.objectContaining({
+        baseURL: {
+          allowedHosts: [
+            "localhost:3000",
+            "bento-cash.chintan-cf.work",
+            "bento-cash-web.chintans98.workers.dev",
+            "*-bento-cash-web.chintans98.workers.dev",
+          ],
+        },
         emailAndPassword: { enabled: false },
         account: { accountLinking: { updateUserInfoOnLink: true } },
         socialProviders: {

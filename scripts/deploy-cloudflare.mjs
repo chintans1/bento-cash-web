@@ -60,7 +60,6 @@ function createSecretsFile() {
     : {};
   const required = [
     "BETTER_AUTH_SECRET",
-    "BETTER_AUTH_URL",
     "GOOGLE_CLIENT_ID",
     "GOOGLE_CLIENT_SECRET",
   ];

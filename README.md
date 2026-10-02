@@ -85,7 +85,7 @@ Migrations run when the Durable Object starts. With the app running, use
 `pnpm db:migrate` to trigger and verify them explicitly. Set
 `BENTO_MIGRATE_URL` to the deployed app's base URL to check that environment.
 For the first deployment, the script supplies `BETTER_AUTH_SECRET`,
-`BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` from
+`GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` from
 `.env.production` or the shell. Set `BENTO_CREDENTIAL_ENCRYPTION_KEY` there too
 if credentials were encrypted with a separate key. Local `pnpm dev` reads these
 from `.env.local`.

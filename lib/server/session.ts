@@ -9,11 +9,5 @@ export async function getRequestUser(request: Request) {
 /** Custom cookie-authenticated mutations require a same-origin browser request. */
 export function hasSameOrigin(request: Request): boolean {
   const origin = request.headers.get("origin");
-  const configuredOrigin = process.env.BETTER_AUTH_URL
-    ? new URL(process.env.BETTER_AUTH_URL).origin
-    : null;
-  return (
-    origin !== null &&
-    (origin === new URL(request.url).origin || origin === configuredOrigin)
-  );
+  return origin !== null && origin === new URL(request.url).origin;
 }

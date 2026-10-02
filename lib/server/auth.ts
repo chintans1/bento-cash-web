@@ -6,7 +6,14 @@ export async function getAuth() {
   return betterAuth({
     database: authDatabase,
     secret: process.env.BETTER_AUTH_SECRET,
-    baseURL: process.env.BETTER_AUTH_URL,
+    baseURL: {
+      allowedHosts: [
+        "localhost:3000",
+        "bento-cash.chintan-cf.work",
+        "bento-cash-web.chintans98.workers.dev",
+        "*-bento-cash-web.chintans98.workers.dev",
+      ],
+    },
     emailAndPassword: {
       enabled: false,
     },

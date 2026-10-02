@@ -26,7 +26,6 @@ export default defineConfig({
       ASSETS: bindings.assets(),
       IMAGES: bindings.images(),
       BETTER_AUTH_SECRET: bindings.secret(),
-      BETTER_AUTH_URL: bindings.secret(),
       GOOGLE_CLIENT_ID: bindings.secret(),
       GOOGLE_CLIENT_SECRET: bindings.secret(),
       BENTO_CREDENTIAL_ENCRYPTION_KEY: bindings.secret(),
