@@ -11,9 +11,6 @@ importers:
       '@base-ui/react':
         specifier: ^1.5.0
         version: 1.5.0(@date-fns/tz@1.4.1)(@types/react@19.2.14)(date-fns@4.2.1)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
-      '@cloudflare/workers-response-store':
-        specifier: ^1.0.0
-        version: 1.0.0
       '@lunch-money/lunch-money-js-v2':
         specifier: ^2.11.0
         version: 2.11.0

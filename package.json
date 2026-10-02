@@ -10,7 +10,9 @@
     "dev": "vite dev --port 3000",
     "build": "vite build",
     "start": "vite preview",
-    "deploy": "vinext-cloudflare deploy --warm-cache",
+    "deploy": "node scripts/deploy-cloudflare.mjs",
+    "deploy:bootstrap": "node scripts/deploy-cloudflare.mjs --bootstrap",
+    "deploy:check": "node scripts/deploy-cloudflare.mjs --bootstrap --dry-run",
     "lint": "eslint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
@@ -20,7 +22,7 @@
     "db:generate": "auth generate --config scripts/auth-schema.config.ts --output migrations/001_better_auth.sql --yes",
     "db:migrate": "node scripts/migrate-do.mjs",
     "prepare": "husky",
-    "deploy:response-store": "cf deploy --prebuilt --mode production --worker bento-cash-web-response-store"
+    "deploy:database": "cf deploy --prebuilt --mode production --worker bento-cash-web-database"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
@@ -33,7 +35,6 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
-    "@cloudflare/workers-response-store": "^1.0.0",
     "@lunch-money/lunch-money-js-v2": "^2.11.0",
     "@vinext/cloudflare": "^1.0.0",
     "better-auth": "^1.7.4",

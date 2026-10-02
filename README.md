@@ -75,16 +75,24 @@ Open [http://localhost:3000](http://localhost:3000), continue with Google, and
 connect one or more Lunch Money API tokens.
 
 `pnpm dev` runs the vinext development server on port 3000. `pnpm build`
-produces the Cloudflare Workers build, and `pnpm deploy` deploys it. The
-`BENTO_DB` binding points to the SQLite-backed `BentoDatabase` Durable Object.
+produces the Cloudflare Workers build. Put the production auth and Google
+secrets in `.env.production` (or the shell) and run `pnpm deploy`. On the first
+deployment it creates the database Worker, then creates the app Worker with its
+secrets. Later deployments update both Workers. The `BENTO_DB` binding points to
+the SQLite-backed `BentoDatabase` Durable Object. No R2 bucket is required.
 Local data is kept under `.cloudflare/state/`; deployed data is separate.
 Migrations run when the Durable Object starts. With the app running, use
 `pnpm db:migrate` to trigger and verify them explicitly. Set
 `BENTO_MIGRATE_URL` to the deployed app's base URL to check that environment.
-Set the Worker secrets `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`,
-`GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` in Cloudflare before deployment.
-Set `BENTO_CREDENTIAL_ENCRYPTION_KEY` there too if credentials were encrypted
-with a separate key. Local `pnpm dev` reads these from `.env.local`.
+For the first deployment, the script supplies `BETTER_AUTH_SECRET`,
+`BETTER_AUTH_URL`, `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` from
+`.env.production` or the shell. Set `BENTO_CREDENTIAL_ENCRYPTION_KEY` there too
+if credentials were encrypted with a separate key. Local `pnpm dev` reads these
+from `.env.local`.
+
+GitHub Actions runs `pnpm deploy:check` to build and dry-run both Workers, then
+verifies local Durable Object migrations. It does not deploy to Cloudflare.
+
 If a dev server was already running when the Durable Object binding was added,
 restart it once to load the new binding. Existing SQLite files and D1 databases
 are not automatically imported into the Durable Object.

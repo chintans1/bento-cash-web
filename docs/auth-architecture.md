@@ -1,8 +1,7 @@
 # Authentication architecture
 
 Bento Cash uses [Better Auth](https://www.better-auth.com/) with a SQLite-backed
-Cloudflare Durable Object. The
-system separates identity from financial-data access:
+Cloudflare Durable Object. The system separates identity from financial-data access:
 
 - **Bento user** — a provider-backed identity with a server-managed session.
   Google is the only provider today; Bento does not accept passwords.

@@ -18,7 +18,6 @@ jobs:
       GOOGLE_CLIENT_ID: ci-google-client-id
       GOOGLE_CLIENT_SECRET: ci-google-client-secret
       BENTO_CREDENTIAL_ENCRYPTION_KEY: ci-only-credential-key
-      BENTO_DATABASE_PATH: ./data/ci.db
 
     steps:
       - name: Check out repository
@@ -47,8 +46,34 @@ jobs:
       - name: Run tests
         run: pnpm test
 
-      - name: Apply database migrations
-        run: pnpm db:migrate
+      - name: Build and check Cloudflare deployment
+        run: pnpm deploy:check
 
-      - name: Build
-        run: pnpm build
+      - name: Verify local Durable Object migrations
+        env:
+          CLOUDFLARE_INCLUDE_PROCESS_ENV: "true"
+        run: |
+          if lsof -nP -iTCP:3000 -sTCP:LISTEN >/dev/null 2>&1; then
+            echo "Reusing the server on port 3000"
+          else
+            pnpm dev > "$RUNNER_TEMP/vite.log" 2>&1 &
+            dev_pid=$!
+            trap 'kill "$dev_pid" 2>/dev/null || true' EXIT
+          fi
+
+          for attempt in {1..60}; do
+            if pnpm db:migrate > "$RUNNER_TEMP/migrate.log" 2>&1; then
+              cat "$RUNNER_TEMP/migrate.log"
+              exit 0
+            fi
+            if [[ -n "${dev_pid:-}" ]] && ! kill -0 "$dev_pid" 2>/dev/null; then
+              break
+            fi
+            sleep 1
+          done
+
+          cat "$RUNNER_TEMP/migrate.log"
+          if [[ -f "$RUNNER_TEMP/vite.log" ]]; then
+            cat "$RUNNER_TEMP/vite.log"
+          fi
+          exit 1

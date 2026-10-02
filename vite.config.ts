@@ -1,25 +1,16 @@
 import { defineConfig } from "vite";
 import vinext from "vinext";
 import { cloudflare } from "@cloudflare/vite-plugin";
-import {
-  databaseWorker,
-  responseStoreServiceBinding,
-} from "./cloudflare.config.js";
-import { responseStoreAdapter } from "@vinext/cloudflare/cache/response-store-adapter";
+import { databaseWorker } from "./cloudflare.config.js";
 import { imagesOptimizer } from "@vinext/cloudflare/images/images-optimizer";
 
 export default defineConfig({
   plugins: [
     vinext({
-      cache: responseStoreAdapter(),
-      prerender: { routes: "*" },
       images: { optimizer: imagesOptimizer() },
     }),
     cloudflare({
-      auxiliaryWorkers: [
-        { config: responseStoreServiceBinding },
-        { config: databaseWorker },
-      ],
+      auxiliaryWorkers: [{ config: databaseWorker }],
       viteEnvironment: {
         name: "rsc",
         childEnvironments: ["ssr"],
