@@ -75,32 +75,32 @@ Open [http://localhost:3000](http://localhost:3000), continue with Google, and
 connect one or more Lunch Money API tokens.
 
 `pnpm dev` runs the vinext development server on port 3000. `pnpm build`
-produces the Cloudflare Workers build. Put the production auth and Google
-secrets in `.env.production` (or the shell) and run `pnpm run deploy`. On the first
-deployment it creates the database Worker, then creates the app Worker with its
-secrets. Later deployments update both Workers. The `BENTO_DB` binding points to
-the SQLite-backed `BentoDatabase` Durable Object. No R2 bucket is required.
+produces both Cloudflare Workers. The app Worker's `BENTO_DB` binding points to
+the database Worker's SQLite-backed `BentoDatabase` Durable Object. No R2 bucket
+is required.
 Local data is kept under `.cloudflare/state/`; deployed data is separate.
 Migrations run when the Durable Object starts, both locally and in production.
 Run `pnpm db:verify-migrations` to apply and verify them in an isolated local
 SQLite database. The command does not access a running app or production data.
-For the first deployment, the script supplies `BETTER_AUTH_SECRET`,
-`GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` from
-`.env.production` or the shell. Set `BENTO_CREDENTIAL_ENCRYPTION_KEY` there too
-if credentials were encrypted with a separate key. Local `pnpm dev` reads these
-from `.env.local`.
+Local `pnpm dev` reads secrets from `.env.local`.
 
-For Cloudflare Workers Builds, connect this repository to both Workers. Use
-`pnpm build` as each Worker's build command. Set the deploy command for
-`bento-cash-web-database` to `pnpm run deploy:database`, and for
-`bento-cash-web` to `pnpm run deploy:app`. Deploy the database Worker at least
-once before deploying the app Worker, since the app's `BENTO_DB` binding targets
-it. The app Worker's first build needs `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`,
-and `GOOGLE_CLIENT_SECRET` as build secrets so the deploy script can upload them
-as runtime secrets. `pnpm run deploy` deploys both Workers from a local shell;
-it cannot be used as a Workers Builds deploy command for a single Worker.
+For automatic deployment on each push to the production branch, connect this
+repository to **both** Workers in Cloudflare Workers Builds. Configure each
+Worker with the repository root as its root directory:
 
-GitHub Actions runs `pnpm deploy:check` to build and dry-run both Workers, then
+| Connected Worker          | Build command | Deploy command                                                                      |
+| ------------------------- | ------------- | ----------------------------------------------------------------------------------- |
+| `bento-cash-web-database` | `pnpm build`  | `pnpm exec cf deploy --prebuilt --mode production --worker bento-cash-web-database` |
+| `bento-cash-web`          | `pnpm build`  | `pnpm exec cf deploy --prebuilt --mode production`                                  |
+
+Deploy the database Worker once before the app Worker's first deployment so the
+`BENTO_DB` binding has a target. After that, pushes trigger both Workers Builds
+independently. In the app Worker's **Settings > Variables & Secrets**, configure
+`BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and
+`BENTO_CREDENTIAL_ENCRYPTION_KEY` as runtime secrets. Build secrets are not
+available to the deployed Worker.
+
+GitHub Actions builds both Workers and dry-runs their deploy commands, then
 verifies local Durable Object migrations. It does not deploy to Cloudflare.
 
 If a dev server was already running when the Durable Object binding was added,

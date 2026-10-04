@@ -45,8 +45,14 @@ jobs:
       - name: Run tests
         run: pnpm test
 
-      - name: Build and check Cloudflare deployment
-        run: pnpm deploy:check
+      - name: Build Workers
+        run: pnpm build
+
+      - name: Check database Worker deployment
+        run: pnpm exec cf deploy --prebuilt --mode production --worker bento-cash-web-database --dry-run
+
+      - name: Check app Worker deployment
+        run: pnpm exec cf deploy --prebuilt --mode production --dry-run
 
       - name: Verify Durable Object migrations locally
         run: pnpm db:verify-migrations
