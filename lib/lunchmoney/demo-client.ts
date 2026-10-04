@@ -734,6 +734,9 @@ export function createDemoClient(): LMClient {
 
     getTags: () => Promise.resolve(DEMO_TAGS),
 
+    getManualAccounts: () => Promise.resolve(DEMO_ACCOUNTS),
+    getPlaidAccounts: () => Promise.resolve(DEMO_PLAID_ACCOUNTS),
+
     getAccounts: () =>
       Promise.resolve({ manual: DEMO_ACCOUNTS, plaid: DEMO_PLAID_ACCOUNTS }),
 

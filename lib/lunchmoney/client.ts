@@ -66,6 +66,8 @@ export interface LMClient {
   ): Promise<TransactionsResponse>;
   getCategories(): Promise<CategoriesResponse>;
   getTags(): Promise<Tag[]>;
+  getManualAccounts(): Promise<ManualAccount[]>;
+  getPlaidAccounts(): Promise<PlaidAccount[]>;
   getAccounts(): Promise<{ manual: ManualAccount[]; plaid: PlaidAccount[] }>;
   getRecurringItems(): Promise<RecurringItem[]>;
   getBalanceHistory(): Promise<BalanceHistoryAccount[]>;
@@ -147,6 +149,9 @@ export function createApiKeyClient(token: string): LMClient {
 
     getTags: () => sdk.tags.getAll(),
 
+    getManualAccounts: () => sdk.manualAccounts.getAll(),
+    getPlaidAccounts: () => sdk.plaidAccounts.getAll(),
+
     async getAccounts() {
       const [manual, plaid] = await Promise.all([
         sdk.manualAccounts.getAll(),
@@ -209,15 +214,24 @@ export function createApiKeyClient(token: string): LMClient {
   };
 }
 
-async function remoteCall<T>(
+async function remoteRequest<T>(
   connectionId: string,
-  action: string,
-  args: unknown[] = []
+  path: string,
+  method: "GET" | "POST" | "PATCH" | "PUT" = "GET",
+  body?: Record<string, unknown>
 ): Promise<T> {
-  const response = await fetch("/api/lunch-money", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ connectionId, action, args }),
+  const url = `/api/lunch-money/${path}${
+    method === "GET"
+      ? `${path.includes("?") ? "&" : "?"}connectionId=${encodeURIComponent(connectionId)}`
+      : ""
+  }`;
+  const response = await fetch(url, {
+    method,
+    cache: "no-store",
+    ...(body && {
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ connectionId, ...body }),
+    }),
   });
   const payload = (await response.json().catch(() => null)) as {
     data?: T;
@@ -231,31 +245,46 @@ async function remoteCall<T>(
 
 /** Browser client backed by an authenticated server-side LM connection. */
 export function createRemoteClient(connectionId: string): LMClient {
+  const getManualAccounts = (): Promise<ManualAccount[]> =>
+    remoteRequest(connectionId, "accounts/manual");
+  const getPlaidAccounts = (): Promise<PlaidAccount[]> =>
+    remoteRequest(connectionId, "accounts/plaid");
+
   return {
-    getMe: () => remoteCall(connectionId, "getMe"),
+    getMe: () => remoteRequest(connectionId, "me"),
     getTransactionsForMonth: (year, month) =>
-      remoteCall(connectionId, "getTransactionsForMonth", [year, month]),
-    getCategories: () => remoteCall(connectionId, "getCategories"),
-    getTags: () => remoteCall(connectionId, "getTags"),
-    getAccounts: () => remoteCall(connectionId, "getAccounts"),
-    getRecurringItems: () => remoteCall(connectionId, "getRecurringItems"),
-    getBalanceHistory: () => remoteCall(connectionId, "getBalanceHistory"),
+      remoteRequest(connectionId, `transactions?year=${year}&month=${month}`),
+    getCategories: () => remoteRequest(connectionId, "categories"),
+    getTags: () => remoteRequest(connectionId, "tags"),
+    getManualAccounts,
+    getPlaidAccounts,
+    async getAccounts() {
+      const [manual, plaid] = await Promise.all([
+        getManualAccounts(),
+        getPlaidAccounts(),
+      ]);
+      return { manual, plaid };
+    },
+    getRecurringItems: () => remoteRequest(connectionId, "recurring-items"),
+    getBalanceHistory: () => remoteRequest(connectionId, "balance-history"),
     getBudgetSummary: (year, month) =>
-      remoteCall(connectionId, "getBudgetSummary", [year, month]),
+      remoteRequest(connectionId, `budget-summary?year=${year}&month=${month}`),
     createManualAccount: (data) =>
-      remoteCall(connectionId, "createManualAccount", [data]),
+      remoteRequest(connectionId, "accounts/manual", "POST", { data }),
     upsertBalanceHistory: (accountType, accountId, balances) =>
-      remoteCall(connectionId, "upsertBalanceHistory", [
+      remoteRequest(connectionId, "balance-history", "PUT", {
         accountType,
         accountId,
         balances,
-      ]),
+      }),
     updateManualAccount: (id, data) =>
-      remoteCall(connectionId, "updateManualAccount", [id, data]),
+      remoteRequest(connectionId, `accounts/manual/${id}`, "PATCH", { data }),
     updateTransaction: (id, patch) =>
-      remoteCall(connectionId, "updateTransaction", [id, patch]),
+      remoteRequest(connectionId, `transactions/${id}`, "PATCH", { patch }),
     updateTransactions: (transactions) =>
-      remoteCall(connectionId, "updateTransactions", [transactions]),
+      remoteRequest(connectionId, "transactions/bulk", "PATCH", {
+        transactions,
+      }),
   };
 }
 

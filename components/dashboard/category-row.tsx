@@ -10,7 +10,7 @@ import { getTransactionsForCategory } from "@/lib/lunchmoney/analytics";
 import { type Transaction } from "@/lib/lunchmoney/client";
 import type { CategoryTotal, MoMDelta } from "@/lib/lunchmoney/analytics";
 import { MoMBadge } from "./mom-badge";
-import { AnimatedCollapse } from "@/components/animated-collapse";
+import { Collapsible } from "@/components/collapsible";
 
 /**
  * One category in the spend breakdown. Every bar starts with the same label
@@ -83,7 +83,7 @@ export function CategoryRow({
         />
       </button>
 
-      <AnimatedCollapse open={expanded && topTxs.length > 0}>
+      <Collapsible open={expanded && topTxs.length > 0}>
         <ul className="mt-1 mb-2 ml-4 flex flex-col gap-0.5 border-l-2 border-bento-hairline pl-3">
           {topTxs.map((tx) => (
             <li
@@ -107,7 +107,7 @@ export function CategoryRow({
             </li>
           )}
         </ul>
-      </AnimatedCollapse>
+      </Collapsible>
     </li>
   );
 }

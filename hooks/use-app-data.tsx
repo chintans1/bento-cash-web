@@ -64,6 +64,11 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     session: string;
     message: string;
   } | null>(null);
+  const [extras, setExtras] = useState<{
+    session: string;
+    tags?: Tag[];
+    recurringItems?: RecurringItem[];
+  } | null>(null);
 
   // Both results are tagged with the session they were fetched for, so signing
   // out or switching accounts drops them without a reset step.
@@ -75,14 +80,31 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 
     let cancelled = false;
 
-    Promise.all([
-      getMe(),
-      getAccounts(),
-      getCategories(),
-      getTags(),
-      getRecurringItems(),
-    ])
-      .then(([user, { manual, plaid }, catRes, tags, recurringItems]) => {
+    // Start optional metadata at the same time, but do not hold the first
+    // useful render behind tags or recurring items.
+    getTags()
+      .then((tags) => {
+        if (!cancelled) {
+          setExtras((previous) => ({
+            ...(previous?.session === session ? previous : { session }),
+            tags,
+          }));
+        }
+      })
+      .catch(() => {});
+    getRecurringItems()
+      .then((recurringItems) => {
+        if (!cancelled) {
+          setExtras((previous) => ({
+            ...(previous?.session === session ? previous : { session }),
+            recurringItems,
+          }));
+        }
+      })
+      .catch(() => {});
+
+    Promise.all([getMe(), getAccounts(), getCategories()])
+      .then(([user, { manual, plaid }, catRes]) => {
         if (cancelled) return;
         setLoaded({
           session,
@@ -90,8 +112,8 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
             user,
             primaryCurrency: user.primary_currency,
             accounts: normalizeAccounts(manual, plaid),
-            tags,
-            recurringItems,
+            tags: [],
+            recurringItems: [],
             ...buildCategoryData(catRes),
           },
         });
@@ -146,6 +168,14 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     <AppDataContext.Provider
       value={{
         ...(data ?? EMPTY),
+        tags:
+          extras?.session === session
+            ? (extras.tags ?? data?.tags ?? [])
+            : (data?.tags ?? []),
+        recurringItems:
+          extras?.session === session
+            ? (extras.recurringItems ?? data?.recurringItems ?? [])
+            : (data?.recurringItems ?? []),
         // Derived rather than a flag: signed in with neither result yet means
         // the request is still out.
         loading: session !== null && data === null && error === null,

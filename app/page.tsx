@@ -17,7 +17,7 @@ import { TopMerchantsCard } from "@/components/dashboard/top-merchants-card";
 import { BudgetProgressCard } from "@/components/dashboard/budget-progress-card";
 import { UpcomingBillsCard } from "@/components/dashboard/upcoming-bills-card";
 import { RecentTransactionsCard } from "@/components/dashboard/recent-transactions-card";
-import { AnimatedCollapse } from "@/components/animated-collapse";
+import { Collapsible } from "@/components/collapsible";
 
 function HomePage() {
   const { hasDataSource, dataScopeKey } = useAuth();
@@ -41,6 +41,8 @@ function HomePage() {
     netWorthHistoryLoading,
     loading,
     refreshing,
+    comparisonLoading,
+    comparisonUnavailable,
     error,
     categoryTotals,
     momDeltas,
@@ -77,12 +79,12 @@ function HomePage() {
         />
       </div>
 
-      <AnimatedCollapse open={!loading && uncategorizedCount > 0}>
+      <Collapsible open={!loading && uncategorizedCount > 0}>
         <UncategorizedBanner
           count={uncategorizedCount}
           href={`${transactionsHref}&category=-1`}
         />
-      </AnimatedCollapse>
+      </Collapsible>
 
       <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="lg:col-span-2">
@@ -140,6 +142,8 @@ function HomePage() {
             month={selectedMonth}
             primaryCurrency={primaryCurrency}
             loading={loading}
+            comparisonLoading={comparisonLoading}
+            comparisonUnavailable={comparisonUnavailable}
           />
 
           <SpendByCategoryCard

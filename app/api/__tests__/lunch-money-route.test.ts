@@ -14,14 +14,32 @@ vi.mock("@/lib/server/lunch-money-client", () => ({
   resolveLunchMoneyClient: mocks.resolveLunchMoneyClient,
 }));
 
-import { POST } from "@/app/api/lunch-money/route";
+import { GET as getMe } from "@/app/api/lunch-money/me/route";
+import { GET as getTransactions } from "@/app/api/lunch-money/transactions/route";
+import { PATCH as updateTransaction } from "@/app/api/lunch-money/transactions/[id]/route";
+import { PATCH as updateTransactions } from "@/app/api/lunch-money/transactions/bulk/route";
+import { GET as getCategories } from "@/app/api/lunch-money/categories/route";
+import { GET as getTags } from "@/app/api/lunch-money/tags/route";
+import {
+  GET as getManualAccounts,
+  POST as createManualAccount,
+} from "@/app/api/lunch-money/accounts/manual/route";
+import { GET as getPlaidAccounts } from "@/app/api/lunch-money/accounts/plaid/route";
+import { PATCH as updateManualAccount } from "@/app/api/lunch-money/accounts/manual/[id]/route";
+import { GET as getRecurringItems } from "@/app/api/lunch-money/recurring-items/route";
+import {
+  GET as getBalanceHistory,
+  PUT as upsertBalanceHistory,
+} from "@/app/api/lunch-money/balance-history/route";
+import { GET as getBudgetSummary } from "@/app/api/lunch-money/budget-summary/route";
 
 const client = {
   getMe: vi.fn(),
   getTransactionsForMonth: vi.fn(),
   getCategories: vi.fn(),
   getTags: vi.fn(),
-  getAccounts: vi.fn(),
+  getManualAccounts: vi.fn(),
+  getPlaidAccounts: vi.fn(),
   getRecurringItems: vi.fn(),
   getBalanceHistory: vi.fn(),
   getBudgetSummary: vi.fn(),
@@ -32,16 +50,21 @@ const client = {
   updateTransactions: vi.fn(),
 };
 
-function request(body: unknown) {
-  return new Request("https://bento.example/api/lunch-money", {
-    method: "POST",
+function request(path: string, method = "GET", body?: object) {
+  return new Request(`https://bento.example/api/lunch-money/${path}`, {
+    method,
     headers: {
       origin: "https://bento.example",
-      "content-type": "application/json",
+      ...(body && { "content-type": "application/json" }),
     },
-    body: JSON.stringify(body),
+    ...(body && {
+      body: JSON.stringify({ connectionId: "connection-1", ...body }),
+    }),
   });
 }
+
+const query = "connectionId=connection-1";
+const monthQuery = `${query}&year=2026&month=9`;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -50,151 +73,193 @@ beforeEach(() => {
   mocks.resolveLunchMoneyClient.mockReturnValue({ status: "ready", client });
 });
 
-describe("authenticated Lunch Money RPC", () => {
-  it("rejects cross-origin requests before checking the session", async () => {
+describe("authenticated Lunch Money routes", () => {
+  it("rejects cross-origin writes before checking the session", async () => {
     mocks.hasSameOrigin.mockReturnValue(false);
-
-    const response = await POST(
-      request({ connectionId: "connection-1", action: "getMe", args: [] })
+    const response = await createManualAccount(
+      request("accounts/manual", "POST", { data: {} })
     );
-
     expect(response.status).toBe(403);
     expect(mocks.getRequestUser).not.toHaveBeenCalled();
   });
 
-  it("requires a valid session", async () => {
-    mocks.getRequestUser.mockResolvedValue(null);
-
-    const response = await POST(
-      request({ connectionId: "connection-1", action: "getMe", args: [] })
-    );
-
-    expect(response.status).toBe(401);
-    expect(mocks.resolveLunchMoneyClient).not.toHaveBeenCalled();
-  });
-
-  it.each([
-    {},
-    { connectionId: 1, action: "getMe", args: [] },
-    { connectionId: "connection-1", action: 1, args: [] },
-    { connectionId: "connection-1", action: "getMe", args: {} },
-  ])("validates the RPC envelope (%j)", async (body) => {
-    const response = await POST(request(body));
-
-    expect(response.status).toBe(400);
-    expect(mocks.resolveLunchMoneyClient).not.toHaveBeenCalled();
-  });
-
-  it("returns 404 without exposing another user's connection", async () => {
-    mocks.resolveLunchMoneyClient.mockReturnValue({ status: "not_found" });
-
-    const response = await POST(
-      request({ connectionId: "connection-2", action: "getMe", args: [] })
-    );
-
-    expect(response.status).toBe(404);
+  it("requires a session and owned connection", async () => {
+    mocks.getRequestUser.mockResolvedValueOnce(null);
+    expect((await getMe(request(`me?${query}`))).status).toBe(401);
+    mocks.resolveLunchMoneyClient.mockReturnValueOnce({ status: "not_found" });
+    expect((await getMe(request(`me?${query}`))).status).toBe(404);
     expect(mocks.resolveLunchMoneyClient).toHaveBeenCalledWith(
       "user-1",
-      "connection-2"
+      "connection-1"
     );
   });
 
-  it("reports the future OAuth path without leaking credentials", async () => {
+  it("reports an unsupported connection method", async () => {
     mocks.resolveLunchMoneyClient.mockReturnValue({
       status: "unsupported_auth",
       authMethod: "oauth",
     });
-
-    const response = await POST(
-      request({ connectionId: "connection-1", action: "getMe", args: [] })
-    );
-
-    expect(response.status).toBe(409);
-    await expect(response.json()).resolves.toEqual({
-      error: "This connection method is not available yet",
-    });
+    expect((await getMe(request(`me?${query}`))).status).toBe(409);
   });
 
-  it("rejects methods outside the explicit RPC allowlist", async () => {
-    const response = await POST(
-      request({
-        connectionId: "connection-1",
-        action: "getCredential",
-        args: [],
-      })
-    );
-
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toEqual({ error: "Unknown action" });
+  it("validates endpoint inputs before opening a connection", async () => {
+    expect(
+      (
+        await getTransactions(
+          request(`transactions?${query}&year=2026&month=13`)
+        )
+      ).status
+    ).toBe(400);
+    expect(
+      (
+        await updateTransaction(
+          request("transactions/nope", "PATCH", { patch: {} }),
+          { params: Promise.resolve({ id: "nope" }) }
+        )
+      ).status
+    ).toBe(400);
+    expect(
+      (
+        await createManualAccount(
+          request("accounts/manual", "POST", { data: "bad" })
+        )
+      ).status
+    ).toBe(400);
+    expect(mocks.resolveLunchMoneyClient).not.toHaveBeenCalled();
   });
 
   it.each([
-    ["getMe", [], "getMe", []],
+    ["me", getMe, `me?${query}`, "GET", undefined, "getMe", []],
     [
+      "transactions",
+      getTransactions,
+      `transactions?${monthQuery}`,
+      "GET",
+      undefined,
       "getTransactionsForMonth",
       [2026, 9],
-      "getTransactionsForMonth",
+    ],
+    [
+      "categories",
+      getCategories,
+      `categories?${query}`,
+      "GET",
+      undefined,
+      "getCategories",
+      [],
+    ],
+    ["tags", getTags, `tags?${query}`, "GET", undefined, "getTags", []],
+    [
+      "manual accounts",
+      getManualAccounts,
+      `accounts/manual?${query}`,
+      "GET",
+      undefined,
+      "getManualAccounts",
+      [],
+    ],
+    [
+      "Plaid accounts",
+      getPlaidAccounts,
+      `accounts/plaid?${query}`,
+      "GET",
+      undefined,
+      "getPlaidAccounts",
+      [],
+    ],
+    [
+      "recurring",
+      getRecurringItems,
+      `recurring-items?${query}`,
+      "GET",
+      undefined,
+      "getRecurringItems",
+      [],
+    ],
+    [
+      "history",
+      getBalanceHistory,
+      `balance-history?${query}`,
+      "GET",
+      undefined,
+      "getBalanceHistory",
+      [],
+    ],
+    [
+      "budget",
+      getBudgetSummary,
+      `budget-summary?${monthQuery}`,
+      "GET",
+      undefined,
+      "getBudgetSummary",
       [2026, 9],
     ],
-    ["getCategories", [], "getCategories", []],
-    ["getTags", [], "getTags", []],
-    ["getAccounts", [], "getAccounts", []],
-    ["getRecurringItems", [], "getRecurringItems", []],
-    ["getBalanceHistory", [], "getBalanceHistory", []],
-    ["getBudgetSummary", [2026, 9], "getBudgetSummary", [2026, 9]],
     [
+      "create account",
+      createManualAccount,
+      "accounts/manual",
+      "POST",
+      { data: { name: "Cash" } },
       "createManualAccount",
-      [{ name: "Mint account", type_name: "cash", balance: "10" }],
-      "createManualAccount",
-      [{ name: "Mint account", type_name: "cash", balance: "10" }],
+      [{ name: "Cash" }],
     ],
     [
+      "update history",
+      upsertBalanceHistory,
+      "balance-history",
+      "PUT",
+      {
+        accountType: "manual",
+        accountId: 7,
+        balances: [{ date: "2026-09-30", balance: "10" }],
+      },
       "upsertBalanceHistory",
       ["manual", 7, [{ date: "2026-09-30", balance: "10" }]],
-      "upsertBalanceHistory",
-      ["manual", 7, [{ date: "2026-09-30", balance: "10" }]],
     ],
     [
-      "updateManualAccount",
-      [7, { balance: "12" }],
-      "updateManualAccount",
-      [7, { balance: "12" }],
-    ],
-    [
-      "updateTransaction",
-      [8, { payee: "Cafe" }],
-      "updateTransaction",
-      [8, { payee: "Cafe" }],
-    ],
-    [
-      "updateTransactions",
-      [[{ id: 9, payee: "Shop" }]],
+      "bulk transactions",
+      updateTransactions,
+      "transactions/bulk",
+      "PATCH",
+      { transactions: [{ id: 9, payee: "Shop" }] },
       "updateTransactions",
       [[{ id: 9, payee: "Shop" }]],
     ],
   ] as const)(
-    "dispatches allowed action %s",
-    async (action, args, method, expectedArgs) => {
-      const result = { action };
-      client[method].mockResolvedValue(result);
-
-      const response = await POST(
-        request({ connectionId: "connection-1", action, args })
-      );
-
+    "routes %s",
+    async (name, handler, path, method, body, clientMethod, args) => {
+      const result = { name };
+      client[clientMethod].mockResolvedValue(result);
+      const response = await handler(request(path, method, body));
       expect(response.status).toBe(200);
+      expect(response.headers.get("cache-control")).toBe("private, no-store");
       await expect(response.json()).resolves.toEqual({ data: result });
-      expect(client[method]).toHaveBeenCalledWith(...expectedArgs);
+      expect(client[clientMethod]).toHaveBeenCalledWith(...args);
     }
   );
 
-  it("maps provider failures to a safe gateway response", async () => {
-    client.getMe.mockRejectedValue(new Error("Lunch Money unavailable"));
-
-    const response = await POST(
-      request({ connectionId: "connection-1", action: "getMe", args: [] })
+  it("routes individual writes", async () => {
+    client.updateTransaction.mockResolvedValue({ id: 8 });
+    client.updateManualAccount.mockResolvedValue(undefined);
+    const transaction = await updateTransaction(
+      request("transactions/8", "PATCH", { patch: { payee: "Cafe" } }),
+      { params: Promise.resolve({ id: "8" }) }
     );
+    const account = await updateManualAccount(
+      request("accounts/manual/7", "PATCH", { data: { balance: "12" } }),
+      { params: Promise.resolve({ id: "7" }) }
+    );
+    expect(transaction.status).toBe(200);
+    expect(account.status).toBe(200);
+    expect(client.updateTransaction).toHaveBeenCalledWith(8, { payee: "Cafe" });
+    expect(client.updateManualAccount).toHaveBeenCalledWith(7, {
+      balance: "12",
+    });
+  });
 
+  it("maps provider failures", async () => {
+    client.getMe.mockRejectedValue(new Error("Lunch Money unavailable"));
+    const response = await getMe(request(`me?${query}`));
     expect(response.status).toBe(502);
     await expect(response.json()).resolves.toEqual({
       error: "Lunch Money unavailable",

@@ -49,12 +49,16 @@ export function SpendingTrendCard({
   month,
   primaryCurrency,
   loading,
+  comparisonLoading,
+  comparisonUnavailable,
 }: {
   data: CumulativeSpendPoint[];
   year: number;
   month: number;
   primaryCurrency: string;
   loading: boolean;
+  comparisonLoading: boolean;
+  comparisonUnavailable: boolean;
 }) {
   const [view, setView] = useState<SpendView>("flexible");
   const prev = prevMonthOf(year, month);
@@ -79,10 +83,13 @@ export function SpendingTrendCard({
         windowStart: point.windowStart,
         current:
           view === "flexible" ? point.currentFlexible : point.currentTotal,
-        previous:
-          view === "flexible" ? point.previousFlexible : point.previousTotal,
+        previous: comparisonUnavailable
+          ? null
+          : view === "flexible"
+            ? point.previousFlexible
+            : point.previousTotal,
       })),
-    [data, view]
+    [data, view, comparisonUnavailable]
   );
 
   return (
@@ -92,8 +99,8 @@ export function SpendingTrendCard({
           <div>
             <CardTitle className="text-lg">Spending</CardTitle>
             <p className="mt-1 text-xs text-bento-subtle">
-              3-day grouped · {MONTH_NAMES[month - 1]} vs{" "}
-              {MONTH_NAMES[prev.month - 1]}
+              3-day grouped · {MONTH_NAMES[month - 1]}
+              {!comparisonUnavailable && ` vs ${MONTH_NAMES[prev.month - 1]}`}
             </p>
           </div>
           <div className="text-right">
@@ -101,9 +108,18 @@ export function SpendingTrendCard({
               {formatCurrency(currentAmount, primaryCurrency)}
             </p>
             <p className="text-xs text-bento-subtle tabular-nums">
-              {diff >= 0 ? "+" : "−"}
-              {formatCurrency(Math.abs(diff), primaryCurrency)} vs last month
-              {currentPoint ? ` through day ${currentPoint.day}` : ""}
+              {comparisonUnavailable ? (
+                "Comparison unavailable"
+              ) : comparisonLoading ? (
+                "Loading comparison…"
+              ) : (
+                <>
+                  {diff >= 0 ? "+" : "−"}
+                  {formatCurrency(Math.abs(diff), primaryCurrency)} vs last
+                  month
+                  {currentPoint ? ` through day ${currentPoint.day}` : ""}
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -140,13 +156,15 @@ export function SpendingTrendCard({
             <span className="h-0.5 w-4 rounded-full bg-series-1" />
             <span className="text-bento-subtle">This month</span>
           </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-0.5 w-4 rounded-full bg-bento-subtle" />
-            <span className="text-bento-subtle">Last month</span>
-          </span>
+          {!comparisonUnavailable && (
+            <span className="flex items-center gap-1.5">
+              <span className="h-0.5 w-4 rounded-full bg-bento-subtle" />
+              <span className="text-bento-subtle">Last month</span>
+            </span>
+          )}
         </div>
 
-        {loading ? (
+        {loading || comparisonLoading ? (
           <Skeleton className="h-48 rounded-xl" />
         ) : (
           <ChartContainer config={chartConfig} className="h-48 w-full">
@@ -226,16 +244,18 @@ export function SpendingTrendCard({
                   );
                 }}
               />
-              <Area
-                dataKey="previous"
-                type="monotone"
-                stroke="var(--bento-subtle)"
-                strokeWidth={1.5}
-                fill="none"
-                connectNulls
-                dot={false}
-                activeDot={{ r: 3, strokeWidth: 0 }}
-              />
+              {!comparisonUnavailable && (
+                <Area
+                  dataKey="previous"
+                  type="monotone"
+                  stroke="var(--bento-subtle)"
+                  strokeWidth={1.5}
+                  fill="none"
+                  connectNulls
+                  dot={false}
+                  activeDot={{ r: 3, strokeWidth: 0 }}
+                />
+              )}
               <Area
                 dataKey="current"
                 type="monotone"

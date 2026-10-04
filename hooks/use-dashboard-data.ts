@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   getBudgetSummary,
-  getRecurringItems,
   getTransactionsForMonth,
   type AlignedSummaryResponse,
   type RecurringItem,
@@ -42,6 +41,7 @@ import { monthKeyOf, prevMonthOf } from "@/lib/date-utils";
 
 /** How much of the net worth curve the hero shows. */
 const NET_WORTH_MONTHS = 12;
+const EMPTY_TRANSACTIONS: Transaction[] = [];
 
 export type DashboardData = {
   // Raw data
@@ -60,6 +60,8 @@ export type DashboardData = {
   loading: boolean;
   /** True while a month change is in flight over already-rendered content. */
   refreshing: boolean;
+  comparisonLoading: boolean;
+  comparisonUnavailable: boolean;
   error: string | null;
 
   // Derived / computed values
@@ -86,50 +88,69 @@ export function useDashboardData(
    * every memo keyed on it. */
   const now = useMemo(() => new Date(), []);
 
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [prevTransactions, setPrevTransactions] = useState<Transaction[]>([]);
-  const [recurringItems, setRecurringItems] = useState<RecurringItem[]>([]);
-  const [budgetSummary, setBudgetSummary] =
-    useState<AlignedSummaryResponse | null>(null);
+  const [currentResult, setCurrentResult] = useState<{
+    key: string;
+    transactions: Transaction[];
+  } | null>(null);
+  const [previousResult, setPreviousResult] = useState<{
+    key: string;
+    transactions: Transaction[];
+  } | null>(null);
+  const [comparisonFailedKey, setComparisonFailedKey] = useState<string | null>(
+    null
+  );
+  const [budgetResult, setBudgetResult] = useState<{
+    key: string;
+    summary: AlignedSummaryResponse;
+  } | null>(null);
   const balanceHistory = useBalanceHistory(session);
   const {
     accounts,
     primaryCurrency,
     categoryMap,
+    recurringItems,
     loading: appLoading,
   } = useAppData();
-  /** The month currently on screen, and any failure, both tagged by month. */
-  const [loadedMonth, setLoadedMonth] = useState<string | null>(null);
+  /** Results and failures are tagged so a month change never displays old data. */
   const [failure, setFailure] = useState<{
     month: string;
     message: string;
   } | null>(null);
 
   const monthKey = session ? `${session}:${year}-${month}` : `${year}-${month}`;
-  // Derived: we're loading whenever what's rendered isn't the month selected
-  // and that month hasn't already failed. No flag to keep in sync.
+  const previous = prevMonthOf(year, month);
+  const previousKey = session
+    ? `${session}:${previous.year}-${previous.month}`
+    : `${previous.year}-${previous.month}`;
+  const transactions =
+    currentResult?.key === monthKey
+      ? currentResult.transactions
+      : EMPTY_TRANSACTIONS;
+  const prevTransactions =
+    previousResult?.key === previousKey
+      ? previousResult.transactions
+      : EMPTY_TRANSACTIONS;
+  const comparisonReady = previousResult?.key === previousKey;
+  const comparisonUnavailable = comparisonFailedKey === previousKey;
+  const comparisonLoading = !comparisonReady && !comparisonUnavailable;
+  const budgetSummary =
+    budgetResult?.key === monthKey ? budgetResult.summary : null;
   const isLoading =
-    session !== null && loadedMonth !== monthKey && failure?.month !== monthKey;
+    session !== null &&
+    currentResult?.key !== monthKey &&
+    failure?.month !== monthKey;
   const error = failure?.month === monthKey ? failure.message : null;
 
   // Re-fetch all transaction data whenever the auth state or selected month changes
   useEffect(() => {
     if (!session) return;
 
-    const prev = prevMonthOf(year, month);
-    // Guards against a slow response for a month the user has already left
-    // overwriting the month they're now looking at.
     let cancelled = false;
 
-    Promise.all([
-      getTransactionsForMonth(year, month),
-      getTransactionsForMonth(prev.year, prev.month),
-    ])
-      .then(([txRes, prevTxRes]) => {
+    getTransactionsForMonth(year, month)
+      .then((result) => {
         if (cancelled) return;
-        setTransactions(txRes.transactions);
-        setPrevTransactions(prevTxRes.transactions);
-        setLoadedMonth(monthKey);
+        setCurrentResult({ key: monthKey, transactions: result.transactions });
       })
       .catch((err: unknown) => {
         if (cancelled) return;
@@ -139,23 +160,38 @@ export function useDashboardData(
         });
       });
 
-    // Secondary data: renders after the main content, failures stay quiet
-    // because the cards simply don't render without them.
-    getRecurringItems()
-      .then((items) => {
-        if (!cancelled) setRecurringItems(items);
+    // Comparisons never block the current month. The key prevents a prior
+    // month comparison from being paired with the newly selected month.
+    getTransactionsForMonth(previous.year, previous.month)
+      .then((result) => {
+        if (!cancelled) {
+          setPreviousResult({
+            key: previousKey,
+            transactions: result.transactions,
+          });
+        }
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setComparisonFailedKey(previousKey);
+      });
     getBudgetSummary(year, month)
       .then((summary) => {
-        if (!cancelled) setBudgetSummary(summary);
+        if (!cancelled) setBudgetResult({ key: monthKey, summary });
       })
       .catch(() => {});
 
     return () => {
       cancelled = true;
     };
-  }, [session, year, month, monthKey]);
+  }, [
+    session,
+    year,
+    month,
+    monthKey,
+    previous.year,
+    previous.month,
+    previousKey,
+  ]);
 
   // ── Derived data ────────────────────────────────────────────────────────────
 
@@ -170,8 +206,11 @@ export function useDashboardData(
   );
 
   const momDeltas = useMemo(
-    () => computeMoMDeltas(categoryTotals, prevCategoryTotals),
-    [categoryTotals, prevCategoryTotals]
+    () =>
+      !comparisonReady
+        ? new Map<number, MoMDelta>()
+        : computeMoMDeltas(categoryTotals, prevCategoryTotals),
+    [categoryTotals, prevCategoryTotals, comparisonReady]
   );
 
   const merchantTotals = useMemo(
@@ -277,8 +316,10 @@ export function useDashboardData(
     netWorth,
     netWorthHistory,
     netWorthHistoryLoading: session !== null && balanceHistory === null,
-    loading: (isLoading || appLoading) && transactions.length === 0,
-    refreshing: isLoading && transactions.length > 0,
+    loading: isLoading || appLoading,
+    refreshing: isLoading && currentResult !== null,
+    comparisonLoading,
+    comparisonUnavailable,
     error,
     categoryTotals,
     momDeltas,

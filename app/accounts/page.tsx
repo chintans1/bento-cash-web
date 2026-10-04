@@ -12,7 +12,7 @@ import {
 } from "@/lib/investable-utils";
 import { InvestableCashCard } from "@/components/accounts/investable-cash-card";
 import { AccountSection } from "@/components/accounts/account-section";
-import { AnimatedCollapse } from "@/components/animated-collapse";
+import { Collapsible } from "@/components/collapsible";
 import { ConnectionPrompt } from "@/components/connection-prompt";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/format";
@@ -135,7 +135,7 @@ export default function AccountsPage() {
                 {inactive.length} inactive or revoked{" "}
                 {inactive.length === 1 ? "account" : "accounts"}
               </button>
-              <AnimatedCollapse open={showInactive}>
+              <Collapsible open={showInactive}>
                 <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-6">
                   <AccountSection
                     title="Inactive / Revoked"
@@ -150,7 +150,7 @@ export default function AccountsPage() {
                     primaryCurrency={primaryCurrency}
                   />
                 </div>
-              </AnimatedCollapse>
+              </Collapsible>
             </div>
           )}
         </>

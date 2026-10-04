@@ -73,13 +73,13 @@ Strong success criteria let you loop independently. Weak criteria ("make it work
 
 ## Project Overview
 
-A Next.js 16 web frontend for [Lunch Money](https://lunchmoney.app) that provides richer analytics and a faster daily-use interface than the Lunch Money native UI.
+A Vinext web frontend for [Lunch Money](https://lunchmoney.app) that provides richer analytics and a faster daily-use interface than the Lunch Money native UI.
 
 ## Stack
 
 | Layer     | Choice                                                                                |
 | --------- | ------------------------------------------------------------------------------------- |
-| Framework | Next.js 16 (App Router, Turbopack)                                                    |
+| Framework | Vinext (App Router compatibility on Vite)                                             |
 | Language  | TypeScript (strict)                                                                   |
 | Styling   | Tailwind CSS v4 + shadcn components                                                   |
 | LM SDK    | `@lunch-money/lunch-money-js-v2`                                                      |
@@ -93,8 +93,8 @@ Never use `npm` or `npx` in this repository. Use `pnpm` and `pnpm exec` exclusiv
 Before starting the development server, check whether port 3000 is already in use (for example, with `lsof -nP -iTCP:3000 -sTCP:LISTEN`). The developer usually already has `pnpm dev` running there. If port 3000 is already serving the app, reuse that server and do not start another one.
 
 ```bash
-pnpm dev        # dev server with Turbopack; only start if port 3000 is unused
-pnpm typecheck  # tsc --noEmit
+pnpm dev        # Vite dev server; only start if port 3000 is unused
+pnpm typecheck  # Vinext typegen, Cloudflare types, then tsc --noEmit
 pnpm lint
 pnpm format
 ```
@@ -276,13 +276,13 @@ Connection manager. Adding an account calls `getMe()` to verify its token and st
 
 ## UI Components
 
-Only shadcn-installed components are used. No custom UI primitive files should be created — install via `npx shadcn add <component>` instead.
+Only shadcn-installed components are used. No custom UI primitive files should be created — install via `pnpm exec shadcn add <component>` instead.
 
-One exception: `components/ui/combobox.tsx`. The category picker needs a searchable select, and at the time it was written `npx shadcn add command popover` could not reach the registry from the sandboxed dev environment (the proxy 403s `ui.shadcn.com`). It wraps `@base-ui/react`'s Combobox — the same primitive the generated `select.tsx` uses — and mirrors that file's popup styling. The registry _is_ reachable from a normal dev machine, so replacing it with the generated component is still the better path; it's tracked in TODO.md.
+One exception: `components/ui/combobox.tsx`. The category picker needs a searchable select, and at the time it was written the shadcn CLI could not reach the registry from the sandboxed dev environment (the proxy 403s `ui.shadcn.com`). It wraps `@base-ui/react`'s Combobox — the same primitive the generated `select.tsx` uses — and mirrors that file's popup styling. The registry _is_ reachable from a normal dev machine, so replacing it with the generated component is still the better path; it's tracked in TODO.md.
 
 Current installed components in `components/ui/`:
 
-`alert`, `badge`, `button` (includes an `icon-sm` size variant), `button-group`, `calendar`, `card` (`Card`, `CardHeader`, `CardTitle`, `CardContent`, `CardFooter`, `CardDescription`), `chart`, `hover-card`, `input`, `kbd`, `popover`, `select`, `separator`, `skeleton`, `table`, `textarea`, and `combobox` (see the exception above).
+`alert`, `badge`, `button` (includes an `icon-sm` size variant), `card` (`Card`, `CardHeader`, `CardTitle`, `CardContent`, `CardFooter`, `CardDescription`), `chart`, `input`, `kbd`, `popover`, `select`, `separator`, `skeleton`, `table`, `textarea`, and `combobox` (see the exception above).
 
 Two of these are deliberately not used the way the registry ships them:
 

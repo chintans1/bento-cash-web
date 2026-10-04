@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { ChevronDown, X } from "lucide-react";
-import { AnimatedCollapse } from "@/components/animated-collapse";
+import { Collapsible } from "@/components/collapsible";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatShortDate } from "@/lib/format";
 import { MONTH_NAMES } from "@/lib/date-utils";
@@ -146,7 +146,7 @@ export function QuickStatsPanel({
       </div>
 
       {/* Drill-down panel */}
-      <AnimatedCollapse
+      <Collapsible
         open={!loading && !!openPanel && !!quickStats}
         className="mb-4"
       >
@@ -223,7 +223,7 @@ export function QuickStatsPanel({
             </Table>
           </div>
         )}
-      </AnimatedCollapse>
+      </Collapsible>
     </>
   );
 }

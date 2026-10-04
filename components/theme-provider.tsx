@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { ThemeProvider as NextThemesProvider, useTheme } from "next-themes";
-import { MotionConfig } from "motion/react";
 
 function ThemeProvider({
   children,
@@ -16,8 +15,7 @@ function ThemeProvider({
       {...props}
     >
       <ThemeHotkey />
-      {/* reducedMotion="user" makes every motion component respect the OS setting */}
-      <MotionConfig reducedMotion="user">{children}</MotionConfig>
+      {children}
     </NextThemesProvider>
   );
 }

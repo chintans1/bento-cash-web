@@ -275,9 +275,9 @@ export function useMonthTransactions(
   );
 
   return {
-    transactions,
-    loading: pending && transactions.length === 0,
-    refreshing: pending && transactions.length > 0,
+    transactions: loadedKey === requestKey ? transactions : [],
+    loading: pending,
+    refreshing: pending && loadedKey !== null,
     error: failure?.key === requestKey ? failure.message : null,
     savingIds,
     errors,

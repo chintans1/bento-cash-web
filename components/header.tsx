@@ -4,12 +4,10 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CircleAlert, Menu, X } from "lucide-react";
-import { motion } from "motion/react";
 import { cn } from "@/lib/utils";
-import { DURATION, EASE } from "@/lib/motion";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
-import { AnimatedCollapse } from "@/components/animated-collapse";
+import { Collapsible } from "@/components/collapsible";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
 
@@ -53,11 +51,7 @@ export function Header() {
                   )}
                 >
                   {pathname === href && (
-                    <motion.span
-                      layoutId="nav-pill"
-                      className="absolute inset-0 rounded-4xl bg-bento-brand"
-                      transition={{ duration: DURATION.expand, ease: EASE }}
-                    />
+                    <span className="absolute inset-0 rounded-4xl bg-bento-brand" />
                   )}
                   <span className="relative z-10">{label}</span>
                 </Link>
@@ -115,7 +109,7 @@ export function Header() {
       )}
 
       {/* Mobile dropdown menu */}
-      <AnimatedCollapse open={menuOpen && hasDataSource}>
+      <Collapsible open={menuOpen && hasDataSource}>
         <nav
           id="mobile-navigation"
           aria-label="Mobile navigation"
@@ -138,7 +132,7 @@ export function Header() {
             </Link>
           ))}
         </nav>
-      </AnimatedCollapse>
+      </Collapsible>
     </header>
   );
 }
