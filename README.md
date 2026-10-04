@@ -76,7 +76,7 @@ connect one or more Lunch Money API tokens.
 
 `pnpm dev` runs the vinext development server on port 3000. `pnpm build`
 produces the Cloudflare Workers build. Put the production auth and Google
-secrets in `.env.production` (or the shell) and run `pnpm deploy`. On the first
+secrets in `.env.production` (or the shell) and run `pnpm run deploy`. On the first
 deployment it creates the database Worker, then creates the app Worker with its
 secrets. Later deployments update both Workers. The `BENTO_DB` binding points to
 the SQLite-backed `BentoDatabase` Durable Object. No R2 bucket is required.
@@ -89,6 +89,16 @@ For the first deployment, the script supplies `BETTER_AUTH_SECRET`,
 `.env.production` or the shell. Set `BENTO_CREDENTIAL_ENCRYPTION_KEY` there too
 if credentials were encrypted with a separate key. Local `pnpm dev` reads these
 from `.env.local`.
+
+For Cloudflare Workers Builds, connect this repository to both Workers. Use
+`pnpm build` as each Worker's build command. Set the deploy command for
+`bento-cash-web-database` to `pnpm run deploy:database`, and for
+`bento-cash-web` to `pnpm run deploy:app`. Deploy the database Worker at least
+once before deploying the app Worker, since the app's `BENTO_DB` binding targets
+it. The app Worker's first build needs `BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`,
+and `GOOGLE_CLIENT_SECRET` as build secrets so the deploy script can upload them
+as runtime secrets. `pnpm run deploy` deploys both Workers from a local shell;
+it cannot be used as a Workers Builds deploy command for a single Worker.
 
 GitHub Actions runs `pnpm deploy:check` to build and dry-run both Workers, then
 verifies local Durable Object migrations. It does not deploy to Cloudflare.

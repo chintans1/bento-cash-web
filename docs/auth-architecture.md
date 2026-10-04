@@ -42,9 +42,6 @@ credential. Lunch Money reads and writes go through the authenticated
 `/api/lunch-money` route, which checks connection ownership before decrypting a
 credential. The allowed RPC operations are explicitly listed server-side.
 
-Previously browser-local `lm_token` and `bento_auth_v1` keys are imported after
-the user signs in, then removed after every connection is stored successfully.
-
 ## Provider and OAuth migration
 
 Better Auth's `account` table owns sign-in-provider identities independently of
@@ -80,9 +77,7 @@ pages, account switching, feature settings, and browser RPC do not need to
 change.
 
 The API-token UI is intentionally presented as a temporary connection method,
-not as the user's Bento identity. Browser-local tokens from versions before
-server auth are imported after provider sign-in, removed from local storage,
-and acknowledged to the user in a one-time confirmation dialog.
+not as the user's Bento identity.
 
 ## Operations
 

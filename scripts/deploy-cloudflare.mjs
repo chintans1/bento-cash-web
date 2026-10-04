@@ -13,8 +13,15 @@ import { parseEnv } from "node:util";
 const args = new Set(process.argv.slice(2));
 const bootstrapRequested = args.delete("--bootstrap");
 const dryRun = args.delete("--dry-run");
+const appOnly = args.delete("--app-only");
+const prebuilt = args.delete("--prebuilt");
 if (args.size > 0)
   throw new Error(`Unknown deploy option: ${[...args].join(", ")}`);
+if (process.env.WORKERS_CI && !appOnly) {
+  throw new Error(
+    "Workers Builds can deploy only its connected Worker. Use pnpm run deploy:app for the app Worker and pnpm run deploy:database for the database Worker."
+  );
+}
 
 function hasAppVersion() {
   const result = spawnSync(
@@ -89,18 +96,20 @@ if (bootstrap) {
 }
 const secretsFile = bootstrap ? createSecretsFile() : null;
 try {
-  run("pnpm", ["run", "build"]);
-  run("pnpm", [
-    "exec",
-    "cf",
-    "deploy",
-    "--prebuilt",
-    "--mode",
-    "production",
-    "--worker",
-    "bento-cash-web-database",
-    ...(dryRun ? ["--dry-run"] : []),
-  ]);
+  if (!prebuilt) run("pnpm", ["run", "build"]);
+  if (!appOnly) {
+    run("pnpm", [
+      "exec",
+      "cf",
+      "deploy",
+      "--prebuilt",
+      "--mode",
+      "production",
+      "--worker",
+      "bento-cash-web-database",
+      ...(dryRun ? ["--dry-run"] : []),
+    ]);
+  }
   run("pnpm", [
     "exec",
     "cf",

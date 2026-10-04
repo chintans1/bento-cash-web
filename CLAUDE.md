@@ -123,7 +123,7 @@ LM API keys are encrypted with AES-256-GCM before being stored and are never ret
 
 ### `hooks/use-auth.tsx`
 
-Combines Better Auth's browser session with public connection metadata from `/api/connections`. It supports selecting/removing connections and exposes a non-secret `dataScopeKey` (`userId:connectionId`) for cache and feature scoping. Old `lm_token` and `bento_auth_v1` credentials migrate into encrypted DB rows after sign-in.
+Combines Better Auth's browser session with public connection metadata from `/api/connections`. It supports selecting/removing connections and exposes a non-secret `dataScopeKey` (`userId:connectionId`) for cache and feature scoping.
 
 The active real account creates a remote LM client backed by the server proxy; demo mode continues to use the in-memory demo client. A session-boundary key remounts page data hooks on account changes so data cannot leak between connections.
 

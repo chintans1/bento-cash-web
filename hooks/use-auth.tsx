@@ -14,15 +14,10 @@ import type {
   LunchMoneyConnection,
   LunchMoneyConnectionsState,
 } from "@/lib/lunchmoney/connection-types";
-import { importLegacyConnections } from "@/lib/auth/legacy-connection-import";
 
 interface ConnectionCreatedResponse {
   account: LunchMoneyConnection;
   state: LunchMoneyConnectionsState;
-}
-
-export interface LegacyImportNotice {
-  connections: LunchMoneyConnection[];
 }
 
 interface AuthContextValue {
@@ -37,8 +32,6 @@ interface AuthContextValue {
   dataScopeKey: string | null;
   error: string | null;
   clearError: () => void;
-  legacyImportNotice: LegacyImportNotice | null;
-  dismissLegacyImportNotice: () => void;
   connectWithApiKey: (token: string) => Promise<LunchMoneyConnection>;
   switchConnection: (connectionId: string) => Promise<void>;
   removeConnection: (connectionId: string) => Promise<void>;
@@ -65,32 +58,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   >(null);
   const [isDemo, setIsDemo] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [legacyImportNotice, setLegacyImportNotice] =
-    useState<LegacyImportNotice | null>(null);
-
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
-    importLegacyConnections()
-      .then(async (importedConnections) => ({
-        importedConnections,
-        connections:
-          await apiRequest<LunchMoneyConnectionsState>("/api/connections"),
-      }))
-      .then(({ importedConnections, connections }) => {
+    apiRequest<LunchMoneyConnectionsState>("/api/connections")
+      .then((connections) => {
         if (!cancelled) {
           setConnectionState({ ...connections, userId: user.id });
-          if (importedConnections.length > 0) {
-            const uniqueConnections = [
-              ...new Map(
-                importedConnections.map((connection) => [
-                  connection.id,
-                  connection,
-                ])
-              ).values(),
-            ];
-            setLegacyImportNotice({ connections: uniqueConnections });
-          }
         }
       })
       .catch((cause: unknown) => {
@@ -179,7 +153,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
     await authClient.signOut();
     setConnectionState(null);
-    setLegacyImportNotice(null);
     setError(null);
   }
 
@@ -205,8 +178,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         dataScopeKey,
         error,
         clearError: () => setError(null),
-        legacyImportNotice,
-        dismissLegacyImportNotice: () => setLegacyImportNotice(null),
         connectWithApiKey,
         switchConnection,
         removeConnection,

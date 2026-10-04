@@ -11,6 +11,7 @@
     "build": "vite build",
     "start": "vite preview",
     "deploy": "node scripts/deploy-cloudflare.mjs",
+    "deploy:app": "node scripts/deploy-cloudflare.mjs --app-only --prebuilt",
     "deploy:bootstrap": "node scripts/deploy-cloudflare.mjs --bootstrap",
     "deploy:check": "node scripts/deploy-cloudflare.mjs --bootstrap --dry-run",
     "lint": "eslint",
@@ -22,7 +23,7 @@
     "db:generate": "auth generate --config scripts/auth-schema.config.ts --output migrations/001_better_auth.sql --yes",
     "db:verify-migrations": "vitest run lib/server/__tests__/database-object.test.ts",
     "prepare": "husky",
-    "deploy:database": "cf deploy --prebuilt --mode production --worker bento-cash-web-database"
+    "deploy:database": "pnpm exec cf deploy --prebuilt --mode production --worker bento-cash-web-database"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
