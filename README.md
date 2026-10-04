@@ -81,9 +81,9 @@ deployment it creates the database Worker, then creates the app Worker with its
 secrets. Later deployments update both Workers. The `BENTO_DB` binding points to
 the SQLite-backed `BentoDatabase` Durable Object. No R2 bucket is required.
 Local data is kept under `.cloudflare/state/`; deployed data is separate.
-Migrations run when the Durable Object starts. With the app running, use
-`pnpm db:migrate` to trigger and verify them explicitly. Set
-`BENTO_MIGRATE_URL` to the deployed app's base URL to check that environment.
+Migrations run when the Durable Object starts, both locally and in production.
+Run `pnpm db:verify-migrations` to apply and verify them in an isolated local
+SQLite database. The command does not access a running app or production data.
 For the first deployment, the script supplies `BETTER_AUTH_SECRET`,
 `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET` from
 `.env.production` or the shell. Set `BENTO_CREDENTIAL_ENCRYPTION_KEY` there too

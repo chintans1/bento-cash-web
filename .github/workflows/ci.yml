@@ -48,31 +48,5 @@ jobs:
       - name: Build and check Cloudflare deployment
         run: pnpm deploy:check
 
-      - name: Verify local Durable Object migrations
-        env:
-          CLOUDFLARE_INCLUDE_PROCESS_ENV: "true"
-        run: |
-          if lsof -nP -iTCP:3000 -sTCP:LISTEN >/dev/null 2>&1; then
-            echo "Reusing the server on port 3000"
-          else
-            pnpm dev > "$RUNNER_TEMP/vite.log" 2>&1 &
-            dev_pid=$!
-            trap 'kill "$dev_pid" 2>/dev/null || true' EXIT
-          fi
-
-          for attempt in {1..60}; do
-            if pnpm db:migrate > "$RUNNER_TEMP/migrate.log" 2>&1; then
-              cat "$RUNNER_TEMP/migrate.log"
-              exit 0
-            fi
-            if [[ -n "${dev_pid:-}" ]] && ! kill -0 "$dev_pid" 2>/dev/null; then
-              break
-            fi
-            sleep 1
-          done
-
-          cat "$RUNNER_TEMP/migrate.log"
-          if [[ -f "$RUNNER_TEMP/vite.log" ]]; then
-            cat "$RUNNER_TEMP/vite.log"
-          fi
-          exit 1
+      - name: Verify Durable Object migrations locally
+        run: pnpm db:verify-migrations

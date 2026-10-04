@@ -11,6 +11,7 @@ vi.mock("cloudflare:workers", () => ({
 }));
 
 import { BentoDatabase } from "../database-object";
+import { migrations } from "../migrations";
 
 function localState(database: DatabaseSync) {
   const sql = {
@@ -61,10 +62,10 @@ describe("SQLite-backed Durable Object", () => {
 
     expect(
       object.query({
-        sql: 'select count(*) as count from "bento_migration"',
+        sql: 'select "name" from "bento_migration" order by "name"',
         params: [],
       }).results
-    ).toEqual([{ count: 3 }]);
+    ).toEqual(migrations.map(([name]) => ({ name })));
 
     object.query({
       sql: 'insert into "user" ("id", "name", "email", "emailVerified", "createdAt", "updatedAt") values (?, ?, ?, 0, ?, ?)',

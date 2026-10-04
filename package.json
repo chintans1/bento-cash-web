@@ -20,7 +20,7 @@
     "test:watch": "vitest",
     "typecheck": "vinext typegen && cf workers types && tsc --noEmit",
     "db:generate": "auth generate --config scripts/auth-schema.config.ts --output migrations/001_better_auth.sql --yes",
-    "db:migrate": "node scripts/migrate-do.mjs",
+    "db:verify-migrations": "vitest run lib/server/__tests__/database-object.test.ts",
     "prepare": "husky",
     "deploy:database": "cf deploy --prebuilt --mode production --worker bento-cash-web-database"
   },
