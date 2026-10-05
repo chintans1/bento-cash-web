@@ -67,8 +67,15 @@ function HomePage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
-      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-        <h1 className="font-heading text-2xl font-bold">Overview</h1>
+      <div className="mb-5 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+        <div>
+          <h1 className="font-heading text-2xl font-bold text-balance">
+            Overview
+          </h1>
+          <p className="mt-1 text-sm text-bento-subtle">
+            Your money at a glance
+          </p>
+        </div>
         <MonthSelector
           year={selectedYear}
           month={selectedMonth}

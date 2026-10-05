@@ -397,7 +397,7 @@ function TransactionsPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+      <div className="mb-5 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
         <div>
           <h1 className="font-heading text-2xl font-bold text-balance">
             Transactions
