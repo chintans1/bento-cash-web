@@ -58,7 +58,7 @@ export function RecentTransactionsCard({
               return (
                 <li
                   key={tx.id}
-                  className="flex items-center gap-3 rounded-xl px-1 py-1.5 transition-colors hover:bg-bento-raised"
+                  className="flex items-center gap-3 rounded-xl px-1 py-1.5"
                 >
                   <span
                     className="flex size-8 shrink-0 items-center justify-center rounded-full bg-item-tint"

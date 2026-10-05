@@ -100,6 +100,8 @@ export function changedPatch(
   return Object.fromEntries(
     Object.entries(next).filter(([key, value]) => {
       const before = transaction[key as keyof Transaction];
+      // Optional API fields may be omitted or explicitly null. Both mean empty.
+      if (value == null && before == null) return false;
       return Array.isArray(value)
         ? JSON.stringify(value) !== JSON.stringify(before)
         : value !== before;

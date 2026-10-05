@@ -72,6 +72,20 @@ describe("transaction state", () => {
     expect(comparePendingFirst(pending, { is_pending: true })).toBe(0);
   });
 
+  it("does not mark omitted optional fields as unsaved edits", () => {
+    const sparse = {
+      ...transaction,
+      recurring_id: undefined,
+      notes: undefined,
+    } as unknown as Transaction;
+    expect(changedPatch(sparse, { recurring_id: null, notes: null })).toEqual(
+      {}
+    );
+    expect(changedPatch(sparse, { notes: "New note" })).toEqual({
+      notes: "New note",
+    });
+  });
+
   it("sends only fields that changed", () => {
     expect(
       changedPatch(transaction, {

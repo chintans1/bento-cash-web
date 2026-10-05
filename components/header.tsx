@@ -66,7 +66,7 @@ export function Header() {
             <button
               className="flex size-10 items-center justify-center rounded-lg text-bento-subtle transition-colors hover:bg-bento-raised hover:text-bento-default md:hidden"
               onClick={() => setMenuOpen((o) => !o)}
-              aria-label="Toggle menu"
+              aria-label={menuOpen ? "Close menu" : "Open menu"}
               aria-expanded={menuOpen}
               aria-controls="mobile-navigation"
             >
@@ -113,6 +113,16 @@ export function Header() {
         <nav
           id="mobile-navigation"
           aria-label="Mobile navigation"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setMenuOpen(false);
+              document
+                .querySelector<HTMLButtonElement>(
+                  '[aria-controls="mobile-navigation"]'
+                )
+                ?.focus();
+            }
+          }}
           className="border-t border-bento-hairline/60 px-4 pb-4 md:hidden"
         >
           {NAV_LINKS.map(({ href, label }) => (

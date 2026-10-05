@@ -134,7 +134,7 @@ export function SpendingTrendCard({
                 type="button"
                 aria-pressed={view === option}
                 onClick={() => setView(option)}
-                className={`relative h-8 min-w-16 rounded-full px-3 text-xs font-medium capitalize transition-segmented outline-none before:absolute before:inset-x-0 before:-inset-y-1 before:content-empty focus-visible:ring-3 focus-visible:ring-ring/30 active:scale-96 ${
+                className={`pointer-press relative h-8 min-w-16 rounded-full px-3 text-xs font-medium capitalize transition-segmented outline-none before:absolute before:inset-x-0 before:-inset-y-1 before:content-empty focus-visible:ring-3 focus-visible:ring-ring/30 ${
                   view === option
                     ? "bg-bento-surface text-bento-default shadow-sm"
                     : "text-bento-subtle hover:text-bento-default"
@@ -246,6 +246,7 @@ export function SpendingTrendCard({
               />
               {!comparisonUnavailable && (
                 <Area
+                  isAnimationActive={false}
                   dataKey="previous"
                   type="monotone"
                   stroke="var(--bento-subtle)"
@@ -257,6 +258,7 @@ export function SpendingTrendCard({
                 />
               )}
               <Area
+                isAnimationActive={false}
                 dataKey="current"
                 type="monotone"
                 stroke="var(--series-1)"

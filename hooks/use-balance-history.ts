@@ -10,6 +10,8 @@ import {
 export function useBalanceHistory(dataScopeKey: string | null) {
   const [history, setHistory] = useState<BalanceHistoryAccount[] | null>(null);
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     if (!dataScopeKey) return;
     let cancelled = false;
@@ -19,7 +21,10 @@ export function useBalanceHistory(dataScopeKey: string | null) {
         if (!cancelled) setHistory(result);
       })
       .catch(() => {
-        if (!cancelled) setHistory([]);
+        if (!cancelled) {
+          setHistory([]);
+          setError("Could not load balance history. Reload to try again.");
+        }
       });
 
     return () => {
@@ -27,5 +32,5 @@ export function useBalanceHistory(dataScopeKey: string | null) {
     };
   }, [dataScopeKey]);
 
-  return history;
+  return { history, error };
 }

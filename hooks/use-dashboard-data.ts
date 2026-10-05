@@ -56,6 +56,7 @@ export type DashboardData = {
   netWorthHistory: NetWorthPoint[];
   /** True while the balance history request is still out. */
   netWorthHistoryLoading: boolean;
+  netWorthHistoryError: string | null;
   /** True only when there's nothing to show yet. A month change keeps the previous month on screen instead of flashing skeletons. */
   loading: boolean;
   /** True while a month change is in flight over already-rendered content. */
@@ -103,7 +104,8 @@ export function useDashboardData(
     key: string;
     summary: AlignedSummaryResponse;
   } | null>(null);
-  const balanceHistory = useBalanceHistory(session);
+  const { history: balanceHistory, error: netWorthHistoryError } =
+    useBalanceHistory(session);
   const {
     accounts,
     primaryCurrency,
@@ -315,6 +317,7 @@ export function useDashboardData(
     budgetSummary,
     netWorth,
     netWorthHistory,
+    netWorthHistoryError,
     netWorthHistoryLoading: session !== null && balanceHistory === null,
     loading: isLoading || appLoading,
     refreshing: isLoading && currentResult !== null,

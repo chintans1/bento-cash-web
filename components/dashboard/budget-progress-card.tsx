@@ -8,7 +8,7 @@ import type { CategoryInfo } from "@/lib/lunchmoney/categories";
 function BudgetGauge({ pct, over }: { pct: number; over: boolean }) {
   const radius = 26;
   const circumference = 2 * Math.PI * radius;
-  const filled = (Math.min(pct, 100) / 100) * circumference;
+  const filled = (Math.max(0, Math.min(pct, 100)) / 100) * circumference;
 
   return (
     <div className="relative size-16 shrink-0">
@@ -117,7 +117,10 @@ export function BudgetProgressCard({
 
         <ul className="flex flex-col gap-3">
           {budgeted.map((item) => {
-            const pct = Math.min((item.spent / item.budget) * 100, 100);
+            const pct = Math.max(
+              0,
+              Math.min((item.spent / item.budget) * 100, 100)
+            );
             const over = item.spent > item.budget;
             return (
               <li key={item.id}>
@@ -139,7 +142,7 @@ export function BudgetProgressCard({
                   <div
                     className={cn(
                       "w-(--progress-width)",
-                      "h-full rounded-full transition-progress",
+                      "h-full rounded-full",
                       over ? "bg-bento-negative/85" : "bg-bento-brand"
                     )}
                     style={

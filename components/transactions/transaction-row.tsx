@@ -72,6 +72,7 @@ export const TransactionRow = memo(function TransactionRow({
 
   return (
     <div
+      aria-busy={saving}
       data-tx-row
       data-tx-id={tx.id}
       className={cn(
@@ -130,7 +131,7 @@ export const TransactionRow = memo(function TransactionRow({
             aria-label={`Open details for ${payee || "transaction"}`}
             onClick={() => onOpen(tx.id)}
             className={cn(
-              "flex size-10 shrink-0 items-center justify-center rounded-full transition-category group-hover/row:shadow-(--shadow-category-outline) hover:shadow-(--shadow-category-outline) focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none active:scale-96",
+              "pointer-press flex size-10 shrink-0 items-center justify-center rounded-full transition-category group-hover/row:shadow-(--shadow-category-outline) hover:shadow-(--shadow-category-outline) focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none",
               usesCategoryColor ? "bg-item-tint" : "bg-bento-muted"
             )}
             style={{ "--item-color": color } as React.CSSProperties}
@@ -157,7 +158,7 @@ export const TransactionRow = memo(function TransactionRow({
                 ariaLabel={
                   payee ? `Description: ${payee}. Edit` : "Add a description"
                 }
-                disabled={structurallyLocked}
+                disabled={structurallyLocked || saving}
                 onCommit={(next) => onPayeeChange(tx.id, next)}
               />
               {tx.status === "delete_pending" && (
@@ -193,7 +194,7 @@ export const TransactionRow = memo(function TransactionRow({
             categoryName={categoryName}
             options={categoryOptions}
             saving={saving}
-            disabled={structurallyLocked}
+            disabled={structurallyLocked || saving}
             onChange={(categoryId) => onCategoryChange(tx.id, categoryId)}
             finalFocus={pickerFinalFocus}
           />
@@ -248,7 +249,7 @@ export const TransactionRow = memo(function TransactionRow({
               categoryName={categoryName}
               options={categoryOptions}
               saving={saving}
-              disabled={structurallyLocked}
+              disabled={structurallyLocked || saving}
               onChange={(categoryId) => onCategoryChange(tx.id, categoryId)}
               finalFocus={pickerFinalFocus}
             />

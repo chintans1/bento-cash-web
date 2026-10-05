@@ -30,7 +30,14 @@ import { useMonthNavigation } from "@/hooks/use-month-navigation";
 import { isCurrentOrFutureMonth } from "@/lib/date-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, X } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Check, Minus, Search, X } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
 import { MonthSelector } from "@/components/dashboard/month-selector";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -264,7 +271,6 @@ function TransactionsPage() {
   useEffect(() => {
     const pendingFocus = pendingFocusRef.current;
     if (pendingFocus == null) return;
-    pendingFocusRef.current = null;
 
     const frame = requestAnimationFrame(() => {
       const row = document.querySelector<HTMLElement>(
@@ -275,8 +281,11 @@ function TransactionsPage() {
           ? row?.querySelector<HTMLElement>(
               "button[aria-label='Mark reviewed']"
             )
-          : row?.querySelector<HTMLElement>("[role='combobox']");
+          : Array.from(
+              row?.querySelectorAll<HTMLElement>("[role='combobox']") ?? []
+            ).find((element) => element.getClientRects().length > 0);
       target?.focus();
+      pendingFocusRef.current = null;
     });
     return () => cancelAnimationFrame(frame);
   }, [filtered]);
@@ -305,8 +314,8 @@ function TransactionsPage() {
    * place it once the new list is on screen.
    */
   const keepFocusWhileAdvancing = useCallback(
-    () => (pendingFocusRef.current == null ? undefined : false),
-    []
+    () => (filterCatId === UNCATEGORIZED_FILTER ? false : undefined),
+    [filterCatId]
   );
 
   const handleCategoryChange = useCallback(
@@ -371,6 +380,13 @@ function TransactionsPage() {
     [reviewFilter, setSelected, update]
   );
 
+  const selectedSaving = [...selectedIds].some((id) => savingIds.has(id));
+  const selectable = filtered.filter(
+    (tx) => tx.status === "unreviewed" && isReviewableTransaction(tx)
+  );
+  const allSelected =
+    selectable.length > 0 && selectable.every((tx) => selectedIds.has(tx.id));
+
   const editingTransaction =
     editing?.month !== monthKey
       ? null
@@ -388,7 +404,7 @@ function TransactionsPage() {
           </h1>
           <p className="mt-1 text-sm text-bento-subtle tabular-nums">
             {counts.unreviewed === 0
-              ? "Everything is reviewed"
+              ? "No transactions to review"
               : `${counts.unreviewed} to review`}
             {counts.pending > 0 && ` · ${counts.pending} pending`}
             {counts.attention > 0 && ` · ${counts.attention} need attention`}
@@ -441,13 +457,15 @@ function TransactionsPage() {
           <Button
             variant="secondary"
             className="h-10"
+            disabled={selectedSaving}
+            aria-busy={selectedSaving}
             onClick={() => {
               void reviewMany([...selectedIds]).then((saved) => {
                 if (saved) setSelection({ month: monthKey, ids: new Set() });
               });
             }}
           >
-            Mark reviewed
+            {selectedSaving ? "Reviewing…" : "Mark reviewed"}
           </Button>
           <Button
             variant="ghost"
@@ -508,6 +526,41 @@ function TransactionsPage() {
         />
       </div>
 
+      <div className="mb-2 sm:hidden">
+        <Select
+          value={`${sortKey}-${sortDir}`}
+          onValueChange={(value) => {
+            if (!value) return;
+            const [key, direction] = value.split("-");
+            setSortKey(key as SortKey);
+            setSortDir(direction as SortDir);
+          }}
+        >
+          <SelectTrigger aria-label="Sort transactions" className="h-10 w-full">
+            <SelectValue>
+              {(value: string) =>
+                ({
+                  "date-desc": "Newest first",
+                  "date-asc": "Oldest first",
+                  "amount-desc": "Amount: high to low",
+                  "amount-asc": "Amount: low to high",
+                  "payee-asc": "Payee: A to Z",
+                  "payee-desc": "Payee: Z to A",
+                })[value] ?? "Newest first"
+              }
+            </SelectValue>
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="date-desc">Newest first</SelectItem>
+            <SelectItem value="date-asc">Oldest first</SelectItem>
+            <SelectItem value="amount-desc">Amount: high to low</SelectItem>
+            <SelectItem value="amount-asc">Amount: low to high</SelectItem>
+            <SelectItem value="payee-asc">Payee: A to Z</SelectItem>
+            <SelectItem value="payee-desc">Payee: Z to A</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
       {/* Table header */}
       <div
         className={cn(
@@ -518,7 +571,9 @@ function TransactionsPage() {
         <button
           type="button"
           aria-label="Select all visible transactions"
-          className="min-h-10"
+          disabled={selectable.length === 0 || loading}
+          aria-pressed={allSelected}
+          className="flex min-h-10 items-center justify-center rounded-full disabled:opacity-40"
           onClick={() => {
             const eligible = filtered.filter(
               (transaction) =>
@@ -535,7 +590,19 @@ function TransactionsPage() {
             });
           }}
         >
-          <span className="sr-only">Select</span>
+          <span
+            className={cn(
+              "flex size-4 items-center justify-center rounded border",
+              allSelected &&
+                "border-bento-brand bg-bento-brand text-bento-brand-fg"
+            )}
+          >
+            {allSelected ? (
+              <Check className="size-3" />
+            ) : selectedIds.size > 0 ? (
+              <Minus className="size-3" />
+            ) : null}
+          </span>
         </button>
         <button
           className="min-h-10 text-left hover:text-bento-default"
@@ -573,19 +640,24 @@ function TransactionsPage() {
           <p className="font-medium">
             {transactions.length === 0
               ? "No transactions this month"
-              : "No matching transactions"}
+              : reviewFilter === "unreviewed" && counts.unreviewed === 0
+                ? "You’re all caught up"
+                : "No matching transactions"}
           </p>
           <p className="mt-2 text-sm text-bento-subtle">
             {transactions.length === 0
               ? "Choose another month to review your activity."
-              : "Try a different search or clear your filters."}
+              : reviewFilter === "unreviewed" && counts.unreviewed === 0
+                ? "Every eligible transaction this month has been reviewed."
+                : "Try a different search or clear your filters."}
           </p>
-          {(query || filterCatId !== null) && (
+          {(query || filterCatId !== null || reviewFilter !== "all") && (
             <Button
               variant="outline"
               className="mt-4 h-10"
               onClick={() => {
                 setQuery("");
+                setReviewFilter("all");
                 const params = new URLSearchParams(searchParams.toString());
                 params.delete("category");
                 router.replace(`/transactions?${params}`, { scroll: false });

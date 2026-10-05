@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { computeNetWorth } from "@/lib/account-utils";
@@ -57,11 +58,11 @@ export default function AccountsPage() {
       <div className="mb-6 text-center">
         <p className="mb-1 text-sm text-bento-subtle">Net Worth</p>
         {loading ? (
-          <Skeleton className="h-12 rounded-lg" />
+          <Skeleton className="mx-auto h-12 w-56 rounded-lg" />
         ) : (
           <p
             className={cn(
-              "font-heading text-5xl font-bold",
+              "font-heading text-4xl font-bold tabular-nums sm:text-5xl",
               netWorth < 0 && "text-bento-danger"
             )}
           >
@@ -103,7 +104,8 @@ export default function AccountsPage() {
       ) : (
         <>
           <NetWorthPerformanceCard
-            history={netWorthHistory}
+            history={netWorthHistory.history}
+            error={netWorthHistory.error}
             accounts={accounts}
             primaryCurrency={primaryCurrency}
           />
@@ -128,15 +130,23 @@ export default function AccountsPage() {
           {inactive.length > 0 && (
             <div className="mt-4 sm:mt-6">
               <button
+                aria-expanded={showInactive}
+                aria-controls="inactive-accounts"
                 onClick={() => setShowInactive((v) => !v)}
-                className="mb-3 flex items-center gap-1.5 text-sm text-bento-subtle transition-colors hover:text-bento-default"
+                className="mb-3 flex min-h-10 items-center gap-1.5 text-sm text-bento-subtle transition-colors hover:text-bento-default"
               >
-                <span>{showInactive ? "▾" : "▸"}</span>
+                <ChevronDown
+                  aria-hidden="true"
+                  className={cn("size-4", !showInactive && "-rotate-90")}
+                />
                 {inactive.length} inactive or revoked{" "}
                 {inactive.length === 1 ? "account" : "accounts"}
               </button>
               <Collapsible open={showInactive}>
-                <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-6">
+                <div
+                  id="inactive-accounts"
+                  className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-6"
+                >
                   <AccountSection
                     title="Inactive / Revoked"
                     accounts={inactive.filter((a) => !a.isLiability)}
