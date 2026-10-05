@@ -27,7 +27,7 @@ import {
 const chartConfig = {
   income: { label: "Income", color: "var(--cat-4)" },
   spend: { label: "Spending", color: "var(--cat-2)" },
-  saved: { label: "Saved", color: "var(--series-2)" },
+  saved: { label: "Saved", color: "var(--report-saved-line)" },
 } satisfies ChartConfig;
 
 export function CashFlowReport({
@@ -128,8 +128,19 @@ export function CashFlowReport({
               isAnimationActive={false}
               dataKey="saved"
               type="monotone"
+              stroke="var(--bento-surface)"
+              strokeWidth={6.5}
+              dot={false}
+              activeDot={false}
+              legendType="none"
+              tooltipType="none"
+            />
+            <Line
+              isAnimationActive={false}
+              dataKey="saved"
+              type="monotone"
               stroke="var(--color-saved)"
-              strokeWidth={2.5}
+              strokeWidth={3}
               dot={false}
             />
           </ComposedChart>

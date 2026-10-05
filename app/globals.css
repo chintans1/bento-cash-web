@@ -54,6 +54,7 @@
      --chart-1 is far too pale to read as a line on a white surface. */
   --series-1: var(--chart-4);
   --series-2: var(--chart-3);
+  --report-saved-line: #1d4ed8;
   /* How strongly a category color tints its chip; dark needs more to read. */
   --chip-tint: 26%;
 
@@ -112,6 +113,7 @@
     0 1px 2px oklch(0 0 0 / 0.35), 0 18px 40px -20px oklch(0 0 0 / 0.7);
   --series-1: var(--chart-1);
   --series-2: var(--chart-2);
+  --report-saved-line: #60a5fa;
   --chip-tint: 34%;
 
   --positive: oklch(0.78 0.145 163.5);
