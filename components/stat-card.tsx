@@ -34,14 +34,22 @@ export function StatCard({
   return (
     <Card
       className={cn(
-        "gap-0 py-0",
+        "relative gap-0 py-0",
         onClick &&
-          "cursor-pointer transition-card hover:shadow-lg active:scale-98",
+          "pointer-press cursor-pointer transition-card hover:shadow-lg",
         active && activeClassName,
         className
       )}
-      onClick={onClick}
     >
+      {onClick && (
+        <button
+          type="button"
+          onClick={onClick}
+          aria-label={`${label}: ${value}`}
+          aria-pressed={active}
+          className="absolute inset-0 z-10 rounded-inherit"
+        />
+      )}
       <div className="px-4 py-4">
         {loading ? (
           <Skeleton className="h-10 w-24 rounded-md" />

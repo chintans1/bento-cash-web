@@ -16,7 +16,7 @@ export function Footer() {
             alt="Powered by Lunch Money"
             width={735}
             height={196}
-            className="h-auto w-48"
+            className="h-auto w-48 rounded-lg outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"
           />
         </a>
       </div>

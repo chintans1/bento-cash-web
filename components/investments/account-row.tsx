@@ -42,6 +42,7 @@ export function AccountRow({
   const [editType, setEditType] = useState(account.type);
   const [editSubtype, setEditSubtype] = useState(account.subtype ?? "");
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const showNative =
     account.currency.toLowerCase() !== primaryCurrency.toLowerCase();
@@ -50,10 +51,13 @@ export function AccountRow({
   function startEdit() {
     setEditType(account.type);
     setEditSubtype(account.subtype ?? "");
+    setError(null);
     setEditing(true);
   }
 
   async function saveEdit() {
+    if (saving) return;
+    setError(null);
     setSaving(true);
     try {
       await updateManualAccount(account.rawId, {
@@ -62,6 +66,10 @@ export function AccountRow({
       });
       onSaved(account.id, editType, editSubtype);
       setEditing(false);
+    } catch {
+      setError(
+        "Could not save account classification. Your changes are still here; try again."
+      );
     } finally {
       setSaving(false);
     }
@@ -81,7 +89,12 @@ export function AccountRow({
                 value={editType}
                 onValueChange={(v) => setEditType(v as AccountType)}
               >
-                <SelectTrigger size="sm" className="w-36">
+                <SelectTrigger
+                  aria-label="Account type"
+                  disabled={saving}
+                  size="sm"
+                  className="h-10 w-36"
+                >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -99,7 +112,12 @@ export function AccountRow({
                 value={editSubtype}
                 onValueChange={(v) => setEditSubtype(v ?? "")}
               >
-                <SelectTrigger size="sm" className="w-40">
+                <SelectTrigger
+                  aria-label="Account subtype"
+                  disabled={saving}
+                  size="sm"
+                  className="h-10 w-40"
+                >
                   <SelectValue placeholder="— none —" />
                 </SelectTrigger>
                 <SelectContent>
@@ -145,7 +163,7 @@ export function AccountRow({
       ) : (
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span
                 title={account.name}
                 className={cn(
@@ -169,6 +187,7 @@ export function AccountRow({
                   size="icon-sm"
                   onClick={startEdit}
                   title="Edit type / subtype"
+                  aria-label={`Edit classification for ${account.name}`}
                   className="text-bento-subtle/60 hover:text-bento-default"
                 >
                   <Pencil className="h-3 w-3" />
@@ -201,6 +220,12 @@ export function AccountRow({
             </span>
           </div>
         </div>
+      )}
+
+      {error && (
+        <p role="alert" className="mt-2 text-sm text-bento-negative">
+          {error}
+        </p>
       )}
     </li>
   );

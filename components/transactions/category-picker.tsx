@@ -88,6 +88,7 @@ function CategoryComboboxPopup({
         <ComboboxInput
           showTrigger={false}
           placeholder="Search categories…"
+          aria-label="Search categories"
           onKeyDown={commitTopMatchOnEnter}
         />
       </div>
@@ -190,7 +191,7 @@ export function CategoryPicker({
     >
       <ComboboxTrigger
         aria-label={`Category: ${categoryName}. Change`}
-        disabled={disabled}
+        disabled={disabled || saving}
         className={cn(
           "group/cat flex min-h-10 w-full items-center gap-1.5 text-left outline-none [&>svg]:ml-auto [&>svg]:shrink-0 [&>svg]:text-bento-subtle",
           appearance === "field"
@@ -205,7 +206,7 @@ export function CategoryPicker({
           className={cn(
             "truncate",
             isUncategorized
-              ? "text-cat-3"
+              ? "text-bento-subtle"
               : appearance === "field"
                 ? "text-bento-default"
                 : "text-bento-subtle"

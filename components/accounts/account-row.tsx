@@ -23,7 +23,7 @@ export function AccountRow({
   return (
     <li className="flex items-center gap-3 border-b border-bento-hairline/50 py-3 last:border-0">
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <span
             title={account.name}
             className={cn(

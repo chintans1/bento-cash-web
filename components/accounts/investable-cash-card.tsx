@@ -28,7 +28,7 @@ export function InvestableCashCard({
           <CardTitle className="text-lg">Investable Cash</CardTitle>
           <Link
             href="/settings"
-            className="text-xs text-bento-subtle underline-offset-4 hover:text-bento-default hover:underline"
+            className="-my-2 inline-flex min-h-10 items-center text-xs text-bento-subtle underline-offset-4 hover:text-bento-default hover:underline"
           >
             Adjust target
           </Link>

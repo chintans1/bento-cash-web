@@ -19,7 +19,7 @@ export function ReportMetric({
       <p className="text-xs font-medium text-bento-subtle">{label}</p>
       <p
         className={cn(
-          "mt-1 truncate font-heading text-2xl font-semibold tabular-nums",
+          "mt-1 font-heading text-xl font-semibold break-words tabular-nums sm:text-2xl",
           tone === "positive" && "text-bento-positive",
           tone === "negative" && "text-bento-negative"
         )}
@@ -97,7 +97,7 @@ export function RankingRow({
           className="h-full w-(--progress-width) rounded-full bg-(--item-background)"
           style={
             {
-              "--progress-width": `${Math.max(2, share)}%`,
+              "--progress-width": `${Math.max(0, Math.min(100, share))}%`,
               "--item-background": color,
             } as React.CSSProperties
           }

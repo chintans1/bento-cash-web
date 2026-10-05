@@ -28,6 +28,7 @@ export function TagPicker({
       <PopoverTrigger
         render={
           <Button
+            aria-label={`Tags: ${selected.length ? selected.map((tag) => tag.name).join(", ") : "No tags"}`}
             type="button"
             variant="outline"
             className="h-10 w-full justify-start rounded-xl px-3"
@@ -78,7 +79,7 @@ export function TagPicker({
                 <span className="min-w-0 flex-1 truncate">{tag.name}</span>
                 <Check
                   className={cn(
-                    "size-4 transition-icon duration-300",
+                    "size-4 transition-icon duration-150 ease-out",
                     active
                       ? "scale-100 opacity-100 blur-none"
                       : "scale-25 opacity-0 blur-xs"

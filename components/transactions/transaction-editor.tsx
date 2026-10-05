@@ -104,6 +104,8 @@ export function TransactionEditor({
   onClose: () => void;
   onSave: (patch: TransactionPatch) => Promise<boolean>;
 }) {
+  const [open, setOpen] = useState(true);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [draft, setDraft] = useState(() => makeDraft(transaction));
 
   function updateDraft<K extends keyof Draft>(field: K, value: Draft[K]) {
@@ -147,18 +149,29 @@ export function TransactionEditor({
   const amount = Number(draft.amount);
 
   async function save() {
-    if (!valid || !changed) return;
-    if (await onSave(patch)) onClose();
+    if (!valid || !changed || saving) return;
+    if (await onSave(patch)) setOpen(false);
+  }
+
+  function requestClose() {
+    if (saving) return;
+    if (changed) setConfirmDiscard(true);
+    else setOpen(false);
   }
 
   return (
-    <Sheet open onOpenChange={(open) => !open && onClose()}>
+    <Sheet
+      open={open}
+      onOpenChange={(next) => !next && requestClose()}
+      onOpenChangeComplete={(next) => !next && onClose()}
+    >
       <SheetContent
         showCloseButton={false}
         className="overflow-hidden bg-card text-card-foreground data-[side=right]:w-full data-[side=right]:sm:max-w-xl"
       >
         <form
           className="flex h-full flex-col"
+          aria-busy={saving}
           onSubmit={(event) => {
             event.preventDefault();
             void save();
@@ -190,13 +203,17 @@ export function TransactionEditor({
               variant="ghost"
               size="icon-lg"
               aria-label="Close transaction details"
-              onClick={onClose}
+              onClick={requestClose}
+              disabled={saving}
             >
               <X />
             </Button>
           </header>
 
-          <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
+          <div
+            inert={saving}
+            className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6"
+          >
             {transaction.status === "delete_pending" && (
               <div className="flex gap-3 rounded-xl bg-destructive/10 p-3 text-sm text-destructive">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" />
@@ -237,6 +254,7 @@ export function TransactionEditor({
                   type="button"
                   variant={draft.status === "reviewed" ? "default" : "outline"}
                   className="h-10"
+                  aria-pressed={draft.status === "reviewed"}
                   disabled={
                     transaction.is_pending ||
                     transaction.status === "delete_pending" ||
@@ -261,6 +279,7 @@ export function TransactionEditor({
             <section className="grid gap-4 sm:grid-cols-2">
               <Field label="Payee" className="sm:col-span-2">
                 <Input
+                  aria-label="Payee"
                   value={draft.payee}
                   disabled={structurallyLocked}
                   onChange={(event) => updateDraft("payee", event.target.value)}
@@ -275,6 +294,7 @@ export function TransactionEditor({
               <Field label="Date">
                 <Input
                   type="date"
+                  aria-label="Date"
                   value={draft.date}
                   disabled={structurallyLocked}
                   onChange={(event) => updateDraft("date", event.target.value)}
@@ -296,20 +316,24 @@ export function TransactionEditor({
                 <Input
                   inputMode="decimal"
                   aria-invalid={!amountValid}
+                  aria-label="Amount"
                   value={draft.amount}
                   disabled={locked || structurallyLocked}
                   onChange={(event) =>
                     updateDraft("amount", event.target.value)
                   }
                 />
-                <p className="mt-1.5 px-1 text-xs text-bento-subtle">
-                  Negative amounts are credits.
+                <p className="mt-1.5 px-1 text-xs wrap-anywhere text-bento-subtle">
+                  {amountValid
+                    ? "Negative amounts are credits."
+                    : "Enter an amount with up to four decimal places."}
                 </p>
               </Field>
               <Field label="Currency">
                 <Input
                   maxLength={3}
                   aria-invalid={!currencyValid}
+                  aria-label="Currency"
                   value={draft.currency}
                   disabled={locked || structurallyLocked}
                   className="uppercase"
@@ -318,6 +342,14 @@ export function TransactionEditor({
                   }
                 />
               </Field>
+              {!currencyValid && (
+                <p
+                  role="status"
+                  className="text-xs text-bento-negative sm:col-span-2"
+                >
+                  Use a three-letter currency code, such as USD or CAD.
+                </p>
+              )}
               <Field label="Account" className="sm:col-span-2">
                 <Select
                   value={draft.account}
@@ -326,6 +358,7 @@ export function TransactionEditor({
                   }
                 >
                   <SelectTrigger
+                    aria-label="Account"
                     className="h-10 w-full rounded-xl"
                     disabled={locked || structurallyLocked}
                   >
@@ -350,7 +383,7 @@ export function TransactionEditor({
                   </SelectContent>
                 </Select>
                 {locked && !structurallyLocked && (
-                  <p className="mt-1.5 px-1 text-xs text-bento-subtle">
+                  <p className="mt-1.5 px-1 text-xs wrap-anywhere text-bento-subtle">
                     Amount, currency, and account are locked by this synced
                     account.
                   </p>
@@ -364,7 +397,10 @@ export function TransactionEditor({
                     value && updateDraft("recurringId", value)
                   }
                 >
-                  <SelectTrigger className="h-10 w-full rounded-xl">
+                  <SelectTrigger
+                    aria-label="Recurring item"
+                    className="h-10 w-full rounded-xl"
+                  >
                     <SelectValue>
                       {(value: string) =>
                         recurringValueName(recurringItems, value)
@@ -394,6 +430,7 @@ export function TransactionEditor({
               <Field label="Notes" className="sm:col-span-2">
                 <Textarea
                   rows={4}
+                  aria-label="Notes"
                   value={draft.notes}
                   disabled={structurallyLocked}
                   className="max-h-none resize-none overflow-y-hidden wrap-anywhere"
@@ -427,23 +464,46 @@ export function TransactionEditor({
                 {error}
               </p>
             )}
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                className="h-10"
-                onClick={onClose}
-              >
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                className="h-10"
-                disabled={!valid || !changed || saving || structurallyLocked}
-              >
-                {saving ? "Saving…" : "Save changes"}
-              </Button>
-            </div>
+            {confirmDiscard ? (
+              <div role="alert" className="space-y-3">
+                <p className="text-sm">Discard your unsaved changes?</p>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setConfirmDiscard(false)}
+                  >
+                    Keep editing
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => setOpen(false)}
+                  >
+                    Discard changes
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  className="h-10"
+                  onClick={requestClose}
+                  disabled={saving}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  className="h-10"
+                  disabled={!valid || !changed || saving || structurallyLocked}
+                >
+                  {saving ? "Saving…" : "Save changes"}
+                </Button>
+              </div>
+            )}
           </footer>
         </form>
       </SheetContent>
@@ -461,9 +521,13 @@ function Field({
   children: React.ReactNode;
 }) {
   return (
-    <label className={cn("block min-w-0", className)}>
+    <div
+      role="group"
+      aria-label={label}
+      className={cn("block min-w-0", className)}
+    >
       <span className="mb-1.5 block px-1 text-xs font-medium">{label}</span>
       {children}
-    </label>
+    </div>
   );
 }

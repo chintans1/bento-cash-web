@@ -124,7 +124,7 @@ export function MintBalanceImportCard({
   }
 
   async function handleImport() {
-    if (!csv || !preview) return;
+    if (!csv || !preview || busy) return;
     setPhase("importing");
     setError(null);
 
@@ -226,7 +226,7 @@ export function MintBalanceImportCard({
                   <label
                     htmlFor="mint-trends-file"
                     className={cn(
-                      "inline-flex min-h-10 shrink-0 cursor-pointer items-center rounded-full px-4 text-sm font-medium shadow-(--shadow-surface-outline) transition-surface hover:bg-bento-surface active:scale-96",
+                      "pointer-press inline-flex min-h-10 shrink-0 cursor-pointer items-center rounded-full px-4 text-sm font-medium shadow-(--shadow-surface-outline) transition-surface hover:bg-bento-surface",
                       (busy || accountLoading) &&
                         "pointer-events-none opacity-50"
                     )}
@@ -238,12 +238,12 @@ export function MintBalanceImportCard({
                 <label
                   htmlFor="mint-trends-file"
                   className={cn(
-                    "group flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-border bg-bento-raised/50 px-5 py-6 text-center transition-dropzone peer-focus-visible:ring-3 peer-focus-visible:ring-ring/30 hover:border-bento-brand/50 hover:bg-bento-raised active:scale-99",
+                    "group flex min-h-36 cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-border bg-bento-raised/50 px-5 py-6 text-center transition-dropzone peer-focus-visible:ring-3 peer-focus-visible:ring-ring/30 hover:border-bento-brand/50 hover:bg-bento-raised",
                     (busy || accountLoading) && "pointer-events-none opacity-50"
                   )}
                 >
                   <UploadCloud
-                    className="size-6 text-bento-brand transition-transform group-hover:-translate-y-0.5"
+                    className="size-6 text-bento-brand"
                     aria-hidden="true"
                   />
                   <span className="mt-3 text-sm font-medium">
@@ -291,7 +291,10 @@ export function MintBalanceImportCard({
             ))}
 
             {phase === "complete" && result ? (
-              <div className="flex flex-col items-center gap-3 rounded-2xl bg-bento-positive/10 px-5 py-8 text-center">
+              <div
+                role="status"
+                className="flex flex-col items-center gap-3 rounded-2xl bg-bento-positive/10 px-5 py-8 text-center"
+              >
                 <CircleCheckBig
                   className="size-8 text-bento-positive"
                   aria-hidden="true"
@@ -326,6 +329,7 @@ export function MintBalanceImportCard({
 
             {(phase === "review" || phase === "importing") && preview ? (
               <MintImportReview
+                disabled={busy}
                 preview={preview}
                 currency={currency}
                 policy={policy}

@@ -34,6 +34,7 @@ export function NetWorthCard({
   netWorth,
   history,
   historyLoading,
+  historyError,
   year,
   month,
   primaryCurrency,
@@ -41,6 +42,7 @@ export function NetWorthCard({
   netWorth: NetWorth | null;
   history: NetWorthPoint[];
   historyLoading: boolean;
+  historyError?: string | null;
   year: number;
   month: number;
   primaryCurrency: string;
@@ -88,7 +90,7 @@ export function NetWorthCard({
           </p>
           <Link
             href="/accounts"
-            className="-my-3 inline-flex min-h-10 items-center pl-3 text-xs text-bento-subtle transition-link hover:text-bento-default active:scale-96"
+            className="pointer-press -my-3 inline-flex min-h-10 items-center pl-3 text-xs text-bento-subtle transition-link hover:text-bento-default"
           >
             Explore →
           </Link>
@@ -155,7 +157,9 @@ export function NetWorthCard({
         )}
 
         <p className="mt-4 text-(length:--text-caption) text-pretty text-bento-subtle">
-          {charted && latest ? (
+          {historyError ? (
+            historyError
+          ) : charted && latest ? (
             <>
               Month-end balances, {formatMonthKey(history[0].month)} –{" "}
               {formatMonthKey(latest.month)}.
@@ -213,6 +217,7 @@ export function NetWorthCard({
                 }}
               />
               <Area
+                isAnimationActive={false}
                 dataKey="netWorth"
                 type="monotone"
                 stroke="var(--series-1)"

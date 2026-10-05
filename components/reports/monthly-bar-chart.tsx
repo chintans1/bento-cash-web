@@ -64,6 +64,7 @@ export function MonthlyBarChart({
           }
         />
         <Bar
+          isAnimationActive={false}
           dataKey={dataKey}
           fill={`var(--color-${dataKey})`}
           radius={[6, 6, 0, 0]}

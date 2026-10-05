@@ -64,6 +64,10 @@ export default function SettingsPage() {
   const [removing, setRemoving] = useState(false);
   const [removeError, setRemoveError] = useState<string | null>(null);
 
+  const floorValue = Number(floorMonthsInput ?? floorMonths);
+  const floorValid =
+    Number.isInteger(floorValue) && floorValue >= 1 && floorValue <= 24;
+
   function handleFloorMonthsChange(raw: string) {
     setFloorMonthsInput(raw);
     setMonths(Number(raw));
@@ -182,6 +186,7 @@ export default function SettingsPage() {
                   <Input
                     id="savings-months"
                     aria-describedby="savings-months-help"
+                    aria-invalid={!floorValid}
                     onBlur={() => setFloorMonthsInput(null)}
                     type="number"
                     min={1}

@@ -212,7 +212,7 @@ export function GrowthProjection({
             </label>
             <div className="flex items-center gap-1">
               <span className="font-mono text-sm text-bento-subtle select-none">
-                $
+                {primaryCurrency.toUpperCase()}
               </span>
               <Input
                 id="monthly-contribution"
@@ -268,7 +268,7 @@ export function GrowthProjection({
                     changeMonthly(String(Math.round(estimatedContrib)))
                   }
                   aria-label="Use estimated monthly contribution"
-                  className="min-h-10 min-w-10 rounded px-1 text-xs font-medium text-bento-default transition-colors hover:underline active:scale-96"
+                  className="pointer-press min-h-10 min-w-10 rounded px-1 text-xs font-medium text-bento-default transition-colors hover:underline"
                 >
                   Use
                 </button>
@@ -337,6 +337,7 @@ export function GrowthProjection({
             />
             {RATES.map(({ key, color }) => (
               <Line
+                isAnimationActive={false}
                 key={key}
                 type="monotone"
                 dataKey={key}
@@ -350,36 +351,45 @@ export function GrowthProjection({
         </ChartContainer>
 
         {/* Milestone table */}
-        <div className="mt-5 grid grid-cols-4 gap-x-3 gap-y-1.5 text-xs">
-          <div />
-          {MILESTONES.map((yr) => (
-            <div
-              key={yr}
-              className="text-center font-semibold tracking-wide text-bento-subtle uppercase"
-            >
-              Year {yr}
-            </div>
-          ))}
-          {RATES.map(({ key, label, rate, color }) => (
-            <Fragment key={key}>
-              <div className="flex items-center gap-1.5">
-                <span
-                  className="inline-block h-1.5 w-3 shrink-0 rounded-full bg-(--item-background)"
-                  style={{ "--item-background": color } as React.CSSProperties}
-                />
-                <span className="text-bento-subtle">{label}</span>
+        <div
+          className="mt-5 overflow-x-auto overscroll-x-contain"
+          role="region"
+          aria-label="Projection milestones"
+          tabIndex={0}
+        >
+          <div className="grid min-w-112 grid-cols-4 gap-x-3 gap-y-1.5 text-xs">
+            <div />
+            {MILESTONES.map((yr) => (
+              <div
+                key={yr}
+                className="text-center font-semibold tracking-wide text-bento-subtle uppercase"
+              >
+                Year {yr}
               </div>
-              {MILESTONES.map((yr) => (
-                <div key={yr} className="text-center font-mono tabular-nums">
-                  {formatCurrency(
-                    project(currentPortfolio, monthly, rate, yr),
-                    primaryCurrency,
-                    false
-                  )}
+            ))}
+            {RATES.map(({ key, label, rate, color }) => (
+              <Fragment key={key}>
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className="inline-block h-1.5 w-3 shrink-0 rounded-full bg-(--item-background)"
+                    style={
+                      { "--item-background": color } as React.CSSProperties
+                    }
+                  />
+                  <span className="text-bento-subtle">{label}</span>
                 </div>
-              ))}
-            </Fragment>
-          ))}
+                {MILESTONES.map((yr) => (
+                  <div key={yr} className="text-center font-mono tabular-nums">
+                    {formatCurrency(
+                      project(currentPortfolio, monthly, rate, yr),
+                      primaryCurrency,
+                      false
+                    )}
+                  </div>
+                ))}
+              </Fragment>
+            ))}
+          </div>
         </div>
 
         {/* Goal planner */}
@@ -391,7 +401,7 @@ export function GrowthProjection({
               </p>
               <div className="flex items-center gap-1">
                 <span className="font-mono text-xs text-bento-subtle select-none">
-                  $
+                  {primaryCurrency.toUpperCase()}
                 </span>
                 <Input
                   aria-label="Investment goal"

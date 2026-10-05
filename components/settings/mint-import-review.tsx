@@ -17,6 +17,7 @@ import type {
 import { cn } from "@/lib/utils";
 
 type MintImportReviewProps = {
+  disabled?: boolean;
   preview: MintImportPreview;
   currency: string;
   policy: MintConflictPolicy;
@@ -56,6 +57,7 @@ function actionLabel(action: MintImportPreviewRow["action"]): string {
 }
 
 export function MintImportReview({
+  disabled = false,
   preview,
   currency,
   policy,
@@ -83,7 +85,7 @@ export function MintImportReview({
       </div>
 
       {preview.conflictMonths > 0 && (
-        <fieldset className="grid gap-2 sm:grid-cols-2">
+        <fieldset disabled={disabled} className="grid gap-2 sm:grid-cols-2">
           <legend className="mb-1 text-sm font-medium sm:col-span-2">
             When a month overlaps
           </legend>
@@ -91,7 +93,7 @@ export function MintImportReview({
             <label
               key={option.value}
               className={cn(
-                "flex min-h-20 cursor-pointer items-start gap-3 rounded-xl bg-bento-raised px-4 py-3 shadow-(--shadow-surface-outline) transition-selection active:scale-99",
+                "flex min-h-20 cursor-pointer items-start gap-3 rounded-xl bg-bento-raised px-4 py-3 shadow-(--shadow-surface-outline) transition-selection duration-150",
                 policy === option.value &&
                   "bg-bento-brand/10 shadow-(--shadow-brand-outline)"
               )}
@@ -102,7 +104,7 @@ export function MintImportReview({
                 value={option.value}
                 checked={policy === option.value}
                 onChange={() => onPolicyChange(option.value)}
-                className="mt-1 size-4"
+                className="mt-1 size-4 accent-bento-brand"
               />
               <span>
                 <span className="block text-sm font-medium">
@@ -131,8 +133,11 @@ export function MintImportReview({
         </Alert>
       )}
 
-      <div className="max-h-112 overflow-auto rounded-2xl shadow-(--shadow-surface-outline)">
-        <Table>
+      <div className="overflow-hidden rounded-2xl shadow-(--shadow-surface-outline)">
+        <Table
+          aria-label="Monthly import preview"
+          containerClassName="max-h-112 overflow-auto overscroll-contain"
+        >
           <TableHeader className="sticky top-0 z-10 bg-bento-surface">
             <TableRow>
               <TableHead>Month</TableHead>

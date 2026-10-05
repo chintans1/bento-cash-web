@@ -65,7 +65,7 @@ function SegmentedControl<T extends string | number>({
           aria-pressed={value === option.value}
           onClick={() => onChange(option.value)}
           className={cn(
-            "min-h-10 rounded-full px-4 text-sm font-medium transition-control duration-150 ease-out active:scale-96",
+            "pointer-press min-h-10 rounded-full px-4 text-sm font-medium transition-control duration-150 ease-out",
             value === option.value
               ? "bg-bento-surface text-bento-default shadow-sm"
               : "text-bento-subtle hover:text-bento-default"
@@ -97,7 +97,7 @@ export default function ReportsPage() {
   if (!hasDataSource) return <ConnectionPrompt />;
 
   return (
-    <main className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
+    <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
       <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
         <div>
           <h1 className="font-heading text-2xl font-bold text-balance">
@@ -140,7 +140,10 @@ export default function ReportsPage() {
 
         <CardContent className="px-4 py-6 sm:px-6 sm:py-8">
           {history.error ? (
-            <p className="py-12 text-center text-sm text-bento-danger">
+            <p
+              role="alert"
+              className="py-12 text-center text-sm text-bento-danger"
+            >
               {history.error}
             </p>
           ) : !report ? (
@@ -161,6 +164,6 @@ export default function ReportsPage() {
           )}
         </CardContent>
       </Card>
-    </main>
+    </div>
   );
 }

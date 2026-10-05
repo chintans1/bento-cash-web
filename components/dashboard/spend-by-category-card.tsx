@@ -7,6 +7,7 @@ import type { CategoryTotal, MoMDelta } from "@/lib/lunchmoney/analytics";
 import type { Transaction } from "@/lib/lunchmoney/client";
 
 export function SpendByCategoryCard({
+  transactionsHref,
   categoryTotals,
   momDeltas,
   maxCatSpend,
@@ -15,6 +16,7 @@ export function SpendByCategoryCard({
   loading,
   error,
 }: {
+  transactionsHref: string;
   categoryTotals: CategoryTotal[];
   momDeltas: Map<number, MoMDelta>;
   maxCatSpend: number;
@@ -40,6 +42,7 @@ export function SpendByCategoryCard({
             {categoryTotals.map((cat) => (
               <CategoryRow
                 key={cat.id}
+                transactionsHref={transactionsHref}
                 cat={cat}
                 color={categoryColor(cat.name)}
                 maxSpend={maxCatSpend}

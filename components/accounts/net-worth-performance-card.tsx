@@ -34,7 +34,7 @@ const RANGES = [
 const CHART_CONFIG = {};
 const COMPACT_NUMBER = new Intl.NumberFormat("en", {
   notation: "compact",
-  maximumFractionDigits: 1,
+  maximumFractionDigits: 2,
 });
 
 function monthLabel(month: string) {
@@ -144,7 +144,7 @@ function Control({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "min-h-10 shrink-0 rounded-full px-3 text-xs font-medium transition-control active:scale-96",
+        "pointer-press min-h-10 shrink-0 rounded-full px-3 text-xs font-medium transition-control",
         active
           ? "bg-bento-surface text-bento-default shadow-sm"
           : "text-bento-subtle hover:text-bento-default"
@@ -157,10 +157,12 @@ function Control({
 
 export function NetWorthPerformanceCard({
   history,
+  error,
   accounts,
   primaryCurrency,
 }: {
   history: BalanceHistoryAccount[] | null;
+  error?: string | null;
   accounts: NormalizedAccount[];
   primaryCurrency: string;
 }) {
@@ -187,7 +189,11 @@ export function NetWorthPerformanceCard({
       <CardHeader className="gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <CardTitle className="text-lg">Net Worth Performance</CardTitle>
-          <div className="flex rounded-full bg-bento-raised p-1">
+          <div
+            role="group"
+            aria-label="History period"
+            className="flex rounded-full bg-bento-raised p-1"
+          >
             {RANGES.map((item) => (
               <Control
                 key={item.value}
@@ -199,7 +205,11 @@ export function NetWorthPerformanceCard({
             ))}
           </div>
         </div>
-        <div className="-mx-1 flex overflow-x-auto rounded-full bg-bento-raised p-1">
+        <div
+          role="group"
+          aria-label="Account group"
+          className="-mx-1 flex overflow-x-auto rounded-full bg-bento-raised p-1"
+        >
           {GROUPS.map((item) => (
             <Control
               key={item.value}
@@ -212,7 +222,13 @@ export function NetWorthPerformanceCard({
         </div>
       </CardHeader>
 
-      {history === null ? (
+      {error ? (
+        <CardContent>
+          <p role="alert" className="text-sm text-bento-negative">
+            {error}
+          </p>
+        </CardContent>
+      ) : history === null ? (
         <CardContent>
           <Skeleton className="h-64 rounded-xl" />
         </CardContent>

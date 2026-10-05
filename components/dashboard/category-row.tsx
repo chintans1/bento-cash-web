@@ -19,6 +19,7 @@ import { Collapsible } from "@/components/collapsible";
  * distort the ordering.
  */
 export function CategoryRow({
+  transactionsHref,
   cat,
   color,
   maxSpend,
@@ -26,6 +27,7 @@ export function CategoryRow({
   primaryCurrency,
   transactions,
 }: {
+  transactionsHref: string;
   cat: CategoryTotal;
   color: string;
   maxSpend: number;
@@ -77,7 +79,7 @@ export function CategoryRow({
 
         <ChevronDown
           className={cn(
-            "size-3.5 shrink-0 text-bento-subtle transition-transform duration-200 ease-expand",
+            "size-3.5 shrink-0 text-bento-subtle transition-transform duration-150 ease-out",
             expanded && "rotate-180"
           )}
         />
@@ -99,7 +101,7 @@ export function CategoryRow({
           {cat.txCount > topTxs.length && (
             <li className="pt-1">
               <Link
-                href="/transactions"
+                href={`${transactionsHref}&category=${cat.id}`}
                 className="text-(length:--text-caption) text-bento-subtle hover:text-bento-default hover:underline"
               >
                 +{cat.txCount - topTxs.length} more →

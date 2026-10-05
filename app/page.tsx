@@ -39,6 +39,7 @@ function HomePage() {
     netWorth,
     netWorthHistory,
     netWorthHistoryLoading,
+    netWorthHistoryError,
     loading,
     refreshing,
     comparisonLoading,
@@ -92,6 +93,7 @@ function HomePage() {
             netWorth={netWorth}
             history={netWorthHistory}
             historyLoading={netWorthHistoryLoading}
+            historyError={netWorthHistoryError}
             year={selectedYear}
             month={selectedMonth}
             primaryCurrency={primaryCurrency}
@@ -147,6 +149,7 @@ function HomePage() {
           />
 
           <SpendByCategoryCard
+            transactionsHref={transactionsHref}
             categoryTotals={categoryTotals}
             momDeltas={momDeltas}
             maxCatSpend={maxCatSpend}

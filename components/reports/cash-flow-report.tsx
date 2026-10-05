@@ -113,16 +113,19 @@ export function CashFlowReport({
             />
             <ChartLegend content={<ChartLegendContent />} />
             <Bar
+              isAnimationActive={false}
               dataKey="income"
               fill="var(--color-income)"
               radius={[5, 5, 0, 0]}
             />
             <Bar
+              isAnimationActive={false}
               dataKey="spend"
               fill="var(--color-spend)"
               radius={[5, 5, 0, 0]}
             />
             <Line
+              isAnimationActive={false}
               dataKey="saved"
               type="monotone"
               stroke="var(--color-saved)"
