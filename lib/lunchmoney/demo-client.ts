@@ -14,7 +14,14 @@ import type {
   CategoriesResponse,
   TransactionPatch,
   TransactionsResponse,
+  SplitParts,
+  GroupInput,
 } from "./client";
+import {
+  splitCategoryError,
+  splitError,
+  groupError,
+} from "./transaction-structure";
 
 // ── Fixture builders ─────────────────────────────────────────────────────────
 
@@ -635,10 +642,89 @@ function demoBalanceHistory(): BalanceHistoryAccount[] {
 export function createDemoClient(): LMClient {
   const transactionOverrides = new Map<number, TransactionPatch>();
   const knownTransactions = new Map<number, Transaction>();
+  const structured = new Map<number, Transaction>();
+  let nextStructureId = 9_000_000_000;
+
+  function currentTransaction(id: number): Transaction {
+    const transaction = structured.get(id) ?? knownTransactions.get(id);
+    if (!transaction) throw new Error(`Unknown demo transaction: ${id}`);
+    const current = { ...transaction, ...transactionOverrides.get(id) };
+    return current.children
+      ? {
+          ...current,
+          children: current.children.map((child) => ({
+            ...child,
+            ...transactionOverrides.get(child.id),
+          })),
+        }
+      : current;
+  }
+
+  function splitDemo(
+    id: number,
+    children: SplitParts,
+    recurringIds: (number | null)[] = children.map(() => null)
+  ): Transaction {
+    const parent = currentTransaction(id);
+    const error =
+      splitError(parent, children) ??
+      splitCategoryError(children, recurringIds, parent.category_id);
+    if (error) throw new Error(error);
+    const parts = children.map((child) => {
+      const amount = String(child.amount);
+      const transaction: Transaction = {
+        ...parent,
+        id: nextStructureId++,
+        date: child.date ?? parent.date,
+        amount,
+        to_base: Number(amount),
+        payee: child.payee ?? parent.payee,
+        category_id:
+          child.category_id === undefined
+            ? parent.category_id
+            : child.category_id,
+        tag_ids: child.tag_ids ?? parent.tag_ids,
+        notes: child.notes === undefined ? parent.notes : child.notes,
+        split_parent_id: id,
+        is_split_parent: false,
+        children: undefined,
+        source: "split",
+      };
+      structured.set(transaction.id, transaction);
+      return transaction;
+    });
+    const result = { ...parent, is_split_parent: true, children: parts };
+    structured.set(id, result);
+    return result;
+  }
+
+  function unsplitDemo(id: number) {
+    const parent = currentTransaction(id);
+    if (!parent.is_split_parent || !parent.children)
+      throw new Error("Not a split transaction");
+    parent.children.forEach((child) => structured.delete(child.id));
+    structured.set(id, {
+      ...parent,
+      is_split_parent: false,
+      children: undefined,
+    });
+  }
 
   function saveTransaction(id: number, patch: TransactionPatch): Transaction {
-    const transaction = knownTransactions.get(id);
+    const transaction = structured.get(id) ?? knownTransactions.get(id);
     if (!transaction) throw new Error(`Unknown demo transaction: ${id}`);
+
+    if (
+      transaction.split_parent_id != null &&
+      ("category_id" in patch ? patch.category_id : transaction.category_id) ==
+        null &&
+      ("recurring_id" in patch
+        ? patch.recurring_id
+        : transaction.recurring_id) == null
+    )
+      throw new Error(
+        "Choose a category or recurring item for this split part."
+      );
 
     const override = {
       ...transactionOverrides.get(id),
@@ -701,19 +787,28 @@ export function createDemoClient(): LMClient {
         const original = knownTransactions.get(id);
         return original && !generatedIds.has(id) ? [original] : [];
       });
-      const transactions = [...generated, ...movedIn]
+      const transactions = [
+        ...generated,
+        ...movedIn,
+        ...[...structured.values()].filter((tx) => !generatedIds.has(tx.id)),
+      ]
         .map((transaction) => {
+          const current = structured.get(transaction.id) ?? transaction;
           const patch = transactionOverrides.get(transaction.id);
           return patch
             ? {
-                ...transaction,
+                ...current,
                 ...patch,
                 ...(patch.amount !== undefined && {
                   to_base: Number(patch.amount),
                 }),
               }
-            : transaction;
+            : current;
         })
+        .filter(
+          (transaction) =>
+            !transaction.is_split_parent && transaction.group_parent_id == null
+        )
         .filter((transaction) =>
           transaction.date.startsWith(
             `${year}-${String(month).padStart(2, "0")}-`
@@ -756,7 +851,61 @@ export function createDemoClient(): LMClient {
       ),
     updateManualAccount: () => Promise.resolve(),
     updateTransaction: async (id, patch) => saveTransaction(id, patch),
+    updateSplitChildRecurring: async (id, recurringId) =>
+      saveTransaction(id, { recurring_id: recurringId }),
     updateTransactions: async (transactions) =>
       transactions.map(({ id, ...patch }) => saveTransaction(id, patch)),
+    getTransaction: async (id) => currentTransaction(id),
+    splitTransaction: async (id, children, recurringIds) =>
+      splitDemo(id, children, recurringIds),
+    replaceSplit: async (id, children, recurringIds) => {
+      const parent = currentTransaction(id);
+      const error =
+        splitError(parent, children) ??
+        splitCategoryError(
+          children,
+          recurringIds ?? children.map(() => null),
+          parent.category_id
+        );
+      if (error) throw new Error(error);
+      unsplitDemo(id);
+      return splitDemo(id, children, recurringIds);
+    },
+    unsplitTransaction: async (id) => unsplitDemo(id),
+    groupTransactions: async (input: GroupInput) => {
+      const error = groupError(input);
+      if (error) throw new Error(error);
+      const children = input.ids.map(currentTransaction);
+      const amount = children.reduce((sum, child) => sum + child.to_base, 0);
+      const group = demoTransaction({
+        id: nextStructureId++,
+        date: input.date,
+        payee: input.payee,
+        amount: amount.toFixed(2),
+        category_id: input.category_id ?? null,
+        notes: input.notes ?? null,
+        status: input.status ?? "reviewed",
+      });
+      const result = {
+        ...group,
+        is_group_parent: true,
+        children,
+        tag_ids: input.tag_ids ?? [],
+      };
+      children.forEach((child) =>
+        structured.set(child.id, { ...child, group_parent_id: result.id })
+      );
+      structured.set(result.id, result);
+      return result;
+    },
+    ungroupTransaction: async (id) => {
+      const group = currentTransaction(id);
+      if (!group.is_group_parent || !group.children)
+        throw new Error("Not a group");
+      group.children.forEach((child) =>
+        structured.set(child.id, { ...child, group_parent_id: null })
+      );
+      structured.delete(id);
+    },
   };
 }

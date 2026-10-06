@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { Autocomplete } from "@base-ui/react/autocomplete";
 import { AlertTriangle, Check, Clock3, X } from "lucide-react";
 import type { RecurringItem, Tag, Transaction } from "@/lib/lunchmoney/client";
 import type { NormalizedAccount } from "@/lib/account-utils";
@@ -32,6 +33,8 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatShortDate } from "@/lib/format";
+import { amountForEditing } from "@/lib/lunchmoney/transaction-structure";
+import { PayeeSuggestionsPopup } from "./editable-text";
 
 type Draft = {
   payee: string;
@@ -60,7 +63,7 @@ function makeDraft(transaction: Transaction): Draft {
   return {
     payee: transaction.payee ?? "",
     date: transaction.date,
-    amount: transaction.amount,
+    amount: amountForEditing(transaction.amount),
     currency: transaction.currency.toUpperCase(),
     categoryId: transaction.category_id,
     account: accountValue(transaction),
@@ -89,20 +92,26 @@ export function TransactionEditor({
   accounts,
   tags,
   recurringItems,
+  payeeSuggestions,
   saving,
   error,
   onClose,
   onSave,
+  onSplit,
+  onGroup,
 }: {
   transaction: Transaction;
   categoryOptions: CategoryOption[];
   accounts: NormalizedAccount[];
   tags: Tag[];
   recurringItems: RecurringItem[];
+  payeeSuggestions: string[];
   saving: boolean;
   error?: string;
   onClose: () => void;
   onSave: (patch: TransactionPatch) => Promise<boolean>;
+  onSplit: () => void;
+  onGroup: () => void;
 }) {
   const [open, setOpen] = useState(true);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
@@ -117,6 +126,8 @@ export function TransactionEditor({
   );
   const locked = currentAccount?.allowTransactionModifications === false;
   const structurallyLocked = isStructurallyLockedTransaction(transaction);
+  const groupParent = transaction.is_group_parent;
+  const splitChild = transaction.split_parent_id != null;
 
   const patch = useMemo(() => {
     const selectedAccount = accounts.find(
@@ -141,7 +152,10 @@ export function TransactionEditor({
 
   const amountValid = /^-?\d+(\.\d{1,4})?$/.test(draft.amount);
   const currencyValid = /^[A-Za-z]{3}$/.test(draft.currency);
-  const valid = draft.date !== "" && amountValid && currencyValid;
+  const categoryValid =
+    !splitChild || draft.recurringId !== "none" || draft.categoryId != null;
+  const valid =
+    draft.date !== "" && amountValid && currencyValid && categoryValid;
   const categoryName =
     categoryOptions.find((option) => option.id === (draft.categoryId ?? -1))
       ?.name ?? "Uncategorized";
@@ -187,7 +201,15 @@ export function TransactionEditor({
               </SheetTitle>
               <SheetDescription className="mt-1 text-sm text-bento-subtle tabular-nums">
                 {draft.date ? formatShortDate(draft.date) : "Date needed"} ·{" "}
-                {categoryName}
+                <span
+                  className={
+                    draft.categoryId == null
+                      ? "font-medium text-bento-negative"
+                      : undefined
+                  }
+                >
+                  {categoryName}
+                </span>
               </SheetDescription>
               {draft.amount.trim() !== "" && Number.isFinite(amount) && (
                 <p className="mt-3 font-mono text-lg font-semibold text-bento-default tabular-nums">
@@ -232,14 +254,57 @@ export function TransactionEditor({
                 </p>
               </div>
             )}
-            {structurallyLocked && (
+            {(structurallyLocked || splitChild) && (
               <div className="flex gap-3 rounded-xl bg-bento-raised p-3 text-sm text-bento-subtle">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" />
                 <p className="text-pretty">
-                  Split and grouped transactions are read-only here. Use their
-                  dedicated Lunch Money workflow to change them.
+                  {splitChild
+                    ? structurallyLocked
+                      ? "This is part of a split. Use Edit split to change its details or recurring link."
+                      : "You can edit this split part here. Use Edit split to change its amount or the split structure."
+                    : transaction.is_split_parent
+                      ? "This transaction is split into parts. Use Edit split to change them."
+                      : "This transaction belongs to a group. Open the group to manage its members."}
                 </p>
               </div>
+            )}
+
+            {(transaction.split_parent_id != null ||
+              transaction.is_split_parent ||
+              transaction.is_group_parent ||
+              (!transaction.is_pending &&
+                transaction.status !== "delete_pending" &&
+                transaction.recurring_id == null)) && (
+              <section className="rounded-2xl border border-bento-hairline p-4">
+                <h3 className="text-sm font-semibold">Transaction structure</h3>
+                <p className="mt-1 text-xs text-bento-subtle">
+                  {transaction.is_group_parent
+                    ? "View the transactions in this group or ungroup them."
+                    : transaction.split_parent_id != null ||
+                        transaction.is_split_parent
+                      ? "Edit each part of this split or restore the original transaction."
+                      : "Allocate this transaction across two or more categories or payees."}
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="mt-3 h-10"
+                  disabled={saving || changed}
+                  onClick={transaction.is_group_parent ? onGroup : onSplit}
+                >
+                  {transaction.is_group_parent
+                    ? "View group"
+                    : transaction.split_parent_id != null ||
+                        transaction.is_split_parent
+                      ? "Edit split"
+                      : "Split transaction"}
+                </Button>
+                {changed && (
+                  <p className="mt-2 text-xs text-bento-subtle">
+                    Save or discard your other changes first.
+                  </p>
+                )}
+              </section>
             )}
 
             <section className="space-y-3">
@@ -278,12 +343,25 @@ export function TransactionEditor({
 
             <section className="grid gap-4 sm:grid-cols-2">
               <Field label="Payee" className="sm:col-span-2">
-                <Input
-                  aria-label="Payee"
-                  value={draft.payee}
-                  disabled={structurallyLocked}
-                  onChange={(event) => updateDraft("payee", event.target.value)}
-                />
+                {!structurallyLocked ? (
+                  <Autocomplete.Root
+                    items={payeeSuggestions}
+                    value={draft.payee}
+                    onValueChange={(value) => updateDraft("payee", value)}
+                  >
+                    <Autocomplete.Input render={<Input aria-label="Payee" />} />
+                    {payeeSuggestions.length > 0 && <PayeeSuggestionsPopup />}
+                  </Autocomplete.Root>
+                ) : (
+                  <Input
+                    aria-label="Payee"
+                    value={draft.payee}
+                    disabled={structurallyLocked}
+                    onChange={(event) =>
+                      updateDraft("payee", event.target.value)
+                    }
+                  />
+                )}
                 {transaction.original_name &&
                   transaction.original_name !== transaction.payee && (
                     <p className="mt-1.5 px-1 text-xs wrap-anywhere text-bento-subtle">
@@ -304,13 +382,22 @@ export function TransactionEditor({
                 <CategoryPicker
                   categoryId={draft.categoryId}
                   categoryName={categoryName}
-                  options={categoryOptions}
+                  options={
+                    splitChild && draft.recurringId === "none"
+                      ? categoryOptions.filter((option) => option.id !== -1)
+                      : categoryOptions
+                  }
                   disabled={structurallyLocked}
                   appearance="field"
                   onChange={(categoryId) =>
                     updateDraft("categoryId", categoryId)
                   }
                 />
+                {!categoryValid && (
+                  <p role="alert" className="mt-1 text-xs text-bento-negative">
+                    Choose a category or recurring item for this split part.
+                  </p>
+                )}
               </Field>
               <Field label="Amount">
                 <Input
@@ -318,7 +405,9 @@ export function TransactionEditor({
                   aria-invalid={!amountValid}
                   aria-label="Amount"
                   value={draft.amount}
-                  disabled={locked || structurallyLocked}
+                  disabled={
+                    locked || structurallyLocked || groupParent || splitChild
+                  }
                   onChange={(event) =>
                     updateDraft("amount", event.target.value)
                   }
@@ -326,7 +415,7 @@ export function TransactionEditor({
                 <p className="mt-1.5 px-1 text-xs wrap-anywhere text-bento-subtle">
                   {amountValid
                     ? "Negative amounts are credits."
-                    : "Enter an amount with up to four decimal places."}
+                    : "Enter a valid amount."}
                 </p>
               </Field>
               <Field label="Currency">
@@ -335,7 +424,9 @@ export function TransactionEditor({
                   aria-invalid={!currencyValid}
                   aria-label="Currency"
                   value={draft.currency}
-                  disabled={locked || structurallyLocked}
+                  disabled={
+                    locked || structurallyLocked || groupParent || splitChild
+                  }
                   className="uppercase"
                   onChange={(event) =>
                     updateDraft("currency", event.target.value)
@@ -360,7 +451,9 @@ export function TransactionEditor({
                   <SelectTrigger
                     aria-label="Account"
                     className="h-10 w-full rounded-xl"
-                    disabled={locked || structurallyLocked}
+                    disabled={
+                      locked || structurallyLocked || groupParent || splitChild
+                    }
                   >
                     <SelectValue>
                       {(value: string) =>
@@ -382,17 +475,27 @@ export function TransactionEditor({
                       ))}
                   </SelectContent>
                 </Select>
-                {locked && !structurallyLocked && (
+                {splitChild ? (
+                  <p className="mt-1.5 px-1 text-xs wrap-anywhere text-bento-subtle">
+                    Change the amount in Edit split. Currency and account follow
+                    the original transaction.
+                  </p>
+                ) : groupParent ? (
+                  <p className="mt-1.5 px-1 text-xs wrap-anywhere text-bento-subtle">
+                    The group amount comes from its transactions. Its currency
+                    and account cannot be changed here.
+                  </p>
+                ) : locked && !structurallyLocked ? (
                   <p className="mt-1.5 px-1 text-xs wrap-anywhere text-bento-subtle">
                     Amount, currency, and account are locked by this synced
                     account.
                   </p>
-                )}
+                ) : null}
               </Field>
               <Field label="Recurring item" className="sm:col-span-2">
                 <Select
                   value={draft.recurringId}
-                  disabled={structurallyLocked}
+                  disabled={structurallyLocked || groupParent}
                   onValueChange={(value) =>
                     value && updateDraft("recurringId", value)
                   }

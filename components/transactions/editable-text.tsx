@@ -13,6 +13,26 @@ import { cn } from "@/lib/utils";
 const INPUT_CLASS =
   "w-full rounded-lg bg-bento-raised px-1.5 py-0.5 text-sm font-medium ring-2 ring-ring/40 outline-none";
 
+/** Shared suggestions popup for inline and detail payee editing. */
+export function PayeeSuggestionsPopup() {
+  return (
+    <ComboboxContent className="w-(--anchor-width) min-w-56">
+      <ComboboxEmpty>No matching names.</ComboboxEmpty>
+      <ComboboxList>
+        {(name: string) => (
+          <Autocomplete.Item
+            key={name}
+            value={name}
+            className="flex min-h-10 cursor-default items-center rounded-2xl px-2.5 py-1.5 text-sm outline-none select-none data-highlighted:bg-foreground/10"
+          >
+            <span className="truncate">{name}</span>
+          </Autocomplete.Item>
+        )}
+      </ComboboxList>
+    </ComboboxContent>
+  );
+}
+
 /**
  * Click-to-edit text, optionally with a list of names to pick from.
  *
@@ -114,20 +134,7 @@ export function EditableText({
             }
           }}
         />
-        <ComboboxContent className="w-(--anchor-width) min-w-56">
-          <ComboboxEmpty>No matching names.</ComboboxEmpty>
-          <ComboboxList>
-            {(name: string) => (
-              <Autocomplete.Item
-                key={name}
-                value={name}
-                className="flex min-h-10 cursor-default items-center rounded-2xl px-2.5 py-1.5 text-sm outline-none select-none data-highlighted:bg-foreground/10"
-              >
-                <span className="truncate">{name}</span>
-              </Autocomplete.Item>
-            )}
-          </ComboboxList>
-        </ComboboxContent>
+        <PayeeSuggestionsPopup />
       </Autocomplete.Root>
     );
   }

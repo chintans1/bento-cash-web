@@ -13,6 +13,8 @@ export const monthQuery = connectionQuery.extend({
 export const recordBody = z.record(z.string(), z.unknown());
 export const positiveId = z.number().int().positive();
 
+export class InvalidLunchMoneyRequest extends Error {}
+
 function json(body: object, status = 200): Response {
   return Response.json(body, {
     status,
@@ -57,6 +59,9 @@ export async function lunchMoneyRoute<T extends { connectionId: string }>(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Lunch Money request failed";
-    return json({ error: message }, 502);
+    return json(
+      { error: message },
+      error instanceof InvalidLunchMoneyRequest ? 400 : 502
+    );
   }
 }

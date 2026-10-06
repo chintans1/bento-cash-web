@@ -17,6 +17,8 @@ vi.mock("@/lib/server/lunch-money-client", () => ({
 import { GET as getMe } from "@/app/api/lunch-money/me/route";
 import { GET as getTransactions } from "@/app/api/lunch-money/transactions/route";
 import { PATCH as updateTransaction } from "@/app/api/lunch-money/transactions/[id]/route";
+import { PATCH as linkSplitRecurring } from "@/app/api/lunch-money/transactions/[id]/recurring/route";
+import { POST as splitTransaction } from "@/app/api/lunch-money/transactions/[id]/split/route";
 import { PATCH as updateTransactions } from "@/app/api/lunch-money/transactions/bulk/route";
 import { GET as getCategories } from "@/app/api/lunch-money/categories/route";
 import { GET as getTags } from "@/app/api/lunch-money/tags/route";
@@ -47,6 +49,10 @@ const client = {
   upsertBalanceHistory: vi.fn(),
   updateManualAccount: vi.fn(),
   updateTransaction: vi.fn(),
+  getTransaction: vi.fn(),
+  splitTransaction: vi.fn(),
+  replaceSplit: vi.fn(),
+  updateSplitChildRecurring: vi.fn(),
   updateTransactions: vi.fn(),
 };
 
@@ -126,6 +132,28 @@ describe("authenticated Lunch Money routes", () => {
       ).status
     ).toBe(400);
     expect(mocks.resolveLunchMoneyClient).not.toHaveBeenCalled();
+  });
+
+  it("links a split child to a recurring item through an owned connection", async () => {
+    client.updateSplitChildRecurring.mockResolvedValue({
+      id: 18,
+      recurring_id: 7,
+    });
+    const context = { params: Promise.resolve({ id: "18" }) };
+    const response = await linkSplitRecurring(
+      request("transactions/18/recurring", "PATCH", { recurringId: 7 }),
+      context
+    );
+    expect(response.status).toBe(200);
+    expect(client.updateSplitChildRecurring).toHaveBeenCalledWith(18, 7);
+    expect(
+      (
+        await linkSplitRecurring(
+          request("transactions/18/recurring", "PATCH", { recurringId: "bad" }),
+          context
+        )
+      ).status
+    ).toBe(400);
   });
 
   it.each([
@@ -239,6 +267,7 @@ describe("authenticated Lunch Money routes", () => {
   );
 
   it("routes individual writes", async () => {
+    client.getTransaction.mockResolvedValue({ id: 8, split_parent_id: null });
     client.updateTransaction.mockResolvedValue({ id: 8 });
     client.updateManualAccount.mockResolvedValue(undefined);
     const transaction = await updateTransaction(
@@ -255,6 +284,51 @@ describe("authenticated Lunch Money routes", () => {
     expect(client.updateManualAccount).toHaveBeenCalledWith(7, {
       balance: "12",
     });
+  });
+
+  it("requires a category or recurring item on every new split part", async () => {
+    client.getTransaction.mockResolvedValue({
+      id: 8,
+      amount: "10.00",
+      is_split_parent: false,
+    });
+    client.splitTransaction.mockResolvedValue({ id: 8, is_split_parent: true });
+    const context = { params: Promise.resolve({ id: "8" }) };
+    const children = [
+      { amount: "6.00", payee: "Rent", category_id: 2 },
+      { amount: "4.00", payee: "Utilities", category_id: null },
+    ];
+    const invalid = await splitTransaction(
+      request("transactions/8/split", "POST", { children }),
+      context
+    );
+    expect(invalid.status).toBe(400);
+    expect(client.splitTransaction).not.toHaveBeenCalled();
+
+    const valid = await splitTransaction(
+      request("transactions/8/split", "POST", {
+        children,
+        recurringIds: [null, 2004],
+      }),
+      context
+    );
+    expect(valid.status).toBe(200);
+    expect(client.splitTransaction).toHaveBeenCalledWith(8, children);
+  });
+
+  it("prevents an ordinary split part from losing its last category", async () => {
+    client.getTransaction.mockResolvedValue({
+      id: 18,
+      split_parent_id: 8,
+      category_id: 2,
+      recurring_id: null,
+    });
+    const response = await updateTransaction(
+      request("transactions/18", "PATCH", { patch: { category_id: null } }),
+      { params: Promise.resolve({ id: "18" }) }
+    );
+    expect(response.status).toBe(400);
+    expect(client.updateTransaction).not.toHaveBeenCalled();
   });
 
   it("maps provider failures", async () => {

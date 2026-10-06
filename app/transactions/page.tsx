@@ -17,6 +17,10 @@ import {
   TRANSACTION_GRID_COLUMNS,
 } from "@/components/transactions/transaction-row";
 import { TransactionEditor } from "@/components/transactions/transaction-editor";
+import {
+  GroupEditor,
+  SplitEditor,
+} from "@/components/transactions/transaction-structure-editor";
 import { usePayeeSuggestions } from "@/hooks/use-payee-suggestions";
 import { formatCurrency } from "@/lib/format";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -43,12 +47,15 @@ import { MonthSelector } from "@/components/dashboard/month-selector";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   comparePendingFirst,
+  inlineCategoryPatch,
   isReviewableTransaction,
   matchesReviewFilter,
   reviewCounts,
   type ReviewFilter,
 } from "@/lib/lunchmoney/transaction-state";
 import { cn } from "@/lib/utils";
+import { canGroupTransaction } from "@/lib/lunchmoney/transaction-structure";
+import type { Transaction } from "@/lib/lunchmoney/client";
 
 type SortKey = "date" | "amount" | "payee";
 type SortDir = "asc" | "desc";
@@ -108,6 +115,7 @@ function TransactionsPage() {
     errors,
     update,
     reviewMany,
+    refresh,
   } = useMonthTransactions(selectedYear, selectedMonth, dataScopeKey);
 
   // Categories come from the app-level fetch, so rows wait on them too — a row
@@ -138,6 +146,12 @@ function TransactionsPage() {
     month: string;
     id: number;
   } | null>(null);
+  const [structure, setStructure] = useState<
+    | { type: "split"; transaction: Transaction }
+    | { type: "group"; id: number }
+    | { type: "group-create"; transactions: Transaction[] }
+    | null
+  >(null);
 
   const accountNames = useMemo(
     () =>
@@ -308,24 +322,32 @@ function TransactionsPage() {
   }
 
   /**
-   * When we're advancing to the next uncategorized row, the picker's own focus
-   * restore would aim at the trigger that is about to leave the list, dropping
-   * focus to <body>. Returning false leaves focus alone so the effect above can
-   * place it once the new list is on screen.
+   * After a category edit removes a row from the uncategorized or review
+   * queue, the picker's own focus restore would target the removed trigger.
+   * Leave focus alone so the effect above can place it on the next row.
    */
   const keepFocusWhileAdvancing = useCallback(
-    () => (filterCatId === UNCATEGORIZED_FILTER ? false : undefined),
-    [filterCatId]
+    () =>
+      filterCatId === UNCATEGORIZED_FILTER || reviewFilter === "unreviewed"
+        ? false
+        : undefined,
+    [filterCatId, reviewFilter]
   );
 
   const handleCategoryChange = useCallback(
     (txId: number, newCatId: number | null) => {
-      // Clearing the uncategorized queue is the one flow you repeat: the row
-      // you just categorized drops out of the filter, so queue focus for
-      // whatever takes its place and the next one is a keystroke away. Outside
-      // that filter, moving focus would be surprising, so don't.
-      if (filterCatId === UNCATEGORIZED_FILTER) {
-        const current = filteredRef.current;
+      const current = filteredRef.current;
+      const transaction = current.find((tx) => tx.id === txId);
+      if (!transaction) return;
+      const patch = inlineCategoryPatch(transaction, newCatId);
+      const shouldReview = patch.status === "reviewed";
+
+      // A category edit can remove the row from either focused queue. Move
+      // focus to the next category picker only when that happens.
+      if (
+        (filterCatId === UNCATEGORIZED_FILTER && newCatId != null) ||
+        (reviewFilter === "unreviewed" && shouldReview)
+      ) {
         const index = current.findIndex((tx) => tx.id === txId);
         const remaining = current.filter((tx) => tx.id !== txId);
         const next = remaining[index] ?? remaining.at(-1);
@@ -334,9 +356,18 @@ function TransactionsPage() {
           : null;
       }
 
-      void update(txId, { category_id: newCatId });
+      if (shouldReview) {
+        setSelection((selection) => {
+          if (selection.month !== monthKey || !selection.ids.has(txId))
+            return selection;
+          const ids = new Set(selection.ids);
+          ids.delete(txId);
+          return { month: monthKey, ids };
+        });
+      }
+      void update(txId, patch);
     },
-    [filterCatId, update]
+    [filterCatId, monthKey, reviewFilter, update]
   );
 
   const handlePayeeChange = useCallback(
@@ -382,8 +413,19 @@ function TransactionsPage() {
 
   const selectedSaving = [...selectedIds].some((id) => savingIds.has(id));
   const selectable = filtered.filter(
-    (tx) => tx.status === "unreviewed" && isReviewableTransaction(tx)
+    (tx) => isReviewableTransaction(tx) || canGroupTransaction(tx)
   );
+  const selectedTransactions = transactions.filter((tx) =>
+    selectedIds.has(tx.id)
+  );
+  const canReviewSelection =
+    selectedTransactions.length > 0 &&
+    selectedTransactions.every(
+      (tx) => tx.status === "unreviewed" && isReviewableTransaction(tx)
+    );
+  const canGroupSelection =
+    selectedTransactions.length >= 2 &&
+    selectedTransactions.every(canGroupTransaction);
   const allSelected =
     selectable.length > 0 && selectable.every((tx) => selectedIds.has(tx.id));
 
@@ -457,15 +499,29 @@ function TransactionsPage() {
           <Button
             variant="secondary"
             className="h-10"
-            disabled={selectedSaving}
+            disabled={selectedSaving || !canReviewSelection}
             aria-busy={selectedSaving}
             onClick={() => {
+              if (!canReviewSelection) return;
               void reviewMany([...selectedIds]).then((saved) => {
                 if (saved) setSelection({ month: monthKey, ids: new Set() });
               });
             }}
           >
             {selectedSaving ? "Reviewing…" : "Mark reviewed"}
+          </Button>
+          <Button
+            variant="secondary"
+            className="h-10"
+            disabled={!canGroupSelection || selectedSaving}
+            onClick={() =>
+              setStructure({
+                type: "group-create",
+                transactions: selectedTransactions,
+              })
+            }
+          >
+            Group transactions
           </Button>
           <Button
             variant="ghost"
@@ -577,8 +633,8 @@ function TransactionsPage() {
           onClick={() => {
             const eligible = filtered.filter(
               (transaction) =>
-                transaction.status === "unreviewed" &&
-                isReviewableTransaction(transaction)
+                isReviewableTransaction(transaction) ||
+                canGroupTransaction(transaction)
             );
             setSelection({
               month: monthKey,
@@ -728,10 +784,54 @@ function TransactionsPage() {
           accounts={accounts}
           tags={tags}
           recurringItems={recurringItems}
+          payeeSuggestions={payeeSuggestions}
           saving={savingIds.has(editingTransaction.id)}
           error={errors.get(editingTransaction.id)}
           onClose={() => setEditing(null)}
           onSave={(patch) => update(editingTransaction.id, patch)}
+          onSplit={() => {
+            setStructure({ type: "split", transaction: editingTransaction });
+            setEditing(null);
+          }}
+          onGroup={() => {
+            setStructure({ type: "group", id: editingTransaction.id });
+            setEditing(null);
+          }}
+        />
+      )}
+      {structure?.type === "split" && (
+        <SplitEditor
+          key={`split-${structure.transaction.id}`}
+          transaction={structure.transaction}
+          categories={categoryOptions}
+          tags={tags}
+          recurringItems={recurringItems}
+          onClose={() => setStructure(null)}
+          onCommitted={refresh}
+        />
+      )}
+      {structure?.type === "group" && (
+        <GroupEditor
+          key={`group-${structure.id}`}
+          groupId={structure.id}
+          categories={categoryOptions}
+          onClose={() => setStructure(null)}
+          onCommitted={refresh}
+        />
+      )}
+      {structure?.type === "group-create" && (
+        <GroupEditor
+          key={`group-create-${structure.transactions.map((tx) => tx.id).join("-")}`}
+          transactions={structure.transactions}
+          categories={categoryOptions}
+          onClose={() => setStructure(null)}
+          onCommitted={async () => {
+            try {
+              await refresh();
+            } finally {
+              setSelection({ month: monthKey, ids: new Set() });
+            }
+          }}
         />
       )}
     </div>

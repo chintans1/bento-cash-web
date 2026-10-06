@@ -21,6 +21,7 @@ import {
   isReviewableTransaction,
   isStructurallyLockedTransaction,
 } from "@/lib/lunchmoney/transaction-state";
+import { canGroupTransaction } from "@/lib/lunchmoney/transaction-structure";
 
 export const TRANSACTION_GRID_COLUMNS =
   "grid-cols-transaction sm:grid-cols-transaction-sm md:grid-cols-transaction-md lg:grid-cols-transaction-lg";
@@ -66,9 +67,11 @@ export const TransactionRow = memo(function TransactionRow({
   const color = categoryColor(categoryName);
   const structurallyLocked = isStructurallyLockedTransaction(tx);
   const canReview = isReviewableTransaction(tx);
+  const canSelect = canReview || canGroupTransaction(tx);
   const reviewed = tx.status === "reviewed";
   const unreviewed = tx.status === "unreviewed" && !tx.is_pending;
-  const usesCategoryColor = reviewed || tx.status === "delete_pending";
+  const usesCategoryColor =
+    reviewed || tx.status === "delete_pending" || tx.category_id == null;
 
   return (
     <div
@@ -102,7 +105,7 @@ export const TransactionRow = memo(function TransactionRow({
             <Clock3 className="size-4" aria-hidden="true" />
             <span className="sr-only">Pending</span>
           </span>
-        ) : canReview && !reviewed ? (
+        ) : canSelect ? (
           <button
             type="button"
             aria-label={`${selected ? "Deselect" : "Select"} ${payee || "transaction"}`}
@@ -167,6 +170,7 @@ export const TransactionRow = memo(function TransactionRow({
                   className="size-3.5 shrink-0 text-bento-danger"
                 />
               )}
+              {tx.is_group_parent && <Badge variant="secondary">Group</Badge>}
             </div>
             <div className="flex min-w-0 items-center gap-2 px-1.5">
               <button
@@ -192,7 +196,11 @@ export const TransactionRow = memo(function TransactionRow({
           <CategoryPicker
             categoryId={tx.category_id}
             categoryName={categoryName}
-            options={categoryOptions}
+            options={
+              tx.split_parent_id != null && tx.recurring_id == null
+                ? categoryOptions.filter((option) => option.id !== -1)
+                : categoryOptions
+            }
             saving={saving}
             disabled={structurallyLocked || saving}
             onChange={(categoryId) => onCategoryChange(tx.id, categoryId)}

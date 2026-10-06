@@ -1,5 +1,6 @@
 import { LunchMoneyClient } from "@lunch-money/lunch-money-js-v2";
 import { cached, clearCache, invalidate, KEY } from "./cache";
+import { replaceSplitWithRestore } from "./transaction-structure";
 import type {
   Category,
   Transaction,
@@ -12,6 +13,8 @@ import type {
   CreateManualAccountBody,
   UpdateManualAccountBody,
   UpdateTransaction,
+  SplitTransactionBody,
+  GroupTransactionsBody,
   components,
 } from "@lunch-money/lunch-money-js-v2";
 export type {
@@ -55,6 +58,8 @@ export type TransactionPatch = Pick<
   | "status"
 > &
   Partial<Pick<Transaction, "amount">>;
+export type SplitParts = SplitTransactionBody["child_transactions"];
+export type GroupInput = GroupTransactionsBody;
 
 // ── Client interface ────────────────────────────────────────────────────────
 
@@ -86,9 +91,27 @@ export interface LMClient {
     transactionId: number,
     patch: TransactionPatch
   ): Promise<Transaction>;
+  updateSplitChildRecurring(
+    transactionId: number,
+    recurringId: number | null
+  ): Promise<Transaction>;
   updateTransactions(
     transactions: (TransactionPatch & { id: number })[]
   ): Promise<Transaction[]>;
+  getTransaction(id: number): Promise<Transaction>;
+  splitTransaction(
+    id: number,
+    children: SplitParts,
+    recurringIds?: (number | null)[]
+  ): Promise<Transaction>;
+  replaceSplit(
+    id: number,
+    children: SplitParts,
+    recurringIds?: (number | null)[]
+  ): Promise<Transaction>;
+  unsplitTransaction(id: number): Promise<void>;
+  groupTransactions(input: GroupInput): Promise<Transaction>;
+  ungroupTransaction(id: number): Promise<void>;
 }
 
 const TRANSACTION_PAGE_SIZE = 250;
@@ -98,6 +121,124 @@ const MAX_TRANSACTION_PAGES = 40;
 
 export function createApiKeyClient(token: string): LMClient {
   const sdk = new LunchMoneyClient({ apiKey: token });
+
+  const updateTransaction = async (
+    id: number,
+    patch: TransactionPatch
+  ): Promise<Transaction> => {
+    try {
+      const updated = await sdk.transactions.update(id, patch);
+      if (
+        updated.split_parent_id != null &&
+        Object.entries(patch).some(
+          ([key, value]) =>
+            JSON.stringify(updated[key as keyof Transaction]) !==
+            JSON.stringify(value)
+        )
+      )
+        throw new Error("Split child update was not confirmed by v2");
+      return updated;
+    } catch (v2Error) {
+      // The v2 update endpoint currently rejects split children. v1 supports
+      // edits to their ordinary fields; amounts still belong in the split editor.
+      const current = await sdk.transactions.get(id).catch(() => null);
+      if (!current?.split_parent_id) throw v2Error;
+      const allowed = new Set([
+        "payee",
+        "date",
+        "category_id",
+        "notes",
+        "tag_ids",
+        "status",
+        "recurring_id",
+      ]);
+      if (Object.keys(patch).some((key) => !allowed.has(key))) throw v2Error;
+      const { tag_ids, status, ...fields } = patch;
+      const legacyPatch = {
+        ...fields,
+        ...(tag_ids !== undefined && { tags: tag_ids }),
+        ...(status !== undefined && {
+          status: status === "reviewed" ? "cleared" : "uncleared",
+        }),
+      };
+      const response = await fetch(
+        `https://dev.lunchmoney.app/v1/transactions/${id}`,
+        {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ transaction: { id, ...legacyPatch } }),
+        }
+      );
+      const payload = (await response.json().catch(() => null)) as {
+        updated?: boolean;
+        error?: string | string[];
+      } | null;
+      if (!response.ok || payload?.updated !== true) {
+        const reason = Array.isArray(payload?.error)
+          ? payload.error.join(" ")
+          : payload?.error;
+        throw new Error(
+          reason || "Lunch Money could not update this split part."
+        );
+      }
+      const updated = await sdk.transactions.get(id);
+      if (
+        Object.entries(patch).some(
+          ([key, value]) =>
+            JSON.stringify(updated[key as keyof Transaction]) !==
+            JSON.stringify(value)
+        )
+      )
+        throw new Error("Lunch Money did not confirm the split part update.");
+      return updated;
+    }
+  };
+
+  const updateSplitChildRecurring = async (
+    id: number,
+    recurringId: number | null
+  ): Promise<Transaction> => {
+    // v2 currently documents split children as locked. Try it first so this
+    // path can move off v1 as soon as Lunch Money permits recurring changes.
+    try {
+      const updated = await sdk.transactions.update(id, {
+        recurring_id: recurringId,
+      });
+      if (updated.recurring_id === recurringId) return updated;
+    } catch {
+      // The legacy update endpoint can link an existing split child.
+    }
+    const response = await fetch(
+      `https://dev.lunchmoney.app/v1/transactions/${id}`,
+      {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          transaction: { id, recurring_id: recurringId },
+        }),
+      }
+    );
+    const payload = (await response.json().catch(() => null)) as {
+      updated?: boolean;
+      error?: string | string[];
+    } | null;
+    if (!response.ok || payload?.updated !== true) {
+      const reason = Array.isArray(payload?.error)
+        ? payload.error.join(" ")
+        : payload?.error;
+      throw new Error(reason || "Lunch Money could not link this split part.");
+    }
+    const updated = await sdk.transactions.get(id);
+    if (updated.recurring_id !== recurringId)
+      throw new Error("Lunch Money did not confirm the recurring link.");
+    return updated;
+  };
 
   return {
     getMe: () => sdk.user.getMe(),
@@ -208,16 +349,31 @@ export function createApiKeyClient(token: string): LMClient {
     updateManualAccount: (id, data) =>
       sdk.manualAccounts.update(id, data).then(() => undefined),
 
-    updateTransaction: (id, patch) => sdk.transactions.update(id, patch),
+    updateTransaction,
+    updateSplitChildRecurring,
     updateTransactions: (transactions) =>
       sdk.transactions.updateMany({ transactions }).then((r) => r.transactions),
+    getTransaction: (id) => sdk.transactions.get(id),
+    splitTransaction: (id, children) =>
+      sdk.transactions.split(id, { child_transactions: children }),
+    replaceSplit: (id, children) =>
+      replaceSplitWithRestore(id, children, {
+        get: (id) => sdk.transactions.get(id),
+        unsplit: (id) => sdk.transactions.unsplit(id),
+        split: (id, parts) =>
+          sdk.transactions.split(id, { child_transactions: parts }),
+        updateRecurring: updateSplitChildRecurring,
+      }),
+    unsplitTransaction: (id) => sdk.transactions.unsplit(id),
+    groupTransactions: (input) => sdk.transactions.group(input),
+    ungroupTransaction: (id) => sdk.transactions.ungroup(id),
   };
 }
 
 async function remoteRequest<T>(
   connectionId: string,
   path: string,
-  method: "GET" | "POST" | "PATCH" | "PUT" = "GET",
+  method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE" = "GET",
   body?: Record<string, unknown>
 ): Promise<T> {
   const url = `/api/lunch-money/${path}${
@@ -281,9 +437,34 @@ export function createRemoteClient(connectionId: string): LMClient {
       remoteRequest(connectionId, `accounts/manual/${id}`, "PATCH", { data }),
     updateTransaction: (id, patch) =>
       remoteRequest(connectionId, `transactions/${id}`, "PATCH", { patch }),
+    updateSplitChildRecurring: (id, recurringId) =>
+      remoteRequest(connectionId, `transactions/${id}/recurring`, "PATCH", {
+        recurringId,
+      }),
     updateTransactions: (transactions) =>
       remoteRequest(connectionId, "transactions/bulk", "PATCH", {
         transactions,
+      }),
+    getTransaction: (id) => remoteRequest(connectionId, `transactions/${id}`),
+    splitTransaction: (id, children, recurringIds) =>
+      remoteRequest(connectionId, `transactions/${id}/split`, "POST", {
+        children,
+        recurringIds: recurringIds ?? children.map(() => null),
+      }),
+    replaceSplit: (id, children, recurringIds) =>
+      remoteRequest(connectionId, `transactions/${id}/split`, "PUT", {
+        children,
+        recurringIds: recurringIds ?? children.map(() => null),
+      }),
+    unsplitTransaction: (id) =>
+      remoteRequest(connectionId, `transactions/${id}/split`, "DELETE", {
+        connectionId,
+      }),
+    groupTransactions: (input) =>
+      remoteRequest(connectionId, "transactions/group", "POST", { input }),
+    ungroupTransaction: (id) =>
+      remoteRequest(connectionId, `transactions/group/${id}`, "DELETE", {
+        connectionId,
       }),
   };
 }
@@ -402,6 +583,19 @@ export async function updateTransaction(
   return transaction;
 }
 
+export async function updateSplitChildRecurring(
+  transactionId: number,
+  recurringId: number | null
+): Promise<Transaction> {
+  const transaction = await activeClient().updateSplitChildRecurring(
+    transactionId,
+    recurringId
+  );
+  invalidate(KEY.allTx);
+  invalidate(KEY.allBudgets);
+  return transaction;
+}
+
 export async function updateTransactions(
   transactions: (TransactionPatch & { id: number })[]
 ): Promise<Transaction[]> {
@@ -409,4 +603,53 @@ export async function updateTransactions(
   invalidate(KEY.allTx);
   invalidate(KEY.allBudgets);
   return updated;
+}
+
+function invalidateTransactionViews() {
+  invalidate(KEY.allTx);
+  invalidate(KEY.allBudgets);
+}
+
+export const getTransaction = (id: number) => activeClient().getTransaction(id);
+
+export async function splitTransaction(
+  id: number,
+  children: SplitParts,
+  recurringIds?: (number | null)[]
+) {
+  const result = await activeClient().splitTransaction(
+    id,
+    children,
+    recurringIds
+  );
+  invalidateTransactionViews();
+  return result;
+}
+
+export async function replaceSplit(
+  id: number,
+  children: SplitParts,
+  recurringIds?: (number | null)[]
+) {
+  try {
+    return await activeClient().replaceSplit(id, children, recurringIds);
+  } finally {
+    invalidateTransactionViews();
+  }
+}
+
+export async function unsplitTransaction(id: number) {
+  await activeClient().unsplitTransaction(id);
+  invalidateTransactionViews();
+}
+
+export async function groupTransactions(input: GroupInput) {
+  const result = await activeClient().groupTransactions(input);
+  invalidateTransactionViews();
+  return result;
+}
+
+export async function ungroupTransaction(id: number) {
+  await activeClient().ungroupTransaction(id);
+  invalidateTransactionViews();
 }

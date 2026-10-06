@@ -104,15 +104,19 @@ function CategoryComboboxPopup({
                 className="size-3.5 shrink-0 text-(--item-color)"
                 style={
                   {
-                    "--item-color":
-                      option.id === -1
-                        ? "var(--cat-3)"
-                        : categoryColor(option.name),
+                    "--item-color": categoryColor(option.name),
                   } as React.CSSProperties
                 }
               />
             )}
-            <span className="truncate">{option.name}</span>
+            <span
+              className={cn(
+                "truncate",
+                option.id === -1 && "font-medium text-bento-negative"
+              )}
+            >
+              {option.name}
+            </span>
             {option.group && (
               <span className="ml-auto truncate text-(length:--text-caption) text-muted-foreground">
                 {option.group}
@@ -206,7 +210,7 @@ export function CategoryPicker({
           className={cn(
             "truncate",
             isUncategorized
-              ? "text-bento-subtle"
+              ? "font-medium text-bento-negative"
               : appearance === "field"
                 ? "text-bento-default"
                 : "text-bento-subtle"
@@ -276,7 +280,8 @@ export function CategoryFilterPicker({
         <span
           className={cn(
             "truncate",
-            categoryId === null && "text-muted-foreground"
+            categoryId === null && "text-muted-foreground",
+            categoryId === -1 && "font-medium text-bento-negative"
           )}
         >
           {selected.name}

@@ -5,6 +5,7 @@ import {
   changedPatch,
   comparePendingFirst,
   fieldsAtRevision,
+  inlineCategoryPatch,
   isInMonth,
   isReviewableTransaction,
   isStructurallyLockedTransaction,
@@ -40,6 +41,25 @@ const transaction: Transaction = {
 };
 
 describe("transaction state", () => {
+  it("reviews eligible inline category edits in the same patch", () => {
+    expect(inlineCategoryPatch(transaction, 4)).toEqual({
+      category_id: 4,
+      status: "reviewed",
+    });
+    expect(
+      inlineCategoryPatch({ ...transaction, category_id: 4 }, null)
+    ).toEqual({ category_id: null, status: "reviewed" });
+    expect(
+      inlineCategoryPatch({ ...transaction, status: "reviewed" }, 4)
+    ).toEqual({ category_id: 4 });
+    expect(
+      inlineCategoryPatch({ ...transaction, is_pending: true }, 4)
+    ).toEqual({ category_id: 4 });
+    expect(
+      inlineCategoryPatch({ ...transaction, status: "delete_pending" }, 4)
+    ).toEqual({ category_id: 4 });
+  });
+
   it("separates actionable review from pending and attention states", () => {
     const pending = { ...transaction, id: 2, is_pending: true };
     const attention = {
@@ -55,9 +75,9 @@ describe("transaction state", () => {
     expect(matchesReviewFilter(pending, "all")).toBe(true);
     expect(matchesReviewFilter(pending, "pending")).toBe(true);
     expect(matchesReviewFilter(attention, "attention")).toBe(true);
-    expect(matchesReviewFilter(grouped, "unreviewed")).toBe(false);
+    expect(matchesReviewFilter(grouped, "unreviewed")).toBe(true);
     expect(reviewCounts([transaction, pending, attention, grouped])).toEqual({
-      unreviewed: 1,
+      unreviewed: 2,
       pending: 1,
       attention: 1,
     });
@@ -94,6 +114,15 @@ describe("transaction state", () => {
         tag_ids: [],
       })
     ).toEqual({ notes: "Groceries" });
+    expect(
+      changedPatch(
+        { ...transaction, amount: "12.0000" },
+        {
+          amount: "12.00",
+          payee: "New name",
+        }
+      )
+    ).toEqual({ payee: "New name" });
   });
 
   it("does not let an older request settle a field edited again", () => {
@@ -167,15 +196,22 @@ describe("transaction state", () => {
     ).toBe(false);
   });
 
-  it("recognizes every transaction shape the update endpoint locks", () => {
+  it("keeps group parents editable while locking their member transactions", () => {
     const editable = {
       is_split_parent: false,
       split_parent_id: null,
       is_group_parent: false,
       group_parent_id: null,
+      recurring_id: null,
     };
 
     expect(isStructurallyLockedTransaction(editable)).toBe(false);
+    expect(
+      isStructurallyLockedTransaction({
+        ...editable,
+        is_group_parent: true,
+      })
+    ).toBe(false);
     expect(
       isStructurallyLockedTransaction({
         ...editable,
@@ -188,9 +224,25 @@ describe("transaction state", () => {
         is_split_parent: true,
       })
     ).toBe(true);
+    expect(
+      isStructurallyLockedTransaction({
+        ...editable,
+        split_parent_id: 12,
+      })
+    ).toBe(false);
+    expect(
+      isStructurallyLockedTransaction({
+        ...editable,
+        split_parent_id: 12,
+        recurring_id: 24,
+      })
+    ).toBe(true);
     expect(isReviewableTransaction(transaction)).toBe(true);
     expect(
       isReviewableTransaction({ ...transaction, is_group_parent: true })
+    ).toBe(true);
+    expect(
+      isReviewableTransaction({ ...transaction, group_parent_id: 12 })
     ).toBe(false);
   });
 

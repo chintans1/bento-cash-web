@@ -1,5 +1,6 @@
 import type { Transaction, TransactionPatch } from "./client";
 import type { NormalizedAccount } from "../account-utils";
+import { amountUnits } from "./transaction-structure";
 
 export type { TransactionPatch } from "./client";
 
@@ -27,12 +28,12 @@ export function isStructurallyLockedTransaction(
     | "split_parent_id"
     | "is_group_parent"
     | "group_parent_id"
+    | "recurring_id"
   >
 ): boolean {
   return Boolean(
     transaction.is_split_parent ||
-    transaction.split_parent_id ||
-    transaction.is_group_parent ||
+    (transaction.split_parent_id && transaction.recurring_id != null) ||
     transaction.group_parent_id
   );
 }
@@ -43,6 +44,18 @@ export function isReviewableTransaction(transaction: Transaction): boolean {
     transaction.status !== "delete_pending" &&
     !isStructurallyLockedTransaction(transaction)
   );
+}
+
+/** Inline category changes complete review for eligible transactions. */
+export function inlineCategoryPatch(
+  transaction: Transaction,
+  categoryId: number | null
+): TransactionPatch {
+  return {
+    category_id: categoryId,
+    ...(transaction.status === "unreviewed" &&
+      isReviewableTransaction(transaction) && { status: "reviewed" }),
+  };
 }
 
 export function transactionAccountPatch(account?: {
@@ -100,6 +113,11 @@ export function changedPatch(
   return Object.fromEntries(
     Object.entries(next).filter(([key, value]) => {
       const before = transaction[key as keyof Transaction];
+      if (key === "amount" && typeof value === "string") {
+        const nextUnits = amountUnits(value);
+        if (nextUnits !== null && nextUnits === amountUnits(String(before)))
+          return false;
+      }
       // Optional API fields may be omitted or explicitly null. Both mean empty.
       if (value == null && before == null) return false;
       return Array.isArray(value)

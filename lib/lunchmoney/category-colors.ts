@@ -18,10 +18,9 @@ const CAT_COLOR_VARS = [
 ] as const;
 
 export function categoryColor(name: string): string {
-  // Uncategorized is an attention-needed state across the app, so it uses the
-  // same amber as the dashboard banner instead of an arbitrary hashed color.
+  // Uncategorized needs attention, so use the red accent in both themes.
   if (name.trim().toLowerCase() === "uncategorized") {
-    return "var(--cat-3)";
+    return "var(--cat-1)";
   }
 
   let hash = 0;

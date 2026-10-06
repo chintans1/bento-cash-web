@@ -23,6 +23,7 @@ export type MonthTransactions = {
   errors: Map<number, string>;
   update: (id: number, patch: TransactionPatch) => Promise<boolean>;
   reviewMany: (ids: number[]) => Promise<boolean>;
+  refresh: () => Promise<void>;
 };
 
 const EMPTY_TRANSACTION_IDS = new Set<number>();
@@ -274,6 +275,30 @@ export function useMonthTransactions(
     [loadedKey, markSaving, updateLocal]
   );
 
+  const refresh = useCallback(async () => {
+    const key = activeRequestKey.current;
+    if (!key || loadedKey !== key) return;
+    try {
+      const result = await getTransactionsForMonth(year, month);
+      if (activeRequestKey.current === key) {
+        latest.current = result.transactions;
+        setTransactions(result.transactions);
+        setFailure(null);
+      }
+    } catch (error) {
+      if (activeRequestKey.current === key) {
+        setFailure({
+          key,
+          message:
+            error instanceof Error
+              ? error.message
+              : "Could not refresh transactions",
+        });
+      }
+      throw error;
+    }
+  }, [loadedKey, month, year]);
+
   return {
     transactions: loadedKey === requestKey ? transactions : [],
     loading: pending,
@@ -283,5 +308,6 @@ export function useMonthTransactions(
     errors,
     update,
     reviewMany,
+    refresh,
   };
 }
