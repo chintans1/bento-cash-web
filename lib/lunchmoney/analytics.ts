@@ -12,6 +12,7 @@
 import { prevMonthOf } from "../date-utils";
 import type { CategoriesResponse, Transaction } from "./client";
 import {
+  compareCategoriesByOrder,
   UNCATEGORIZED,
   UNCATEGORIZED_ID,
   type CategoryInfo,
@@ -25,9 +26,10 @@ export type CategoryGroupEntry = {
 };
 
 /**
- * Builds both the flat category map and the grouped Select structure in a
- * single pass over the categories response. Groups with children come first;
- * standalone categories (no children) are appended at the end.
+ * Builds the flat map and picker groups in the configured category order. Map
+ * insertion order also lets other category lists reuse that same order.
+ * Adjacent standalone categories share an ungrouped entry, allowing groups
+ * and standalone categories to appear at their actual top-level positions.
  */
 export function buildCategoryData(res: CategoriesResponse): {
   categoryMap: Map<number, CategoryInfo>;
@@ -35,9 +37,7 @@ export function buildCategoryData(res: CategoriesResponse): {
 } {
   const categoryMap = new Map<number, CategoryInfo>();
   const groups: CategoryGroupEntry[] = [];
-  const standalone: { id: number; name: string }[] = [];
-
-  for (const cat of res.categories) {
+  for (const cat of [...res.categories].sort(compareCategoriesByOrder)) {
     categoryMap.set(cat.id, {
       name: cat.name,
       is_income: cat.is_income,
@@ -45,12 +45,13 @@ export function buildCategoryData(res: CategoriesResponse): {
     });
 
     if (cat.children && cat.children.length > 0) {
+      const children = [...cat.children].sort(compareCategoriesByOrder);
       groups.push({
         groupId: cat.id,
         groupName: cat.name,
-        items: cat.children.map((c) => ({ id: c.id, name: c.name })),
+        items: children.map((c) => ({ id: c.id, name: c.name })),
       });
-      for (const child of cat.children) {
+      for (const child of children) {
         categoryMap.set(child.id, {
           name: child.name,
           is_income: child.is_income,
@@ -58,12 +59,17 @@ export function buildCategoryData(res: CategoriesResponse): {
         });
       }
     } else {
-      standalone.push({ id: cat.id, name: cat.name });
+      const previous = groups.at(-1);
+      if (previous?.groupId === null) {
+        previous.items.push({ id: cat.id, name: cat.name });
+      } else {
+        groups.push({
+          groupId: null,
+          groupName: null,
+          items: [{ id: cat.id, name: cat.name }],
+        });
+      }
     }
-  }
-
-  if (standalone.length > 0) {
-    groups.push({ groupId: null, groupName: null, items: standalone });
   }
 
   return { categoryMap, catGroups: groups };

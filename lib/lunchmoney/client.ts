@@ -301,7 +301,8 @@ export function createApiKeyClient(token: string): LMClient {
       return { manual, plaid };
     },
 
-    getRecurringItems: () => sdk.recurringItems.getAll(),
+    getRecurringItems: () =>
+      sdk.recurringItems.getAll({ include_suggested: true }),
 
     /**
      * Every month of balance history LM holds, for every account.

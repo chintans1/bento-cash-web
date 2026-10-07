@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, use, useEffect, useState } from "react";
+import {
+  createContext,
+  use,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import type {
   AccountType,
   RecurringItem,
@@ -21,6 +28,7 @@ import {
 import { type NormalizedAccount, normalizeAccounts } from "@/lib/account-utils";
 import type { CategoryInfo } from "@/lib/lunchmoney/categories";
 import { useAuth } from "@/hooks/use-auth";
+import { invalidate, KEY } from "@/lib/lunchmoney/cache";
 
 /** Everything that depends only on the account, not on the month on screen. */
 type AppData = {
@@ -38,6 +46,7 @@ interface AppDataContextValue extends AppData {
   error: string | null;
   patchAccount: (id: string, type: AccountType, subtype: string) => void;
   refreshAccounts: () => Promise<void>;
+  refreshRecurringItems: () => Promise<void>;
 }
 
 /** Stable identities, so consumers' memo deps don't churn while loading. */
@@ -69,6 +78,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     tags?: Tag[];
     recurringItems?: RecurringItem[];
   } | null>(null);
+  const recurringRequest = useRef(0);
 
   // Both results are tagged with the session they were fetched for, so signing
   // out or switching accounts drops them without a reset step.
@@ -92,9 +102,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         }
       })
       .catch(() => {});
+    const request = ++recurringRequest.current;
     getRecurringItems()
       .then((recurringItems) => {
-        if (!cancelled) {
+        if (!cancelled && request === recurringRequest.current) {
           setExtras((previous) => ({
             ...(previous?.session === session ? previous : { session }),
             recurringItems,
@@ -164,6 +175,21 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const refreshRecurringItems = useCallback(async () => {
+    if (session === null) return;
+    const requestedSession = session;
+    const request = ++recurringRequest.current;
+    invalidate(KEY.recurring);
+    const recurringItems = await getRecurringItems();
+    if (request !== recurringRequest.current) return;
+    setExtras((previous) => ({
+      ...(previous?.session === requestedSession
+        ? previous
+        : { session: requestedSession }),
+      recurringItems,
+    }));
+  }, [session]);
+
   return (
     <AppDataContext.Provider
       value={{
@@ -182,6 +208,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
         error,
         patchAccount,
         refreshAccounts,
+        refreshRecurringItems,
       }}
     >
       {children}

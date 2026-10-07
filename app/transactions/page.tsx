@@ -56,6 +56,7 @@ import {
 import { cn } from "@/lib/utils";
 import { canGroupTransaction } from "@/lib/lunchmoney/transaction-structure";
 import type { Transaction } from "@/lib/lunchmoney/client";
+import { recurringMatch } from "@/lib/lunchmoney/recurring-match";
 
 type SortKey = "date" | "amount" | "payee";
 type SortDir = "asc" | "desc";
@@ -84,8 +85,19 @@ function parseCategoryFilter(value: string | null): number | null {
   return Number.isSafeInteger(id) ? id : null;
 }
 
+function TransactionListLoading() {
+  return (
+    <div role="status" className="flex flex-col gap-2">
+      <p className="mb-1 text-sm text-bento-subtle">Loading transactions…</p>
+      {Array.from({ length: 12 }).map((_, i) => (
+        <Skeleton key={i} className="h-12 rounded-lg" />
+      ))}
+    </div>
+  );
+}
+
 function TransactionsPage() {
-  const { dataScopeKey, hasDataSource } = useAuth();
+  const { dataScopeKey, hasDataSource, isDemo } = useAuth();
   const {
     primaryCurrency,
     categoryMap,
@@ -93,6 +105,7 @@ function TransactionsPage() {
     accounts,
     tags,
     recurringItems,
+    refreshRecurringItems,
     loading: appLoading,
     error: appError,
   } = useAppData();
@@ -120,7 +133,7 @@ function TransactionsPage() {
 
   // Categories come from the app-level fetch, so rows wait on them too — a row
   // rendered before they land would read "Uncategorized".
-  const loading = monthLoading || appLoading;
+  const loading = monthLoading || appLoading || pending;
   const error = monthError || appError;
 
   const [query, setQuery] = useState("");
@@ -445,11 +458,18 @@ function TransactionsPage() {
             Transactions
           </h1>
           <p className="mt-1 text-sm text-bento-subtle tabular-nums">
-            {counts.unreviewed === 0
-              ? "No transactions to review"
-              : `${counts.unreviewed} to review`}
-            {counts.pending > 0 && ` · ${counts.pending} pending`}
-            {counts.attention > 0 && ` · ${counts.attention} need attention`}
+            {loading ? (
+              "Loading transactions…"
+            ) : (
+              <>
+                {counts.unreviewed === 0
+                  ? "No transactions to review"
+                  : `${counts.unreviewed} to review`}
+                {counts.pending > 0 && ` · ${counts.pending} pending`}
+                {counts.attention > 0 &&
+                  ` · ${counts.attention} need attention`}
+              </>
+            )}
           </p>
         </div>
         <MonthSelector
@@ -486,7 +506,7 @@ function TransactionsPage() {
           >
             <span className="sm:hidden">{mobileLabel}</span>
             <span className="hidden sm:inline">{label}</span>{" "}
-            <span className="tabular-nums">{count}</span>
+            <span className="tabular-nums">{loading ? "…" : count}</span>
           </button>
         ))}
       </div>
@@ -684,11 +704,7 @@ function TransactionsPage() {
       </div>
 
       {loading ? (
-        <div className="flex flex-col gap-2">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <Skeleton key={i} className="h-12 rounded-lg" />
-          ))}
-        </div>
+        <TransactionListLoading />
       ) : error ? (
         <p className="text-sm text-bento-danger">{error}</p>
       ) : filtered.length === 0 ? (
@@ -748,6 +764,7 @@ function TransactionsPage() {
                       : "Cash transaction"
                 }
                 primaryCurrency={primaryCurrency}
+                recurringMatch={recurringMatch(tx.recurring_id, recurringItems)}
                 categoryOptions={categoryOptions}
                 payeeSuggestions={payeeSuggestions}
                 saving={savingIds.has(tx.id)}
@@ -784,6 +801,8 @@ function TransactionsPage() {
           accounts={accounts}
           tags={tags}
           recurringItems={recurringItems}
+          onRefreshRecurringItems={refreshRecurringItems}
+          isDemo={isDemo}
           payeeSuggestions={payeeSuggestions}
           saving={savingIds.has(editingTransaction.id)}
           error={errors.get(editingTransaction.id)}
@@ -806,6 +825,7 @@ function TransactionsPage() {
           categories={categoryOptions}
           tags={tags}
           recurringItems={recurringItems}
+          isDemo={isDemo}
           onClose={() => setStructure(null)}
           onCommitted={refresh}
         />
@@ -840,7 +860,14 @@ function TransactionsPage() {
 
 export default function TransactionsPageWrapper() {
   return (
-    <Suspense>
+    <Suspense
+      fallback={
+        <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
+          <h1 className="mb-5 font-heading text-2xl font-bold">Transactions</h1>
+          <TransactionListLoading />
+        </div>
+      }
+    >
       <TransactionsPage />
     </Suspense>
   );

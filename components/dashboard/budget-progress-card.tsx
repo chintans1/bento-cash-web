@@ -58,6 +58,9 @@ export function BudgetProgressCard({
   categoryMap: Map<number, CategoryInfo>;
   primaryCurrency: string;
 }) {
+  const categoryPosition = new Map(
+    Array.from(categoryMap.keys(), (id, index) => [id, index])
+  );
   const budgeted = summary.categories
     .filter((c) => c.totals.budgeted != null && c.totals.budgeted > 0)
     .map((c) => {
@@ -71,7 +74,13 @@ export function BudgetProgressCard({
         budget,
       };
     })
-    .sort((a, b) => b.spent / b.budget - a.spent / a.budget);
+    .sort(
+      (a, b) =>
+        (categoryPosition.get(a.id) ?? Number.MAX_SAFE_INTEGER) -
+          (categoryPosition.get(b.id) ?? Number.MAX_SAFE_INTEGER) ||
+        a.name.localeCompare(b.name) ||
+        a.id - b.id
+    );
 
   if (budgeted.length === 0) return null;
 

@@ -1,9 +1,37 @@
 import { describe, expect, it } from "vitest";
 import { createDemoClient } from "../demo-client";
-import { computeNetWorth, normalizeAccounts } from "../../account-utils";
+import { recurringMatch } from "../recurring-match";
+import {
+  computeNetWorth,
+  creditUsage,
+  normalizeAccounts,
+} from "../../account-utils";
 import { computeNetWorthHistory } from "../net-worth-history";
 
 describe("demo transaction data", () => {
+  it("keeps the Plaid card limit in its own currency and handles credit usage edges", async () => {
+    const { manual, plaid } = await createDemoClient().getAccounts();
+    const accounts = normalizeAccounts(manual, plaid);
+    const card = accounts.find((account) => account.id === "plaid-1101")!;
+
+    expect(card.creditLimit).toBe(15000);
+    expect(creditUsage(card)?.used).toBe(1284.62);
+    expect(creditUsage(card)?.available).toBeCloseTo(13715.38);
+    expect(
+      accounts.find((account) => account.id === "manual-1003")?.creditLimit
+    ).toBeNull();
+    expect(creditUsage({ ...card, balance: -50 })).toMatchObject({
+      used: 0,
+      available: 15000,
+      percentUsed: 0,
+    });
+    expect(creditUsage({ ...card, balance: 16000 })).toMatchObject({
+      available: 0,
+      percentUsed: (16000 / 15000) * 100,
+    });
+    expect(creditUsage({ ...card, balanceValid: false })).toBeNull();
+  });
+
   it("keeps account balance history aligned with current balances", async () => {
     const client = createDemoClient();
     const [{ manual, plaid }, history] = await Promise.all([
@@ -61,6 +89,26 @@ describe("demo transaction data", () => {
     expect(
       transactions.some((transaction) => transaction.tag_ids.length > 0)
     ).toBe(true);
+  });
+
+  it("includes a linked suggestion without treating it as confirmed recurring", async () => {
+    const client = createDemoClient();
+    const [{ transactions }, recurringItems] = await Promise.all([
+      client.getTransactionsForMonth(2026, 10),
+      client.getRecurringItems(),
+    ]);
+    const suggested = recurringItems.find(
+      (item) => item.status === "suggested"
+    );
+
+    expect(suggested?.transaction_criteria.payee).toBe("AT&T");
+    expect(
+      recurringMatch(
+        transactions.find((transaction) => transaction.payee === "AT&T")
+          ?.recurring_id ?? null,
+        recurringItems
+      )
+    ).toBe("possible");
   });
 
   it("accepts the editable transaction fields used by the demo", async () => {

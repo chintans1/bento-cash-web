@@ -83,7 +83,7 @@ function CategoryComboboxPopup({
   finalFocus?: () => HTMLElement | boolean | null | void;
 }) {
   return (
-    <ComboboxContent finalFocus={finalFocus}>
+    <ComboboxContent finalFocus={finalFocus} className="w-128 min-w-0">
       <div className="border-b border-bento-hairline/60 p-1.5">
         <ComboboxInput
           showTrigger={false}
@@ -111,14 +111,14 @@ function CategoryComboboxPopup({
             )}
             <span
               className={cn(
-                "truncate",
+                "min-w-0 flex-1 truncate",
                 option.id === -1 && "font-medium text-bento-negative"
               )}
             >
               {option.name}
             </span>
             {option.group && (
-              <span className="ml-auto truncate text-(length:--text-caption) text-muted-foreground">
+              <span className="ml-auto max-w-24 shrink-0 truncate text-(length:--text-caption) text-muted-foreground">
                 {option.group}
               </span>
             )}

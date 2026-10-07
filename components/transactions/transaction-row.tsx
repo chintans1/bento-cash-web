@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Circle,
   Clock3,
+  Repeat2,
 } from "lucide-react";
 import { CategoryPicker, type CategoryOption } from "./category-picker";
 import { EditableText } from "./editable-text";
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import type { Transaction } from "@/lib/lunchmoney/client";
+import type { RecurringMatch } from "@/lib/lunchmoney/recurring-match";
 import {
   isReviewableTransaction,
   isStructurallyLockedTransaction,
@@ -31,6 +33,7 @@ export type TransactionRowProps = {
   categoryName: string;
   accountName?: string;
   primaryCurrency: string;
+  recurringMatch: RecurringMatch;
   categoryOptions: CategoryOption[];
   payeeSuggestions: string[];
   saving: boolean;
@@ -49,6 +52,7 @@ export const TransactionRow = memo(function TransactionRow({
   categoryName,
   accountName,
   primaryCurrency,
+  recurringMatch,
   categoryOptions,
   payeeSuggestions,
   saving,
@@ -180,6 +184,12 @@ export const TransactionRow = memo(function TransactionRow({
               >
                 {tx.notes || accountName || "View details"}
               </button>
+              {recurringMatch === "confirmed" && (
+                <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-bento-subtle">
+                  <Repeat2 aria-hidden="true" className="size-3.5" />
+                  Recurring
+                </span>
+              )}
               <span className="shrink-0 font-mono text-(length:--text-micro) text-bento-subtle tabular-nums sm:hidden">
                 {formatShortDate(tx.date)}
               </span>

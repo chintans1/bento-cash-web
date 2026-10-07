@@ -34,6 +34,10 @@ import {
   suggestRecurringItems,
 } from "@/lib/lunchmoney/transaction-structure";
 import { formatCurrency, formatShortDate } from "@/lib/format";
+import {
+  confirmedRecurringId,
+  recurringMatch,
+} from "@/lib/lunchmoney/recurring-match";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -117,6 +121,7 @@ export function SplitEditor({
   categories,
   tags,
   recurringItems,
+  isDemo,
   onClose,
   onCommitted,
 }: {
@@ -124,6 +129,7 @@ export function SplitEditor({
   categories: CategoryOption[];
   tags: Tag[];
   recurringItems: RecurringItem[];
+  isDemo: boolean;
   onClose: () => void;
   onCommitted: () => Promise<void>;
 }) {
@@ -537,7 +543,12 @@ export function SplitEditor({
                         </div>
                       )}
                       <Select
-                        value={draft.recurringId?.toString() ?? "none"}
+                        value={
+                          confirmedRecurringId(
+                            draft.recurringId,
+                            recurringItems
+                          )?.toString() ?? "none"
+                        }
                         onValueChange={(value) =>
                           value &&
                           change(index, {
@@ -574,9 +585,32 @@ export function SplitEditor({
                           ))}
                         </SelectContent>
                       </Select>
-                      <p className="font-normal text-bento-subtle">
-                        Choose an existing recurring item to link when you save.
-                      </p>
+                      {recurringMatch(draft.recurringId, recurringItems) ===
+                      "possible" ? (
+                        <p className="font-normal text-warning-foreground">
+                          This recurring suggestion is awaiting review.
+                          {!isDemo && (
+                            <>
+                              {" "}
+                              You can{" "}
+                              <a
+                                href="https://my.lunchmoney.app/recurring/suggested"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline underline-offset-2"
+                              >
+                                accept or dismiss it in Lunch Money
+                              </a>
+                              .
+                            </>
+                          )}
+                        </p>
+                      ) : (
+                        <p className="font-normal text-bento-subtle">
+                          Choose an existing recurring item to link when you
+                          save.
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-1 text-xs font-medium sm:col-span-2">
                       Tags

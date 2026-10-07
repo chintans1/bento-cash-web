@@ -192,6 +192,7 @@ function HomePage() {
             transactionsHref={transactionsHref}
             transactions={recentTransactions}
             categoryMap={categoryMap}
+            recurringItems={recurringItems}
             primaryCurrency={primaryCurrency}
             loading={loading}
           />

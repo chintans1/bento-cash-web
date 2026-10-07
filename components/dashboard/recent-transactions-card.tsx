@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Repeat2 } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -11,19 +12,22 @@ import { cn } from "@/lib/utils";
 import { formatCurrency, formatShortDate } from "@/lib/format";
 import { CategoryIcon } from "@/lib/lunchmoney/category-icons";
 import { categoryColor } from "@/lib/lunchmoney/category-colors";
-import type { Transaction } from "@/lib/lunchmoney/client";
+import type { RecurringItem, Transaction } from "@/lib/lunchmoney/client";
+import { recurringMatch } from "@/lib/lunchmoney/recurring-match";
 import type { CategoryInfo } from "@/lib/lunchmoney/categories";
 
 /** The latest activity in the selected month, newest first. */
 export function RecentTransactionsCard({
   transactions,
   categoryMap,
+  recurringItems,
   primaryCurrency,
   loading,
   transactionsHref,
 }: {
   transactions: Transaction[];
   categoryMap: Map<number, CategoryInfo>;
+  recurringItems: RecurringItem[];
   primaryCurrency: string;
   loading: boolean;
   transactionsHref: string;
@@ -35,7 +39,8 @@ export function RecentTransactionsCard({
       </CardHeader>
       <CardContent>
         {loading ? (
-          <div className="flex flex-col gap-2">
+          <div role="status" className="flex flex-col gap-2">
+            <p className="text-sm text-bento-subtle">Loading transactions…</p>
             {Array.from({ length: 4 }).map((_, i) => (
               <Skeleton key={i} className="h-10 rounded-xl" />
             ))}
@@ -71,7 +76,24 @@ export function RecentTransactionsCard({
                     />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{tx.payee}</p>
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <p className="min-w-0 truncate text-sm font-medium">
+                        {tx.payee}
+                      </p>
+                      {recurringMatch(tx.recurring_id, recurringItems) ===
+                        "confirmed" && (
+                        <span
+                          className="shrink-0"
+                          title="Recurring transaction"
+                        >
+                          <Repeat2
+                            aria-hidden="true"
+                            className="size-3.5 text-bento-subtle"
+                          />
+                          <span className="sr-only">Recurring transaction</span>
+                        </span>
+                      )}
+                    </div>
                     <p className="truncate text-(length:--text-caption) text-bento-subtle">
                       {formatShortDate(tx.date)} ·{" "}
                       <span className={cn(isUncategorized && "text-cat-3")}>

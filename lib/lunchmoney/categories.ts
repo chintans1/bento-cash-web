@@ -11,6 +11,17 @@ export type CategoryInfo = Pick<
   "name" | "is_income" | "exclude_from_totals"
 >;
 
+/** Lunch Money category order: explicit positions first, then unnamed positions alphabetically. */
+export function compareCategoriesByOrder(
+  a: Pick<Category, "id" | "name" | "order">,
+  b: Pick<Category, "id" | "name" | "order">
+): number {
+  if (a.order === null)
+    return b.order === null ? a.name.localeCompare(b.name) || a.id - b.id : 1;
+  if (b.order === null) return -1;
+  return a.order - b.order || a.name.localeCompare(b.name) || a.id - b.id;
+}
+
 /**
  * Stand-in id for "no category".
  *

@@ -1,8 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Autocomplete } from "@base-ui/react/autocomplete";
-import { AlertTriangle, Check, Clock3, X } from "lucide-react";
+import {
+  AlertTriangle,
+  Check,
+  Clock3,
+  ExternalLink,
+  Repeat2,
+  X,
+} from "lucide-react";
 import type { RecurringItem, Tag, Transaction } from "@/lib/lunchmoney/client";
 import type { NormalizedAccount } from "@/lib/account-utils";
 import {
@@ -21,7 +28,8 @@ import {
   SheetDescription,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -34,6 +42,10 @@ import {
 import { cn } from "@/lib/utils";
 import { formatCurrency, formatShortDate } from "@/lib/format";
 import { amountForEditing } from "@/lib/lunchmoney/transaction-structure";
+import {
+  confirmedRecurringId,
+  recurringMatch,
+} from "@/lib/lunchmoney/recurring-match";
 import { PayeeSuggestionsPopup } from "./editable-text";
 
 type Draft = {
@@ -92,6 +104,8 @@ export function TransactionEditor({
   accounts,
   tags,
   recurringItems,
+  onRefreshRecurringItems,
+  isDemo,
   payeeSuggestions,
   saving,
   error,
@@ -105,6 +119,8 @@ export function TransactionEditor({
   accounts: NormalizedAccount[];
   tags: Tag[];
   recurringItems: RecurringItem[];
+  onRefreshRecurringItems: () => Promise<void>;
+  isDemo: boolean;
   payeeSuggestions: string[];
   saving: boolean;
   error?: string;
@@ -116,6 +132,49 @@ export function TransactionEditor({
   const [open, setOpen] = useState(true);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [draft, setDraft] = useState(() => makeDraft(transaction));
+  const [reviewPageOpened, setReviewPageOpened] = useState(false);
+  const [checkingSuggestion, setCheckingSuggestion] = useState(false);
+  const [suggestionCheckError, setSuggestionCheckError] = useState<
+    string | null
+  >(null);
+  const draftRecurringId =
+    draft.recurringId === "none" ? null : Number(draft.recurringId);
+  const recurringStatus = recurringMatch(draftRecurringId, recurringItems);
+  const selectedRecurringId = confirmedRecurringId(
+    draftRecurringId,
+    recurringItems
+  );
+  const suggestedItem =
+    recurringStatus === "possible"
+      ? recurringItems.find((item) => item.id === draftRecurringId)
+      : undefined;
+
+  const checkSuggestionStatus = useCallback(async () => {
+    setCheckingSuggestion(true);
+    setSuggestionCheckError(null);
+    try {
+      await onRefreshRecurringItems();
+    } catch (reason) {
+      setSuggestionCheckError(
+        reason instanceof Error
+          ? reason.message
+          : "Couldn't check the suggestion."
+      );
+    } finally {
+      setCheckingSuggestion(false);
+    }
+  }, [onRefreshRecurringItems]);
+
+  useEffect(() => {
+    if (!reviewPageOpened) return;
+    function onReturn() {
+      if (document.visibilityState !== "visible") return;
+      setReviewPageOpened(false);
+      void checkSuggestionStatus();
+    }
+    document.addEventListener("visibilitychange", onReturn);
+    return () => document.removeEventListener("visibilitychange", onReturn);
+  }, [reviewPageOpened, checkSuggestionStatus]);
 
   function updateDraft<K extends keyof Draft>(field: K, value: Draft[K]) {
     setDraft((current) => ({ ...current, [field]: value }));
@@ -211,6 +270,21 @@ export function TransactionEditor({
                   {categoryName}
                 </span>
               </SheetDescription>
+              {recurringStatus && (
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    "mt-2",
+                    recurringStatus === "possible" &&
+                      "bg-warning/10 text-warning-foreground"
+                  )}
+                >
+                  <Repeat2 aria-hidden="true" />
+                  {recurringStatus === "confirmed"
+                    ? "Recurring"
+                    : "Possible recurring"}
+                </Badge>
+              )}
               {draft.amount.trim() !== "" && Number.isFinite(amount) && (
                 <p className="mt-3 font-mono text-lg font-semibold text-bento-default tabular-nums">
                   {formatCurrency(Math.abs(amount), draft.currency, true)}
@@ -253,6 +327,61 @@ export function TransactionEditor({
                   change.
                 </p>
               </div>
+            )}
+            {recurringStatus === "possible" && (
+              <section className="rounded-xl border border-warning/25 bg-warning/10 p-4 text-sm text-warning-foreground">
+                <div className="flex gap-3">
+                  <Repeat2
+                    aria-hidden="true"
+                    className="mt-0.5 size-4 shrink-0"
+                  />
+                  <div className="min-w-0">
+                    <h3 className="font-semibold">Possible recurring item</h3>
+                    <p className="mt-1 text-pretty">
+                      {`Lunch Money suggested ${suggestedItem ? recurringName(suggestedItem) : "a recurring pattern"} as a recurring item. Review it before it becomes an assigned recurring item.`}
+                    </p>
+                    {isDemo ? (
+                      <p className="mt-2 text-xs">
+                        This is demo data. Connect Lunch Money to review your
+                        own suggestions.
+                      </p>
+                    ) : (
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <a
+                          href="https://my.lunchmoney.app/recurring/suggested"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={buttonVariants({
+                            variant: "outline",
+                            size: "sm",
+                          })}
+                          onClick={() => setReviewPageOpened(true)}
+                        >
+                          Accept or dismiss in Lunch Money
+                          <ExternalLink
+                            aria-hidden="true"
+                            className="size-3.5"
+                          />
+                        </a>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={checkingSuggestion}
+                          onClick={() => void checkSuggestionStatus()}
+                        >
+                          {checkingSuggestion ? "Checking…" : "Refresh status"}
+                        </Button>
+                      </div>
+                    )}
+                    {suggestionCheckError && (
+                      <p role="alert" className="mt-2 text-xs">
+                        {suggestionCheckError}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </section>
             )}
             {(structurallyLocked || splitChild) && (
               <div className="flex gap-3 rounded-xl bg-bento-raised p-3 text-sm text-bento-subtle">
@@ -494,7 +623,7 @@ export function TransactionEditor({
               </Field>
               <Field label="Recurring item" className="sm:col-span-2">
                 <Select
-                  value={draft.recurringId}
+                  value={selectedRecurringId?.toString() ?? "none"}
                   disabled={structurallyLocked || groupParent}
                   onValueChange={(value) =>
                     value && updateDraft("recurringId", value)
@@ -506,7 +635,9 @@ export function TransactionEditor({
                   >
                     <SelectValue>
                       {(value: string) =>
-                        recurringValueName(recurringItems, value)
+                        value === "none" && recurringStatus === "possible"
+                          ? "No accepted recurring item"
+                          : recurringValueName(recurringItems, value)
                       }
                     </SelectValue>
                   </SelectTrigger>

@@ -37,6 +37,7 @@ export type NormalizedAccount = {
   type: AccountType;
   subtype: string | null; // TODO: I can make this strongly typed
   balance: number;
+  creditLimit: number | null;
   currency: string;
   toBase: number;
   balanceValid: boolean;
@@ -56,6 +57,7 @@ export function normalizeManual(a: ManualAccount): NormalizedAccount {
     type: a.type,
     subtype: a.subtype,
     balance: parseFloat(a.balance),
+    creditLimit: null,
     currency: a.currency,
     toBase: a.to_base,
     balanceValid: true,
@@ -77,6 +79,13 @@ export function normalizePlaid(a: PlaidAccount): NormalizedAccount {
     type: a.type as AccountType,
     subtype: a.subtype ?? null,
     balance: parseFloat(a.balance),
+    creditLimit:
+      a.type === "credit" &&
+      a.limit !== null &&
+      Number.isFinite(a.limit) &&
+      a.limit > 0
+        ? a.limit
+        : null,
     currency: a.currency,
     toBase: a.to_base,
     balanceValid: !revoked,
@@ -85,6 +94,28 @@ export function normalizePlaid(a: PlaidAccount): NormalizedAccount {
     source: "plaid",
     status: a.status,
     allowTransactionModifications: a.allow_transaction_modifications,
+  };
+}
+
+/** Current card usage in the account's own currency. A credit balance does not increase the stated limit. */
+export function creditUsage(account: NormalizedAccount): {
+  used: number;
+  available: number;
+  percentUsed: number;
+} | null {
+  if (
+    account.creditLimit === null ||
+    !account.balanceValid ||
+    !Number.isFinite(account.balance)
+  ) {
+    return null;
+  }
+
+  const used = Math.max(0, account.balance);
+  return {
+    used,
+    available: Math.max(0, account.creditLimit - used),
+    percentUsed: (used / account.creditLimit) * 100,
   };
 }
 

@@ -118,11 +118,12 @@ function demoRecurring(seed: {
   id: number;
   payee: string;
   amount: string;
+  status?: RecurringItem["status"];
 }): RecurringItem {
   return {
     id: seed.id,
     description: null,
-    status: "reviewed",
+    status: seed.status ?? "reviewed",
     transaction_criteria: {
       start_date: null,
       end_date: null,
@@ -282,6 +283,7 @@ const DEMO_RECURRING: RecurringItem[] = [
   { id: 2003, payee: "Spotify", amount: "9.99" },
   { id: 2004, payee: "Con Edison", amount: "145.00" },
   { id: 2005, payee: "Planet Fitness", amount: "24.99" },
+  { id: 2006, payee: "AT&T", amount: "89.00", status: "suggested" as const },
 ].map(demoRecurring);
 
 const DEMO_TAGS: Tag[] = [
@@ -558,7 +560,15 @@ const TX_TEMPLATES: TxTemplate[] = [
     notes: null,
     recurring_id: 2004,
   },
-  { payee: "AT&T", min: 89, max: 89, category_id: 6, day: 28, notes: null },
+  {
+    payee: "AT&T",
+    min: 89,
+    max: 89,
+    category_id: 6,
+    day: 28,
+    notes: null,
+    recurring_id: 2006,
+  },
   // Travel — sporadic; some months nothing, some months a flight
   {
     payee: "Delta Airlines",

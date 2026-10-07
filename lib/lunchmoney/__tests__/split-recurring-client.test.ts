@@ -3,11 +3,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const sdk = vi.hoisted(() => ({
   update: vi.fn(),
   get: vi.fn(),
+  getAllRecurring: vi.fn(),
 }));
 
 vi.mock("@lunch-money/lunch-money-js-v2", () => ({
   LunchMoneyClient: class {
     transactions = sdk;
+    recurringItems = { getAll: sdk.getAllRecurring };
   },
 }));
 
@@ -15,6 +17,18 @@ import { createApiKeyClient } from "../client";
 
 beforeEach(() => vi.clearAllMocks());
 afterEach(() => vi.unstubAllGlobals());
+
+describe("recurring items", () => {
+  it("requests suggested items so linked transactions can be classified", async () => {
+    sdk.getAllRecurring.mockResolvedValue([]);
+
+    await createApiKeyClient("test-token").getRecurringItems();
+
+    expect(sdk.getAllRecurring).toHaveBeenCalledWith({
+      include_suggested: true,
+    });
+  });
+});
 
 describe("split child recurring linking", () => {
   it("uses the v2 update when Lunch Money accepts it", async () => {

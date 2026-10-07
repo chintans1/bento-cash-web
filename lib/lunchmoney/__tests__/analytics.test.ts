@@ -150,21 +150,55 @@ describe("buildCategoryMap", () => {
 // ── buildCategoryData ─────────────────────────────────────────────────────────
 
 describe("buildCategoryData", () => {
-  it("puts group categories before standalone", () => {
+  it("orders top-level and grouped categories, placing null orders last alphabetically", () => {
+    const children = [
+      makeChildCat(21, "Zulu", 2),
+      makeChildCat(22, "Beta", 2, { order: 2 }),
+      makeChildCat(23, "Alpha", 2),
+      makeChildCat(24, "First child", 2, { order: 1 }),
+    ];
     const res: CategoriesResponse = {
       categories: [
-        makeCat({ id: 1, name: "Solo" }),
+        makeCat({ id: 4, name: "Zebra" }),
         makeCat({
           id: 2,
           name: "Group",
           is_group: true,
-          children: [makeChildCat(20, "Child", 2)],
+          order: 1,
+          children,
         }),
+        makeCat({ id: 3, name: "Last explicit", order: 2 }),
+        makeCat({ id: 5, name: "Apple" }),
+        makeCat({ id: 1, name: "First", order: 0 }),
       ],
     };
-    const { catGroups } = buildCategoryData(res);
-    expect(catGroups[0].groupId).toBe(2);
-    expect(catGroups[1].groupId).toBeNull();
+    const { categoryMap, catGroups } = buildCategoryData(res);
+
+    expect(catGroups).toEqual([
+      { groupId: null, groupName: null, items: [{ id: 1, name: "First" }] },
+      {
+        groupId: 2,
+        groupName: "Group",
+        items: [
+          { id: 24, name: "First child" },
+          { id: 22, name: "Beta" },
+          { id: 23, name: "Alpha" },
+          { id: 21, name: "Zulu" },
+        ],
+      },
+      {
+        groupId: null,
+        groupName: null,
+        items: [
+          { id: 3, name: "Last explicit" },
+          { id: 5, name: "Apple" },
+          { id: 4, name: "Zebra" },
+        ],
+      },
+    ]);
+    expect([...categoryMap.keys()]).toEqual([1, 2, 24, 22, 23, 21, 3, 5, 4]);
+    expect(res.categories.map(({ id }) => id)).toEqual([4, 2, 3, 5, 1]);
+    expect(children.map(({ id }) => id)).toEqual([21, 22, 23, 24]);
   });
 
   it("collapses standalones into a single null-groupId entry", () => {
@@ -177,7 +211,10 @@ describe("buildCategoryData", () => {
     const { catGroups } = buildCategoryData(res);
     expect(catGroups).toHaveLength(1);
     expect(catGroups[0].groupId).toBeNull();
-    expect(catGroups[0].items).toHaveLength(2);
+    expect(catGroups[0].items.map(({ name }) => name)).toEqual([
+      "Health",
+      "Travel",
+    ]);
   });
 
   it("builds the categoryMap in the same pass", () => {
