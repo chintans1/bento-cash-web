@@ -42,6 +42,8 @@ type AppData = {
 };
 
 interface AppDataContextValue extends AppData {
+  recurringItemsLoading: boolean;
+  recurringItemsError: string | null;
   loading: boolean;
   error: string | null;
   patchAccount: (id: string, type: AccountType, subtype: string) => void;
@@ -78,6 +80,10 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     tags?: Tag[];
     recurringItems?: RecurringItem[];
   } | null>(null);
+  const [recurringFailure, setRecurringFailure] = useState<{
+    session: string;
+    message: string;
+  } | null>(null);
   const recurringRequest = useRef(0);
 
   // Both results are tagged with the session they were fetched for, so signing
@@ -106,13 +112,24 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     getRecurringItems()
       .then((recurringItems) => {
         if (!cancelled && request === recurringRequest.current) {
+          setRecurringFailure(null);
           setExtras((previous) => ({
             ...(previous?.session === session ? previous : { session }),
             recurringItems,
           }));
         }
       })
-      .catch(() => {});
+      .catch((cause: unknown) => {
+        if (!cancelled && request === recurringRequest.current) {
+          setRecurringFailure({
+            session,
+            message:
+              cause instanceof Error
+                ? cause.message
+                : "Could not load recurring items",
+          });
+        }
+      });
 
     Promise.all([getMe(), getAccounts(), getCategories()])
       .then(([user, { manual, plaid }, catRes]) => {
@@ -180,14 +197,28 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     const requestedSession = session;
     const request = ++recurringRequest.current;
     invalidate(KEY.recurring);
-    const recurringItems = await getRecurringItems();
-    if (request !== recurringRequest.current) return;
-    setExtras((previous) => ({
-      ...(previous?.session === requestedSession
-        ? previous
-        : { session: requestedSession }),
-      recurringItems,
-    }));
+    try {
+      const recurringItems = await getRecurringItems();
+      if (request !== recurringRequest.current) return;
+      setRecurringFailure(null);
+      setExtras((previous) => ({
+        ...(previous?.session === requestedSession
+          ? previous
+          : { session: requestedSession }),
+        recurringItems,
+      }));
+    } catch (cause) {
+      if (request === recurringRequest.current) {
+        setRecurringFailure({
+          session: requestedSession,
+          message:
+            cause instanceof Error
+              ? cause.message
+              : "Could not load recurring items",
+        });
+      }
+      throw cause;
+    }
   }, [session]);
 
   return (
@@ -202,6 +233,15 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
           extras?.session === session
             ? (extras.recurringItems ?? data?.recurringItems ?? [])
             : (data?.recurringItems ?? []),
+        recurringItemsLoading:
+          session !== null &&
+          (extras?.session !== session ||
+            extras.recurringItems === undefined) &&
+          recurringFailure?.session !== session,
+        recurringItemsError:
+          recurringFailure?.session === session
+            ? recurringFailure.message
+            : null,
         // Derived rather than a flag: signed in with neither result yet means
         // the request is still out.
         loading: session !== null && data === null && error === null,

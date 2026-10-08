@@ -104,6 +104,8 @@ export function TransactionEditor({
   accounts,
   tags,
   recurringItems,
+  recurringItemsLoading,
+  recurringItemsError,
   onRefreshRecurringItems,
   isDemo,
   payeeSuggestions,
@@ -119,6 +121,8 @@ export function TransactionEditor({
   accounts: NormalizedAccount[];
   tags: Tag[];
   recurringItems: RecurringItem[];
+  recurringItemsLoading: boolean;
+  recurringItemsError: string | null;
   onRefreshRecurringItems: () => Promise<void>;
   isDemo: boolean;
   payeeSuggestions: string[];
@@ -132,9 +136,10 @@ export function TransactionEditor({
   const [open, setOpen] = useState(true);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [draft, setDraft] = useState(() => makeDraft(transaction));
-  const [reviewPageOpened, setReviewPageOpened] = useState(false);
-  const [checkingSuggestion, setCheckingSuggestion] = useState(false);
-  const [suggestionCheckError, setSuggestionCheckError] = useState<
+  const [recurringPageOpened, setRecurringPageOpened] = useState(false);
+  const [refreshingRecurringItems, setRefreshingRecurringItems] =
+    useState(false);
+  const [recurringRefreshError, setRecurringRefreshError] = useState<
     string | null
   >(null);
   const draftRecurringId =
@@ -148,33 +153,36 @@ export function TransactionEditor({
     recurringStatus === "possible"
       ? recurringItems.find((item) => item.id === draftRecurringId)
       : undefined;
+  const approvedRecurringItems = recurringItems.filter(
+    (item) => item.status === "reviewed"
+  );
 
-  const checkSuggestionStatus = useCallback(async () => {
-    setCheckingSuggestion(true);
-    setSuggestionCheckError(null);
+  const refreshRecurringList = useCallback(async () => {
+    setRefreshingRecurringItems(true);
+    setRecurringRefreshError(null);
     try {
       await onRefreshRecurringItems();
     } catch (reason) {
-      setSuggestionCheckError(
+      setRecurringRefreshError(
         reason instanceof Error
           ? reason.message
-          : "Couldn't check the suggestion."
+          : "Couldn't refresh recurring items."
       );
     } finally {
-      setCheckingSuggestion(false);
+      setRefreshingRecurringItems(false);
     }
   }, [onRefreshRecurringItems]);
 
   useEffect(() => {
-    if (!reviewPageOpened) return;
+    if (!recurringPageOpened) return;
     function onReturn() {
       if (document.visibilityState !== "visible") return;
-      setReviewPageOpened(false);
-      void checkSuggestionStatus();
+      setRecurringPageOpened(false);
+      void refreshRecurringList();
     }
     document.addEventListener("visibilitychange", onReturn);
     return () => document.removeEventListener("visibilitychange", onReturn);
-  }, [reviewPageOpened, checkSuggestionStatus]);
+  }, [recurringPageOpened, refreshRecurringList]);
 
   function updateDraft<K extends keyof Draft>(field: K, value: Draft[K]) {
     setDraft((current) => ({ ...current, [field]: value }));
@@ -355,7 +363,7 @@ export function TransactionEditor({
                             variant: "outline",
                             size: "sm",
                           })}
-                          onClick={() => setReviewPageOpened(true)}
+                          onClick={() => setRecurringPageOpened(true)}
                         >
                           Accept or dismiss in Lunch Money
                           <ExternalLink
@@ -367,17 +375,14 @@ export function TransactionEditor({
                           type="button"
                           variant="ghost"
                           size="sm"
-                          disabled={checkingSuggestion}
-                          onClick={() => void checkSuggestionStatus()}
+                          disabled={refreshingRecurringItems}
+                          onClick={() => void refreshRecurringList()}
                         >
-                          {checkingSuggestion ? "Checking…" : "Refresh status"}
+                          {refreshingRecurringItems
+                            ? "Checking…"
+                            : "Refresh status"}
                         </Button>
                       </div>
-                    )}
-                    {suggestionCheckError && (
-                      <p role="alert" className="mt-2 text-xs">
-                        {suggestionCheckError}
-                      </p>
                     )}
                   </div>
                 </div>
@@ -643,19 +648,71 @@ export function TransactionEditor({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Not recurring</SelectItem>
-                    {recurringItems
-                      .filter((item) => item.status === "reviewed")
-                      .map((item) => (
-                        <SelectItem key={item.id} value={item.id.toString()}>
-                          {recurringName(item)}
-                        </SelectItem>
-                      ))}
+                    {approvedRecurringItems.map((item) => (
+                      <SelectItem key={item.id} value={item.id.toString()}>
+                        {recurringName(item)}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
+                {recurringItemsLoading ? (
+                  <p className="mt-2 px-1 text-xs text-bento-subtle">
+                    Loading recurring items…
+                  </p>
+                ) : recurringItemsError || recurringRefreshError ? (
+                  <p
+                    role="alert"
+                    className="mt-2 px-1 text-xs text-bento-negative"
+                  >
+                    Couldn’t load recurring items:{" "}
+                    {recurringRefreshError ?? recurringItemsError}
+                  </p>
+                ) : approvedRecurringItems.length === 0 ? (
+                  <p className="mt-2 px-1 text-xs text-bento-subtle">
+                    No accepted recurring items are available. Create one or
+                    accept a suggestion in Lunch Money, then refresh this list.
+                  </p>
+                ) : null}
+                {(approvedRecurringItems.length === 0 ||
+                  recurringItemsError ||
+                  recurringRefreshError) &&
+                  !recurringItemsLoading && (
+                    <div className="mt-2 flex flex-wrap items-center gap-2 px-1">
+                      {!isDemo && (
+                        <a
+                          href="https://my.lunchmoney.app/recurring"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={buttonVariants({
+                            variant: "outline",
+                            size: "sm",
+                          })}
+                          onClick={() => setRecurringPageOpened(true)}
+                        >
+                          Open recurring items in Lunch Money
+                          <ExternalLink
+                            aria-hidden="true"
+                            className="size-3.5"
+                          />
+                        </a>
+                      )}
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={refreshingRecurringItems}
+                        onClick={() => void refreshRecurringList()}
+                      >
+                        {refreshingRecurringItems
+                          ? "Refreshing…"
+                          : "Refresh list"}
+                      </Button>
+                    </div>
+                  )}
               </Field>
               <Field label="Tags" className="sm:col-span-2">
                 <TagPicker
-                  tags={tags.filter((tag) => !tag.archived)}
+                  tags={tags}
                   value={draft.tagIds}
                   disabled={structurallyLocked}
                   onChange={(tagIds) => updateDraft("tagIds", tagIds)}

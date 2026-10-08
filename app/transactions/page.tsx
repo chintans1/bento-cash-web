@@ -105,6 +105,8 @@ function TransactionsPage() {
     accounts,
     tags,
     recurringItems,
+    recurringItemsLoading,
+    recurringItemsError,
     refreshRecurringItems,
     loading: appLoading,
     error: appError,
@@ -801,6 +803,8 @@ function TransactionsPage() {
           accounts={accounts}
           tags={tags}
           recurringItems={recurringItems}
+          recurringItemsLoading={recurringItemsLoading}
+          recurringItemsError={recurringItemsError}
           onRefreshRecurringItems={refreshRecurringItems}
           isDemo={isDemo}
           payeeSuggestions={payeeSuggestions}

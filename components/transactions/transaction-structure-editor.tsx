@@ -615,7 +615,7 @@ export function SplitEditor({
                     <div className="space-y-1 text-xs font-medium sm:col-span-2">
                       Tags
                       <TagPicker
-                        tags={tags.filter((tag) => !tag.archived)}
+                        tags={tags}
                         value={draft.tag_ids}
                         onChange={(tag_ids) => change(index, { tag_ids })}
                       />

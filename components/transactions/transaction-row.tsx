@@ -7,6 +7,7 @@ import {
   ChevronRight,
   Circle,
   Clock3,
+  LockKeyhole,
   Repeat2,
 } from "lucide-react";
 import { CategoryPicker, type CategoryOption } from "./category-picker";
@@ -75,7 +76,10 @@ export const TransactionRow = memo(function TransactionRow({
   const reviewed = tx.status === "reviewed";
   const unreviewed = tx.status === "unreviewed" && !tx.is_pending;
   const usesCategoryColor =
-    reviewed || tx.status === "delete_pending" || tx.category_id == null;
+    reviewed ||
+    structurallyLocked ||
+    tx.status === "delete_pending" ||
+    tx.category_id == null;
 
   return (
     <div
@@ -84,7 +88,7 @@ export const TransactionRow = memo(function TransactionRow({
       data-tx-id={tx.id}
       className={cn(
         "group/row cursor-pointer transition-row focus-within:bg-bento-raised hover:bg-bento-raised",
-        tx.is_pending && "opacity-70 hover:opacity-100",
+        tx.is_pending && !structurallyLocked && "opacity-70 hover:opacity-100",
         selected && "bg-bento-raised"
       )}
       onClick={(event) => {
@@ -157,17 +161,32 @@ export const TransactionRow = memo(function TransactionRow({
           </button>
           <div className="min-w-0 flex-1">
             <div className="flex min-w-0 items-center gap-1.5">
-              <EditableText
-                value={payee}
-                className="w-auto max-w-full min-w-0"
-                placeholder="Add a description…"
-                suggestions={payeeSuggestions}
-                ariaLabel={
-                  payee ? `Description: ${payee}. Edit` : "Add a description"
-                }
-                disabled={structurallyLocked || saving}
-                onCommit={(next) => onPayeeChange(tx.id, next)}
-              />
+              {structurallyLocked ? (
+                <span className="min-w-0 truncate px-1.5 py-0.5 text-sm font-medium text-bento-default">
+                  {payee || "Transaction"}
+                </span>
+              ) : (
+                <EditableText
+                  value={payee}
+                  className="w-auto max-w-full min-w-0"
+                  placeholder="Add a description…"
+                  suggestions={payeeSuggestions}
+                  ariaLabel={
+                    payee ? `Description: ${payee}. Edit` : "Add a description"
+                  }
+                  disabled={saving}
+                  onCommit={(next) => onPayeeChange(tx.id, next)}
+                />
+              )}
+              {structurallyLocked && (
+                <Badge
+                  variant="secondary"
+                  title="Open details to see why this transaction is read-only"
+                >
+                  <LockKeyhole aria-hidden="true" />
+                  Read-only
+                </Badge>
+              )}
               {tx.status === "delete_pending" && (
                 <AlertTriangle
                   aria-label="Needs attention"
@@ -203,19 +222,25 @@ export const TransactionRow = memo(function TransactionRow({
         </div>
 
         <div className="hidden min-w-0 sm:block">
-          <CategoryPicker
-            categoryId={tx.category_id}
-            categoryName={categoryName}
-            options={
-              tx.split_parent_id != null && tx.recurring_id == null
-                ? categoryOptions.filter((option) => option.id !== -1)
-                : categoryOptions
-            }
-            saving={saving}
-            disabled={structurallyLocked || saving}
-            onChange={(categoryId) => onCategoryChange(tx.id, categoryId)}
-            finalFocus={pickerFinalFocus}
-          />
+          {structurallyLocked ? (
+            <span className="flex min-h-10 items-center truncate px-2 text-xs text-bento-default">
+              {categoryName}
+            </span>
+          ) : (
+            <CategoryPicker
+              categoryId={tx.category_id}
+              categoryName={categoryName}
+              options={
+                tx.split_parent_id != null && tx.recurring_id == null
+                  ? categoryOptions.filter((option) => option.id !== -1)
+                  : categoryOptions
+              }
+              saving={saving}
+              disabled={saving}
+              onChange={(categoryId) => onCategoryChange(tx.id, categoryId)}
+              finalFocus={pickerFinalFocus}
+            />
+          )}
         </div>
 
         <span className="hidden text-center text-xs text-bento-subtle tabular-nums sm:block">
@@ -233,6 +258,26 @@ export const TransactionRow = memo(function TransactionRow({
         </span>
         {tx.is_pending ? (
           <span aria-hidden="true" className="size-10" />
+        ) : structurallyLocked ? (
+          <span
+            className="flex size-10 items-center justify-center"
+            title={reviewed ? "Reviewed · read-only" : "Read-only"}
+          >
+            {reviewed ? (
+              <Check
+                aria-hidden="true"
+                className="size-4 text-bento-positive"
+              />
+            ) : (
+              <LockKeyhole
+                aria-hidden="true"
+                className="size-4 text-bento-subtle"
+              />
+            )}
+            <span className="sr-only">
+              {reviewed ? "Reviewed, read-only" : "Read-only"}
+            </span>
+          </span>
         ) : (
           <Button
             type="button"
@@ -262,15 +307,21 @@ export const TransactionRow = memo(function TransactionRow({
       <div className="px-4 pb-2 sm:hidden">
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
-            <CategoryPicker
-              categoryId={tx.category_id}
-              categoryName={categoryName}
-              options={categoryOptions}
-              saving={saving}
-              disabled={structurallyLocked || saving}
-              onChange={(categoryId) => onCategoryChange(tx.id, categoryId)}
-              finalFocus={pickerFinalFocus}
-            />
+            {structurallyLocked ? (
+              <span className="flex min-h-10 items-center px-2 text-xs text-bento-default">
+                {categoryName}
+              </span>
+            ) : (
+              <CategoryPicker
+                categoryId={tx.category_id}
+                categoryName={categoryName}
+                options={categoryOptions}
+                saving={saving}
+                disabled={saving}
+                onChange={(categoryId) => onCategoryChange(tx.id, categoryId)}
+                finalFocus={pickerFinalFocus}
+              />
+            )}
           </div>
           {tx.split_parent_id != null && (
             <Badge variant="secondary">Split</Badge>
