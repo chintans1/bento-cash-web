@@ -653,9 +653,11 @@ export function createDemoClient(): LMClient {
   const transactionOverrides = new Map<number, TransactionPatch>();
   const knownTransactions = new Map<number, Transaction>();
   const structured = new Map<number, Transaction>();
+  const deletedIds = new Set<number>();
   let nextStructureId = 9_000_000_000;
 
   function currentTransaction(id: number): Transaction {
+    if (deletedIds.has(id)) throw new Error(`Unknown demo transaction: ${id}`);
     const transaction = structured.get(id) ?? knownTransactions.get(id);
     if (!transaction) throw new Error(`Unknown demo transaction: ${id}`);
     const current = { ...transaction, ...transactionOverrides.get(id) };
@@ -721,6 +723,7 @@ export function createDemoClient(): LMClient {
   }
 
   function saveTransaction(id: number, patch: TransactionPatch): Transaction {
+    if (deletedIds.has(id)) throw new Error(`Unknown demo transaction: ${id}`);
     const transaction = structured.get(id) ?? knownTransactions.get(id);
     if (!transaction) throw new Error(`Unknown demo transaction: ${id}`);
 
@@ -817,7 +820,9 @@ export function createDemoClient(): LMClient {
         })
         .filter(
           (transaction) =>
-            !transaction.is_split_parent && transaction.group_parent_id == null
+            !deletedIds.has(transaction.id) &&
+            !transaction.is_split_parent &&
+            transaction.group_parent_id == null
         )
         .filter((transaction) =>
           transaction.date.startsWith(
@@ -861,6 +866,11 @@ export function createDemoClient(): LMClient {
       ),
     updateManualAccount: () => Promise.resolve(),
     updateTransaction: async (id, patch) => saveTransaction(id, patch),
+    deleteTransaction: async (id) => {
+      currentTransaction(id);
+      deletedIds.add(id);
+      transactionOverrides.delete(id);
+    },
     updateSplitChildRecurring: async (id, recurringId) =>
       saveTransaction(id, { recurring_id: recurringId }),
     updateTransactions: async (transactions) =>

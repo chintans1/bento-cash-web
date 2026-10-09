@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const sdk = vi.hoisted(() => ({
   update: vi.fn(),
+  delete: vi.fn(),
   get: vi.fn(),
   getAllRecurring: vi.fn(),
 }));
@@ -27,6 +28,16 @@ describe("recurring items", () => {
     expect(sdk.getAllRecurring).toHaveBeenCalledWith({
       include_suggested: true,
     });
+  });
+});
+
+describe("transaction deletion", () => {
+  it("uses the v2 delete endpoint", async () => {
+    sdk.delete.mockResolvedValue(undefined);
+
+    await createApiKeyClient("test-token").deleteTransaction(10);
+
+    expect(sdk.delete).toHaveBeenCalledWith(10);
   });
 });
 

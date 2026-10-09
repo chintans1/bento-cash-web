@@ -16,7 +16,10 @@ vi.mock("@/lib/server/lunch-money-client", () => ({
 
 import { GET as getMe } from "@/app/api/lunch-money/me/route";
 import { GET as getTransactions } from "@/app/api/lunch-money/transactions/route";
-import { PATCH as updateTransaction } from "@/app/api/lunch-money/transactions/[id]/route";
+import {
+  DELETE as deleteTransaction,
+  PATCH as updateTransaction,
+} from "@/app/api/lunch-money/transactions/[id]/route";
 import { PATCH as linkSplitRecurring } from "@/app/api/lunch-money/transactions/[id]/recurring/route";
 import { POST as splitTransaction } from "@/app/api/lunch-money/transactions/[id]/split/route";
 import { PATCH as updateTransactions } from "@/app/api/lunch-money/transactions/bulk/route";
@@ -49,6 +52,7 @@ const client = {
   upsertBalanceHistory: vi.fn(),
   updateManualAccount: vi.fn(),
   updateTransaction: vi.fn(),
+  deleteTransaction: vi.fn(),
   getTransaction: vi.fn(),
   splitTransaction: vi.fn(),
   replaceSplit: vi.fn(),
@@ -284,6 +288,31 @@ describe("authenticated Lunch Money routes", () => {
     expect(client.updateManualAccount).toHaveBeenCalledWith(7, {
       balance: "12",
     });
+  });
+
+  it("deletes an ordinary transaction through an owned connection", async () => {
+    client.getTransaction.mockResolvedValue({ id: 8, split_parent_id: null });
+    client.deleteTransaction.mockResolvedValue(undefined);
+
+    const response = await deleteTransaction(
+      request("transactions/8", "DELETE", {}),
+      { params: Promise.resolve({ id: "8" }) }
+    );
+
+    expect(response.status).toBe(200);
+    expect(client.deleteTransaction).toHaveBeenCalledWith(8);
+  });
+
+  it("keeps split transactions in the split editor", async () => {
+    client.getTransaction.mockResolvedValue({ id: 8, is_split_parent: true });
+
+    const response = await deleteTransaction(
+      request("transactions/8", "DELETE", {}),
+      { params: Promise.resolve({ id: "8" }) }
+    );
+
+    expect(response.status).toBe(400);
+    expect(client.deleteTransaction).not.toHaveBeenCalled();
   });
 
   it("requires a category or recurring item on every new split part", async () => {

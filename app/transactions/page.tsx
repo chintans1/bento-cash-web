@@ -129,6 +129,7 @@ function TransactionsPage() {
     savingIds,
     errors,
     update,
+    remove,
     reviewMany,
     refresh,
   } = useMonthTransactions(selectedYear, selectedMonth, dataScopeKey);
@@ -812,6 +813,11 @@ function TransactionsPage() {
           error={errors.get(editingTransaction.id)}
           onClose={() => setEditing(null)}
           onSave={(patch) => update(editingTransaction.id, patch)}
+          onDelete={async () => {
+            const deleted = await remove(editingTransaction.id);
+            if (deleted) setSelected(editingTransaction.id, false);
+            return deleted;
+          }}
           onSplit={() => {
             setStructure({ type: "split", transaction: editingTransaction });
             setEditing(null);

@@ -34,6 +34,7 @@ describe("remote Lunch Money client", () => {
     const client = createRemoteClient("connection-1");
 
     await client.updateTransaction(8, { payee: "Cafe" });
+    await client.deleteTransaction(8);
     await client.createManualAccount({ name: "Cash" } as Parameters<
       typeof client.createManualAccount
     >[0]);
@@ -52,7 +53,7 @@ describe("remote Lunch Money client", () => {
       }
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
-      2,
+      3,
       "/api/lunch-money/accounts/manual",
       {
         method: "POST",
@@ -62,6 +63,16 @@ describe("remote Lunch Money client", () => {
           connectionId: "connection-1",
           data: { name: "Cash" },
         }),
+      }
+    );
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "/api/lunch-money/transactions/8",
+      {
+        method: "DELETE",
+        cache: "no-store",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ connectionId: "connection-1" }),
       }
     );
   });

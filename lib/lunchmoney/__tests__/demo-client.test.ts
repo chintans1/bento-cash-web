@@ -161,4 +161,20 @@ describe("demo transaction data", () => {
       october.transactions.find(({ id }) => id === transaction.id)
     ).toMatchObject({ date: "2026-10-02" });
   });
+
+  it("deletes a transaction from the demo list", async () => {
+    const client = createDemoClient();
+    const before = await client.getTransactionsForMonth(2026, 9);
+    const id = before.transactions[0].id;
+
+    await client.deleteTransaction(id);
+
+    const after = await client.getTransactionsForMonth(2026, 9);
+    expect(
+      after.transactions.some((transaction) => transaction.id === id)
+    ).toBe(false);
+    await expect(client.getTransaction(id)).rejects.toThrow(
+      "Unknown demo transaction"
+    );
+  });
 });

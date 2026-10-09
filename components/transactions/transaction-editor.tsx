@@ -8,6 +8,7 @@ import {
   Clock3,
   ExternalLink,
   Repeat2,
+  Trash2,
   X,
 } from "lucide-react";
 import type { RecurringItem, Tag, Transaction } from "@/lib/lunchmoney/client";
@@ -113,6 +114,7 @@ export function TransactionEditor({
   error,
   onClose,
   onSave,
+  onDelete,
   onSplit,
   onGroup,
 }: {
@@ -130,11 +132,14 @@ export function TransactionEditor({
   error?: string;
   onClose: () => void;
   onSave: (patch: TransactionPatch) => Promise<boolean>;
+  onDelete: () => Promise<boolean>;
   onSplit: () => void;
   onGroup: () => void;
 }) {
   const [open, setOpen] = useState(true);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [draft, setDraft] = useState(() => makeDraft(transaction));
   const [recurringPageOpened, setRecurringPageOpened] = useState(false);
   const [refreshingRecurringItems, setRefreshingRecurringItems] =
@@ -195,6 +200,12 @@ export function TransactionEditor({
   const structurallyLocked = isStructurallyLockedTransaction(transaction);
   const groupParent = transaction.is_group_parent;
   const splitChild = transaction.split_parent_id != null;
+  const canDelete =
+    !locked &&
+    !transaction.is_split_parent &&
+    !splitChild &&
+    !transaction.is_group_parent &&
+    transaction.group_parent_id == null;
 
   const patch = useMemo(() => {
     const selectedAccount = accounts.find(
@@ -234,8 +245,18 @@ export function TransactionEditor({
     if (await onSave(patch)) setOpen(false);
   }
 
+  async function remove() {
+    if (!canDelete || saving || deleting) return;
+    setDeleting(true);
+    try {
+      if (await onDelete()) setOpen(false);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   function requestClose() {
-    if (saving) return;
+    if (saving || deleting) return;
     if (changed) setConfirmDiscard(true);
     else setOpen(false);
   }
@@ -252,7 +273,7 @@ export function TransactionEditor({
       >
         <form
           className="flex h-full flex-col"
-          aria-busy={saving}
+          aria-busy={saving || deleting}
           onSubmit={(event) => {
             event.preventDefault();
             void save();
@@ -308,14 +329,14 @@ export function TransactionEditor({
               size="icon-lg"
               aria-label="Close transaction details"
               onClick={requestClose}
-              disabled={saving}
+              disabled={saving || deleting}
             >
               <X />
             </Button>
           </header>
 
           <div
-            inert={saving}
+            inert={saving || deleting}
             className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6"
           >
             {transaction.status === "delete_pending" && (
@@ -775,24 +796,67 @@ export function TransactionEditor({
                   </Button>
                 </div>
               </div>
+            ) : confirmDelete ? (
+              <div role="alert" className="space-y-3">
+                <p className="text-sm">
+                  Delete this transaction? This cannot be undone.
+                  {changed && " Unsaved changes will be discarded."}
+                </p>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setConfirmDelete(false)}
+                    disabled={saving || deleting}
+                  >
+                    Keep transaction
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => void remove()}
+                    disabled={saving || deleting}
+                  >
+                    {deleting ? "Deleting…" : "Delete transaction"}
+                  </Button>
+                </div>
+              </div>
             ) : (
-              <div className="flex justify-end gap-2">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  className="h-10"
-                  onClick={requestClose}
-                  disabled={saving}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  className="h-10"
-                  disabled={!valid || !changed || saving || structurallyLocked}
-                >
-                  {saving ? "Saving…" : "Save changes"}
-                </Button>
+              <div className="flex justify-between gap-2">
+                {canDelete ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-10 text-destructive hover:text-destructive"
+                    onClick={() => setConfirmDelete(true)}
+                    disabled={saving}
+                  >
+                    <Trash2 data-icon="inline-start" />
+                    Delete
+                  </Button>
+                ) : (
+                  <span />
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-10"
+                    onClick={requestClose}
+                    disabled={saving}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="h-10"
+                    disabled={
+                      !valid || !changed || saving || structurallyLocked
+                    }
+                  >
+                    {saving ? "Saving…" : "Save changes"}
+                  </Button>
+                </div>
               </div>
             )}
           </footer>

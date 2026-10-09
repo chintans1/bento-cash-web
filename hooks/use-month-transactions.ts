@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+  deleteTransaction,
   getTransactionsForMonth,
   updateTransaction,
   updateTransactions,
@@ -22,6 +23,7 @@ export type MonthTransactions = {
   savingIds: Set<number>;
   errors: Map<number, string>;
   update: (id: number, patch: TransactionPatch) => Promise<boolean>;
+  remove: (id: number) => Promise<boolean>;
   reviewMany: (ids: number[]) => Promise<boolean>;
   refresh: () => Promise<void>;
 };
@@ -209,6 +211,49 @@ export function useMonthTransactions(
     [loadedKey, markSaving, month, updateLocal, year]
   );
 
+  const remove = useCallback(
+    async (id: number) => {
+      const key = activeRequestKey.current;
+      if (
+        !key ||
+        loadedKey !== key ||
+        !latest.current.some((tx) => tx.id === id)
+      )
+        return false;
+
+      setSaveErrors((current) => {
+        const next = new Map(current?.key === key ? current.values : []);
+        next.delete(id);
+        return { key, values: next };
+      });
+      markSaving(key, [id], true);
+      try {
+        await deleteTransaction(id);
+        if (activeRequestKey.current === key) {
+          updateLocal((current) => current.filter((tx) => tx.id !== id));
+        }
+        return true;
+      } catch (error) {
+        if (activeRequestKey.current === key) {
+          setSaveErrors((current) => {
+            const next = new Map(current?.key === key ? current.values : []);
+            next.set(
+              id,
+              error instanceof Error
+                ? error.message
+                : "Couldn't delete transaction"
+            );
+            return { key, values: next };
+          });
+        }
+        return false;
+      } finally {
+        markSaving(key, [id], false);
+      }
+    },
+    [loadedKey, markSaving, updateLocal]
+  );
+
   const reviewMany = useCallback(
     async (ids: number[]) => {
       const key = activeRequestKey.current;
@@ -307,6 +352,7 @@ export function useMonthTransactions(
     savingIds,
     errors,
     update,
+    remove,
     reviewMany,
     refresh,
   };

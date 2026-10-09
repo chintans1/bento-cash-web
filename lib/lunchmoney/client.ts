@@ -91,6 +91,7 @@ export interface LMClient {
     transactionId: number,
     patch: TransactionPatch
   ): Promise<Transaction>;
+  deleteTransaction(transactionId: number): Promise<void>;
   updateSplitChildRecurring(
     transactionId: number,
     recurringId: number | null
@@ -351,6 +352,7 @@ export function createApiKeyClient(token: string): LMClient {
       sdk.manualAccounts.update(id, data).then(() => undefined),
 
     updateTransaction,
+    deleteTransaction: (id) => sdk.transactions.delete(id),
     updateSplitChildRecurring,
     updateTransactions: (transactions) =>
       sdk.transactions.updateMany({ transactions }).then((r) => r.transactions),
@@ -438,6 +440,10 @@ export function createRemoteClient(connectionId: string): LMClient {
       remoteRequest(connectionId, `accounts/manual/${id}`, "PATCH", { data }),
     updateTransaction: (id, patch) =>
       remoteRequest(connectionId, `transactions/${id}`, "PATCH", { patch }),
+    deleteTransaction: (id) =>
+      remoteRequest(connectionId, `transactions/${id}`, "DELETE", {
+        connectionId,
+      }),
     updateSplitChildRecurring: (id, recurringId) =>
       remoteRequest(connectionId, `transactions/${id}/recurring`, "PATCH", {
         recurringId,
@@ -582,6 +588,12 @@ export async function updateTransaction(
   invalidate(KEY.allTx);
   invalidate(KEY.allBudgets);
   return transaction;
+}
+
+export async function deleteTransaction(transactionId: number): Promise<void> {
+  await activeClient().deleteTransaction(transactionId);
+  invalidate(KEY.allTx);
+  invalidate(KEY.allBudgets);
 }
 
 export async function updateSplitChildRecurring(

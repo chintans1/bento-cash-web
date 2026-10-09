@@ -35,7 +35,7 @@ export function RecentTransactionsCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Transactions</CardTitle>
+        <CardTitle className="text-lg">Recent Transactions</CardTitle>
       </CardHeader>
       <CardContent>
         {loading ? (

@@ -43,3 +43,25 @@ export async function PATCH(request: Request, { params }: Context) {
     return client.updateTransaction(transactionId.data, change);
   });
 }
+
+export async function DELETE(request: Request, { params }: Context) {
+  const { id } = await params;
+  const transactionId = z.coerce.number().int().positive().safeParse(id);
+  if (!transactionId.success) {
+    return Response.json({ error: "Invalid request" }, { status: 400 });
+  }
+  return lunchMoneyRoute(request, connectionQuery, async (client) => {
+    const current = await client.getTransaction(transactionId.data);
+    if (
+      current.is_split_parent ||
+      current.split_parent_id != null ||
+      current.is_group_parent ||
+      current.group_parent_id != null
+    ) {
+      throw new InvalidLunchMoneyRequest(
+        "Open the split or group editor to manage this transaction."
+      );
+    }
+    await client.deleteTransaction(transactionId.data);
+  });
+}
