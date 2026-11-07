@@ -1,17 +1,21 @@
 "use client";
 
 import { LoaderCircle } from "lucide-react";
+import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { AuthPrompt } from "@/components/auth-prompt";
 
 export function SessionGate({ children }: { children: React.ReactNode }) {
   const { isReady, isSignedIn, isDemo, dataScopeKey } = useAuth();
+  const isPublicPage = usePathname() === "/privacy-policy";
 
   return (
     // A connection switch remounts page-level data hooks. No prior account's
     // transient state can remain visible while the next account loads.
     <main key={dataScopeKey ?? "signed-out"} className="flex-1">
-      {!isReady ? (
+      {isPublicPage ? (
+        children
+      ) : !isReady ? (
         <div
           role="status"
           className="flex min-h-app-content items-center justify-center gap-2 px-4 text-sm text-bento-subtle"
