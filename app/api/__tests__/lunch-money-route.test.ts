@@ -15,7 +15,10 @@ vi.mock("@/lib/server/lunch-money-client", () => ({
 }));
 
 import { GET as getMe } from "@/app/api/lunch-money/me/route";
-import { GET as getTransactions } from "@/app/api/lunch-money/transactions/route";
+import {
+  GET as getTransactions,
+  POST as createTransactions,
+} from "@/app/api/lunch-money/transactions/route";
 import {
   DELETE as deleteTransaction,
   PATCH as updateTransaction,
@@ -49,6 +52,7 @@ const client = {
   getBalanceHistory: vi.fn(),
   getBudgetSummary: vi.fn(),
   createManualAccount: vi.fn(),
+  createTransactions: vi.fn(),
   upsertBalanceHistory: vi.fn(),
   updateManualAccount: vi.fn(),
   updateTransaction: vi.fn(),
@@ -136,6 +140,42 @@ describe("authenticated Lunch Money routes", () => {
       ).status
     ).toBe(400);
     expect(mocks.resolveLunchMoneyClient).not.toHaveBeenCalled();
+  });
+
+  it("creates reviewed Apple Card rows only for an owned connection", async () => {
+    const data = {
+      transactions: [
+        {
+          date: "2026-09-03",
+          amount: 12.34,
+          payee: "Shop",
+          currency: "usd",
+          manual_account_id: 7,
+          external_id: "apple-card:abc:1",
+        },
+      ],
+      skip_balance_update: true,
+    };
+    client.createTransactions.mockResolvedValue({
+      transactions: [],
+      skipped_duplicates: [],
+    });
+    expect(
+      (await createTransactions(request("transactions", "POST", { data })))
+        .status
+    ).toBe(200);
+    expect(client.createTransactions).toHaveBeenCalledWith(data);
+
+    expect(
+      (
+        await createTransactions(
+          request("transactions", "POST", {
+            data: { ...data, skip_balance_update: false },
+          })
+        )
+      ).status
+    ).toBe(400);
+    expect(client.createTransactions).toHaveBeenCalledTimes(1);
   });
 
   it("links a split child to a recurring item through an owned connection", async () => {

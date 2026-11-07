@@ -860,6 +860,10 @@ export function createDemoClient(): LMClient {
       Promise.reject(
         new Error("Balance imports are unavailable in demo mode.")
       ),
+    createTransactions: () =>
+      Promise.reject(
+        new Error("Transaction imports are unavailable in demo mode.")
+      ),
     upsertBalanceHistory: () =>
       Promise.reject(
         new Error("Balance imports are unavailable in demo mode.")
