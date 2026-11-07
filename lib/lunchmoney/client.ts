@@ -1,4 +1,7 @@
-import { LunchMoneyClient } from "@lunch-money/lunch-money-js-v2";
+import {
+  LunchMoneyClient,
+  LunchMoneyError,
+} from "@lunch-money/lunch-money-js-v2";
 import { cached, clearCache, invalidate, KEY } from "./cache";
 import { replaceSplitWithRestore } from "./transaction-structure";
 import type {
@@ -125,8 +128,11 @@ const MAX_TRANSACTION_PAGES = 40;
 
 // ── Factory ─────────────────────────────────────────────────────────────────
 
-export function createApiKeyClient(token: string): LMClient {
-  const sdk = new LunchMoneyClient({ apiKey: token });
+function createTokenClient(
+  token: string,
+  options: { baseUrl?: string; allowLegacyV1: boolean }
+): LMClient {
+  const sdk = new LunchMoneyClient({ apiKey: token, baseUrl: options.baseUrl });
 
   const updateTransaction = async (
     id: number,
@@ -145,6 +151,7 @@ export function createApiKeyClient(token: string): LMClient {
         throw new Error("Split child update was not confirmed by v2");
       return updated;
     } catch (v2Error) {
+      if (!options.allowLegacyV1) throw v2Error;
       // The v2 update endpoint currently rejects split children. v1 supports
       // edits to their ordinary fields; amounts still belong in the split editor.
       const current = await sdk.transactions.get(id).catch(() => null);
@@ -215,6 +222,9 @@ export function createApiKeyClient(token: string): LMClient {
       });
       if (updated.recurring_id === recurringId) return updated;
     } catch {
+      if (!options.allowLegacyV1) {
+        throw new Error("Lunch Money could not update this split part");
+      }
       // The legacy update endpoint can link an existing split child.
     }
     const response = await fetch(
@@ -320,11 +330,15 @@ export function createApiKeyClient(token: string): LMClient {
      * any month the user navigates to, rather than one per month on screen.
      */
     async getBalanceHistory() {
-      const { data, error } = await sdk.rawClient.GET("/balance_history");
+      const { data, error, response } =
+        await sdk.rawClient.GET("/balance_history");
       // openapi-fetch reports failures in the result rather than throwing, so
       // this is where a non-2xx becomes an error the callers can catch.
       if (!data)
-        throw new Error(error?.message ?? "Couldn't load balance history");
+        throw new LunchMoneyError(
+          error?.message ?? "Couldn't load balance history",
+          response.status
+        );
       return data.balance_history;
     },
 
@@ -377,6 +391,17 @@ export function createApiKeyClient(token: string): LMClient {
     groupTransactions: (input) => sdk.transactions.group(input),
     ungroupTransaction: (id) => sdk.transactions.ungroup(id),
   };
+}
+
+export function createApiKeyClient(token: string): LMClient {
+  return createTokenClient(token, { allowLegacyV1: true });
+}
+
+export function createOAuthClient(token: string, issuer: string): LMClient {
+  return createTokenClient(token, {
+    baseUrl: `${issuer}/v2`,
+    allowLegacyV1: false,
+  });
 }
 
 async function remoteRequest<T>(

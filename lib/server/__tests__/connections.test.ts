@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import type { SqlParams, SqlStore } from "../database";
+import { encryptCredential } from "../credential-crypto";
 
 const ownerId = "test-owner";
 const otherId = "test-other";
@@ -22,6 +23,12 @@ beforeAll(async () => {
   appDatabase.exec(
     readFileSync(
       join(process.cwd(), "migrations/002_bento_connections.sql"),
+      "utf8"
+    )
+  );
+  appDatabase.exec(
+    readFileSync(
+      join(process.cwd(), "migrations/004_lunch_money_oauth.sql"),
       "utf8"
     )
   );
@@ -67,24 +74,49 @@ afterAll(() => {
   delete process.env.BENTO_CREDENTIAL_ENCRYPTION_KEY;
 });
 
+function seedLegacyConnection(accountId: string, token: string): string {
+  const id = `legacy-${accountId}`;
+  const label = accountId === "42" ? "Family budget" : "Business budget";
+  const now = new Date().toISOString();
+  appDatabase
+    .prepare(
+      `insert into "lunch_money_connection"
+       ("id", "userId", "externalAccountId", "label", "budgetName", "email", "authMethod", "credentialCiphertext", "createdAt", "updatedAt")
+       values (?, ?, ?, ?, ?, ?, 'api_key', ?, ?, ?)`
+    )
+    .run(
+      id,
+      ownerId,
+      accountId,
+      label,
+      label,
+      "owner@example.com",
+      encryptCredential({ type: "api_key", token }),
+      now,
+      now
+    );
+  appDatabase
+    .prepare(
+      `insert into "bento_user_context" ("userId", "activeConnectionId", "updatedAt")
+       values (?, ?, ?)
+       on conflict ("userId") do update set
+         "activeConnectionId" = excluded."activeConnectionId",
+         "updatedAt" = excluded."updatedAt"`
+    )
+    .run(ownerId, id, now);
+  return id;
+}
+
 describe("Lunch Money connection persistence", () => {
   it("encrypts credentials and selects a newly linked account", async () => {
-    const account = await connections.upsertApiKeyConnection(
-      ownerId,
-      "super-secret-api-key",
-      {
-        name: "Owner",
-        budgetName: "Family budget",
-        email: "owner@example.com",
-        externalAccountId: 42,
-      }
-    );
-
+    const id = seedLegacyConnection("42", "super-secret-api-key");
     const state = await connections.listConnections(ownerId);
-    expect(state.connections).toEqual([account]);
-    expect(state.activeConnectionId).toBe(account.id);
+    const account = state.connections[0];
+    expect(account.id).toBe(id);
+    expect(state.activeConnectionId).toBe(id);
     expect(
-      await connections.getConnectionCredential(ownerId, account.id)
+      (await connections.getConnectionCredentialRecord(ownerId, account.id))
+        ?.credential
     ).toEqual({
       type: "api_key",
       token: "super-secret-api-key",
@@ -101,19 +133,10 @@ describe("Lunch Money connection persistence", () => {
 
   it("persists active-account switching", async () => {
     const first = (await connections.listConnections(ownerId)).connections[0];
-    const second = await connections.upsertApiKeyConnection(
-      ownerId,
-      "second-secret-api-key",
-      {
-        name: "Owner",
-        budgetName: "Business budget",
-        email: "owner@example.com",
-        externalAccountId: 84,
-      }
-    );
+    const second = seedLegacyConnection("84", "second-secret-api-key");
     expect(
       (await connections.listConnections(ownerId)).activeConnectionId
-    ).toBe(second.id);
+    ).toBe(second);
     expect(await connections.setActiveConnection(ownerId, first.id)).toBe(true);
     expect(
       (await connections.listConnections(ownerId)).activeConnectionId
@@ -126,7 +149,7 @@ describe("Lunch Money connection persistence", () => {
       false
     );
     expect(
-      await connections.getConnectionCredential(otherId, account.id)
+      await connections.getConnectionCredentialRecord(otherId, account.id)
     ).toBeNull();
     expect(
       await settings.setFeatureSetting(otherId, account.id, "test", "value")
@@ -167,13 +190,16 @@ describe("Lunch Money connection persistence", () => {
         budgetName: original.budgetName ?? original.label,
         email: original.email ?? "owner@example.com",
         externalAccountId: original.externalAccountId,
+        externalUserId: "lunch-money-user-1",
       }
     );
 
     expect(upgraded.id).toBe(original.id);
     expect(upgraded.authMethod).toBe("oauth");
+    expect(upgraded.externalUserId).toBe("lunch-money-user-1");
     expect(
-      await connections.getConnectionCredential(ownerId, upgraded.id)
+      (await connections.getConnectionCredentialRecord(ownerId, upgraded.id))
+        ?.credential
     ).toEqual({
       type: "oauth",
       accessToken: "oauth-access-token",
@@ -181,5 +207,83 @@ describe("Lunch Money connection persistence", () => {
       expiresAt: "2030-01-01T00:00:00.000Z",
       scope: ["read", "write"],
     });
+
+    const record = await connections.getConnectionCredentialRecord(
+      ownerId,
+      upgraded.id
+    );
+    expect(record).not.toBeNull();
+    expect(
+      await connections.claimOAuthRefresh(
+        ownerId,
+        upgraded.id,
+        record!.ciphertext,
+        "attempt-1"
+      )
+    ).toBe(true);
+    expect(
+      await connections.claimOAuthRefresh(
+        ownerId,
+        upgraded.id,
+        record!.ciphertext,
+        "attempt-2"
+      )
+    ).toBe(false);
+    expect(
+      await connections.replaceOAuthCredential(
+        ownerId,
+        upgraded.id,
+        record!.ciphertext,
+        "attempt-1",
+        { type: "oauth", accessToken: "replacement", refreshToken: "rotated" }
+      )
+    ).toBe(true);
+    expect(
+      (await connections.getConnectionCredentialRecord(ownerId, upgraded.id))
+        ?.credential
+    ).toEqual({
+      type: "oauth",
+      accessToken: "replacement",
+      refreshToken: "rotated",
+    });
+  });
+
+  it("uses the budget returned on reconnect instead of reusing the previous one", async () => {
+    const credential = { type: "oauth" as const, accessToken: "token" };
+    const profile = {
+      name: "Owner",
+      email: "owner@example.com",
+      externalUserId: 17,
+    };
+    const first = await connections.upsertOAuthConnection(ownerId, credential, {
+      ...profile,
+      externalAccountId: 101,
+      budgetName: "Home",
+    });
+    const second = await connections.upsertOAuthConnection(
+      ownerId,
+      credential,
+      {
+        ...profile,
+        externalAccountId: 102,
+        budgetName: "Business",
+      }
+    );
+
+    expect(second.id).not.toBe(first.id);
+    expect(
+      (await connections.listConnections(ownerId)).activeConnectionId
+    ).toBe(second.id);
+
+    const reconnected = await connections.upsertOAuthConnection(
+      ownerId,
+      credential,
+      { ...profile, externalAccountId: 101, budgetName: "Renamed Home" }
+    );
+    expect(reconnected.id).toBe(first.id);
+    expect(reconnected.budgetName).toBe("Renamed Home");
+    expect(
+      (await connections.listConnections(ownerId)).activeConnectionId
+    ).toBe(first.id);
   });
 });

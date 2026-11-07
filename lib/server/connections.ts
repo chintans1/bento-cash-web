@@ -15,6 +15,7 @@ interface ConnectionRow {
   id: string;
   userId: string;
   externalAccountId: string;
+  externalUserId: string | null;
   label: string;
   budgetName: string | null;
   email: string | null;
@@ -33,6 +34,7 @@ function publicConnection(row: ConnectionRow): LunchMoneyConnection {
     budgetName: row.budgetName,
     email: row.email,
     externalAccountId: row.externalAccountId,
+    externalUserId: row.externalUserId,
     createdAt: row.createdAt,
   };
 }
@@ -57,15 +59,15 @@ export async function listConnections(
   return { connections: rows.map(publicConnection), activeConnectionId };
 }
 
-async function upsertConnection(
+export async function upsertOAuthConnection(
   userId: string,
-  authMethod: LunchMoneyConnection["authMethod"],
-  credential: StoredCredential,
+  credential: Extract<StoredCredential, { type: "oauth" }>,
   profile: {
     name: string;
     budgetName: string;
     email: string;
     externalAccountId: string | number;
+    externalUserId: string | number;
   }
 ): Promise<LunchMoneyConnection> {
   const store = await getStore();
@@ -74,14 +76,21 @@ async function upsertConnection(
     [userId, String(profile.externalAccountId)]
   );
   const now = new Date().toISOString();
+  if (
+    existing?.externalUserId &&
+    existing.externalUserId !== String(profile.externalUserId)
+  ) {
+    throw new Error("This budget belongs to another Lunch Money user");
+  }
   const row: ConnectionRow = {
     id: existing?.id ?? `lma_${randomUUID()}`,
     userId,
     externalAccountId: String(profile.externalAccountId),
+    externalUserId: String(profile.externalUserId),
     label: profile.budgetName || profile.name || "Lunch Money",
     budgetName: profile.budgetName || null,
     email: profile.email || null,
-    authMethod,
+    authMethod: "oauth",
     credentialCiphertext: encryptCredential(credential),
     createdAt: existing?.createdAt ?? now,
   };
@@ -89,19 +98,25 @@ async function upsertConnection(
   await store.batch([
     {
       sql: `insert into "lunch_money_connection"
-          ("id", "userId", "externalAccountId", "label", "budgetName", "email", "authMethod", "credentialCiphertext", "createdAt", "updatedAt")
-         values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ("id", "userId", "externalAccountId", "externalUserId", "label", "budgetName", "email", "authMethod", "credentialCiphertext", "createdAt", "updatedAt")
+         values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
          on conflict ("userId", "externalAccountId") do update set
+          "externalUserId" = excluded."externalUserId",
           "label" = excluded."label",
           "budgetName" = excluded."budgetName",
           "email" = excluded."email",
           "authMethod" = excluded."authMethod",
           "credentialCiphertext" = excluded."credentialCiphertext",
-          "updatedAt" = excluded."updatedAt"`,
+          "updatedAt" = excluded."updatedAt",
+          "refreshAttemptId" = null,
+          "refreshStartedAt" = null
+         where "lunch_money_connection"."externalUserId" is null
+            or "lunch_money_connection"."externalUserId" = excluded."externalUserId"`,
       params: [
         row.id,
         row.userId,
         row.externalAccountId,
+        row.externalUserId,
         row.label,
         row.budgetName,
         row.email,
@@ -113,47 +128,96 @@ async function upsertConnection(
     },
     {
       sql: `insert into "bento_user_context" ("userId", "activeConnectionId", "updatedAt")
-         values (?, ?, ?)
+         select ?, "id", ? from "lunch_money_connection"
+         where "userId" = ? and "externalAccountId" = ?
+           and "externalUserId" = ?
          on conflict ("userId") do update set
           "activeConnectionId" = excluded."activeConnectionId",
           "updatedAt" = excluded."updatedAt"`,
-      params: [userId, row.id, now],
+      params: [userId, now, userId, row.externalAccountId, row.externalUserId],
     },
   ]);
 
-  return publicConnection(row);
-}
-
-export async function upsertApiKeyConnection(
-  userId: string,
-  token: string,
-  profile: {
-    name: string;
-    budgetName: string;
-    email: string;
-    externalAccountId: string | number;
-  }
-): Promise<LunchMoneyConnection> {
-  return upsertConnection(
-    userId,
-    "api_key",
-    { type: "api_key", token },
-    profile
+  const saved = await store.first<ConnectionRow>(
+    'select * from "lunch_money_connection" where "userId" = ? and "externalAccountId" = ?',
+    [userId, row.externalAccountId]
   );
+  if (!saved || saved.externalUserId !== row.externalUserId) {
+    throw new Error("This budget belongs to another Lunch Money user");
+  }
+  return publicConnection(saved);
 }
 
-/** Used by the Lunch Money OAuth callback once the provider is available. */
-export async function upsertOAuthConnection(
+export interface ConnectionCredentialRecord {
+  credential: StoredCredential;
+  ciphertext: string;
+  externalUserId: string | null;
+  refreshAttemptId: string | null;
+}
+
+export async function getConnectionCredentialRecord(
   userId: string,
-  credential: Extract<StoredCredential, { type: "oauth" }>,
-  profile: {
-    name: string;
-    budgetName: string;
-    email: string;
-    externalAccountId: string | number;
-  }
-): Promise<LunchMoneyConnection> {
-  return upsertConnection(userId, "oauth", credential, profile);
+  connectionId: string
+): Promise<ConnectionCredentialRecord | null> {
+  const store = await getStore();
+  const row = await store.first<{
+    credentialCiphertext: string;
+    externalUserId: string | null;
+    refreshAttemptId: string | null;
+  }>(
+    'select "credentialCiphertext", "externalUserId", "refreshAttemptId" from "lunch_money_connection" where "id" = ? and "userId" = ?',
+    [connectionId, userId]
+  );
+  if (!row) return null;
+  return {
+    credential: decryptCredential(row.credentialCiphertext),
+    ciphertext: row.credentialCiphertext,
+    externalUserId: row.externalUserId,
+    refreshAttemptId: row.refreshAttemptId,
+  };
+}
+
+export async function claimOAuthRefresh(
+  userId: string,
+  connectionId: string,
+  ciphertext: string,
+  attemptId: string
+): Promise<boolean> {
+  const store = await getStore();
+  const result = await store.run(
+    `update "lunch_money_connection"
+       set "refreshAttemptId" = ?, "refreshStartedAt" = ?
+       where "id" = ? and "userId" = ?
+         and "credentialCiphertext" = ? and "refreshAttemptId" is null`,
+    [attemptId, new Date().toISOString(), connectionId, userId, ciphertext]
+  );
+  return result.changes === 1;
+}
+
+export async function replaceOAuthCredential(
+  userId: string,
+  connectionId: string,
+  ciphertext: string,
+  attemptId: string,
+  credential: Extract<StoredCredential, { type: "oauth" }>
+): Promise<boolean> {
+  const store = await getStore();
+  const result = await store.run(
+    `update "lunch_money_connection"
+       set "credentialCiphertext" = ?, "refreshAttemptId" = null,
+           "refreshStartedAt" = null, "updatedAt" = ?
+       where "id" = ? and "userId" = ?
+         and "credentialCiphertext" = ? and "refreshAttemptId" = ?`,
+    [
+      encryptCredential(credential),
+      new Date().toISOString(),
+      connectionId,
+      userId,
+      ciphertext,
+      attemptId,
+    ]
+  );
+  return result.changes === 1;
 }
 
 export async function setActiveConnection(
@@ -203,18 +267,4 @@ export async function removeConnection(
     },
   ]);
   return true;
-}
-
-/** Server-only credential resolver shared by API-key and future OAuth clients. */
-export async function getConnectionCredential(
-  userId: string,
-  connectionId: string
-): Promise<StoredCredential | null> {
-  const store = await getStore();
-  const row = await store.first<{ credentialCiphertext: string }>(
-    'select "credentialCiphertext" from "lunch_money_connection" where "id" = ? and "userId" = ?',
-    [connectionId, userId]
-  );
-  if (!row) return null;
-  return decryptCredential(row.credentialCiphertext);
 }
