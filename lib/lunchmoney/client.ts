@@ -13,6 +13,8 @@ import type {
   CreateManualAccountBody,
   UpdateManualAccountBody,
   UpdateTransaction,
+  CreateTransactionsBody,
+  InsertTransactionsResponse,
   SplitTransactionBody,
   GroupTransactionsBody,
   components,
@@ -81,6 +83,9 @@ export interface LMClient {
     month: number
   ): Promise<AlignedSummaryResponse>;
   createManualAccount(data: CreateManualAccountBody): Promise<ManualAccount>;
+  createTransactions(
+    data: CreateTransactionsBody
+  ): Promise<InsertTransactionsResponse>;
   upsertBalanceHistory(
     accountType: BalanceHistoryAccountType,
     accountId: number,
@@ -331,6 +336,7 @@ export function createApiKeyClient(token: string): LMClient {
     },
 
     createManualAccount: (data) => sdk.manualAccounts.create(data),
+    createTransactions: (data) => sdk.transactions.create(data),
 
     async upsertBalanceHistory(accountType, accountId, balances) {
       const { data, error } = await sdk.rawClient.PUT(
@@ -430,6 +436,8 @@ export function createRemoteClient(connectionId: string): LMClient {
       remoteRequest(connectionId, `budget-summary?year=${year}&month=${month}`),
     createManualAccount: (data) =>
       remoteRequest(connectionId, "accounts/manual", "POST", { data }),
+    createTransactions: (data) =>
+      remoteRequest(connectionId, "transactions", "POST", { data }),
     upsertBalanceHistory: (accountType, accountId, balances) =>
       remoteRequest(connectionId, "balance-history", "PUT", {
         accountType,
@@ -561,6 +569,17 @@ export async function createManualAccount(
   invalidate(KEY.accounts);
   invalidate(KEY.balanceHistory);
   return account;
+}
+
+export async function createTransactions(
+  data: CreateTransactionsBody
+): Promise<InsertTransactionsResponse> {
+  const result = await activeClient().createTransactions(data);
+  invalidate(KEY.allTx);
+  invalidate(KEY.allBudgets);
+  invalidate(KEY.accounts);
+  invalidate(KEY.balanceHistory);
+  return result;
 }
 
 export async function upsertBalanceHistory(

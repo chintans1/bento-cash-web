@@ -30,6 +30,7 @@ import type { LunchMoneyConnection } from "@/lib/lunchmoney/connection-types";
 import { useInvestableMonths } from "@/hooks/use-investable-months";
 import { useAppData } from "@/hooks/use-app-data";
 import { MintBalanceImportCard } from "@/components/settings/mint-balance-import-card";
+import { AppleCardImportCard } from "@/components/settings/apple-card-import-card";
 
 function initials(name: string): string {
   return name
@@ -307,6 +308,11 @@ export default function SettingsPage() {
             currency={lunchMoneyUser?.primary_currency ?? "usd"}
             isDemo={isDemo}
             accountLoading={accountLoading}
+            onImported={refreshAccounts}
+          />
+          <AppleCardImportCard
+            key={activeConnection?.id ?? (isDemo ? "demo" : "none")}
+            isDemo={isDemo}
             onImported={refreshAccounts}
           />
         </div>
