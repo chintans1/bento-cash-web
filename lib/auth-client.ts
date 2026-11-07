@@ -8,6 +8,7 @@ export const authClient = createAuthClient();
 export function signInWithPrimaryIdentityProvider() {
   return authClient.signIn.social({
     provider: primaryIdentityProvider.id,
-    callbackURL: "/",
+    callbackURL: "/api/oauth/lunch-money/complete",
+    errorCallbackURL: "/",
   });
 }

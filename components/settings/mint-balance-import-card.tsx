@@ -189,7 +189,7 @@ export function MintBalanceImportCard({
         {isDemo ? (
           <Alert>
             <ShieldCheck aria-hidden="true" />
-            <AlertTitle>Connect a Lunch Money account to import</AlertTitle>
+            <AlertTitle>Connect a Lunch Money budget to import</AlertTitle>
             <AlertDescription>
               Demo mode cannot write balance history. Your CSV stays in this
               browser and is sent only to Lunch Money when you confirm the

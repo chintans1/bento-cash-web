@@ -1,12 +1,28 @@
 "use client";
 
+import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { BentoCashMark } from "@/components/bento-cash-mark";
-import { ConnectAccountForm } from "@/components/connect-account-form";
-import { ArrowRight } from "lucide-react";
+import { signInWithPrimaryIdentityProvider } from "@/lib/auth-client";
+import { Button } from "@/components/ui/button";
+import { ArrowRight, WalletCards } from "lucide-react";
 
 export function ConnectionPrompt() {
   const { user, enterDemo } = useAuth();
+  const [connecting, setConnecting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function connect() {
+    setConnecting(true);
+    setError(null);
+    try {
+      const result = await signInWithPrimaryIdentityProvider();
+      if (result.error) throw new Error(result.error.message);
+    } catch {
+      setError("Couldn't open Lunch Money. Please try again.");
+      setConnecting(false);
+    }
+  }
 
   return (
     <div className="mx-auto w-full max-w-md px-5 pt-10 pb-12 text-center sm:pt-16">
@@ -17,7 +33,8 @@ export function ConnectionPrompt() {
             Connect Lunch Money
           </h1>
           <p className="text-sm leading-6 text-bento-subtle">
-            Securely link a budget to start exploring your financial picture.
+            Choose a Lunch Money budget to start exploring your financial
+            picture.
           </p>
           {user && (
             <p className="text-xs text-bento-subtle">
@@ -26,7 +43,11 @@ export function ConnectionPrompt() {
           )}
         </div>
 
-        <ConnectAccountForm buttonLabel="Connect Lunch Money" />
+        <Button type="button" size="lg" onClick={connect} disabled={connecting}>
+          <WalletCards data-icon="inline-start" />
+          {connecting ? "Opening Lunch Money…" : "Connect Lunch Money"}
+        </Button>
+        {error && <p className="text-sm text-bento-danger">{error}</p>}
 
         <div className="border-t border-bento-hairline pt-3">
           <button

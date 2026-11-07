@@ -1,16 +1,16 @@
 /**
  * The product-facing identity provider contract.
  *
- * When Lunch Money OAuth is available, this is the single client-side switch:
- * update the provider metadata and keep the rest of onboarding provider-agnostic.
+ * Lunch Money is the sole sign-in provider. The OAuth callback also connects
+ * the selected budget to the Bento account.
  */
 export const primaryIdentityProvider = {
-  id: "google",
-  name: "Google",
-  signInLabel: "Continue with Google",
-  pendingLabel: "Opening Google…",
+  id: "lunch_money",
+  name: "Lunch Money",
+  signInLabel: "Continue with Lunch Money",
+  pendingLabel: "Opening Lunch Money…",
   explanation:
-    "No password to create. Google is used only to identify your Bento Cash account.",
+    "We create your Bento Cash account on your first sign-in. Your budgets stay connected when you sign out.",
 } as const;
 
 export type IdentityProviderId = typeof primaryIdentityProvider.id;

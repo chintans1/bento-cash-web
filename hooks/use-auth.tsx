@@ -15,11 +15,6 @@ import type {
   LunchMoneyConnectionsState,
 } from "@/lib/lunchmoney/connection-types";
 
-interface ConnectionCreatedResponse {
-  account: LunchMoneyConnection;
-  state: LunchMoneyConnectionsState;
-}
-
 interface AuthContextValue {
   isDemo: boolean;
   isSignedIn: boolean;
@@ -32,7 +27,6 @@ interface AuthContextValue {
   dataScopeKey: string | null;
   error: string | null;
   clearError: () => void;
-  connectWithApiKey: (token: string) => Promise<LunchMoneyConnection>;
   switchConnection: (connectionId: string) => Promise<void>;
   removeConnection: (connectionId: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -58,6 +52,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   >(null);
   const [isDemo, setIsDemo] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const authError = url.searchParams.get("error");
+    if (!authError) return;
+    const message =
+      authError === "account_not_linked"
+        ? "This Lunch Money email is not linked to your Bento Cash account. Sign in with the matching email."
+        : authError === "oauth_identity_mismatch"
+          ? "Your Lunch Money email does not match this Bento Cash account."
+          : authError === "oauth_connection_failed"
+            ? "Signed in, but couldn't connect the selected Lunch Money budget. Try again."
+            : "Couldn't sign in with Lunch Money. Please try again.";
+    queueMicrotask(() => setError(message));
+    url.searchParams.delete("error");
+    window.history.replaceState(
+      {},
+      "",
+      `${url.pathname}${url.search}${url.hash}`
+    );
+  }, []);
+
   useEffect(() => {
     if (!user) return;
     let cancelled = false;
@@ -104,21 +119,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     else setActiveClient(null);
   }, [activeConnection, isDemo]);
 
-  async function connectWithApiKey(token: string) {
-    setError(null);
-    const { account, state } = await apiRequest<ConnectionCreatedResponse>(
-      "/api/connections",
-      {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ token }),
-      }
-    );
-    setIsDemo(false);
-    if (user) setConnectionState({ ...state, userId: user.id });
-    return account;
-  }
-
   async function switchConnection(connectionId: string) {
     setError(null);
     try {
@@ -131,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       );
     } catch (cause) {
       setError(
-        cause instanceof Error ? cause.message : "Couldn't switch account"
+        cause instanceof Error ? cause.message : "Couldn't switch budget"
       );
       throw cause;
     }
@@ -178,7 +178,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         dataScopeKey,
         error,
         clearError: () => setError(null),
-        connectWithApiKey,
         switchConnection,
         removeConnection,
         signOut,

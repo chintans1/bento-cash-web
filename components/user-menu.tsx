@@ -79,7 +79,7 @@ export function UserMenu() {
           <>
             <div className="mx-1.5 h-px bg-bento-hairline" />
             <p className="px-3 pt-2 pb-1 text-xs font-medium text-bento-subtle">
-              Switch account
+              Switch budget
             </p>
             {connections.map((connection) => {
               const active = connection.id === activeConnection?.id;
