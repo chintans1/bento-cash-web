@@ -41,23 +41,22 @@ Press `d` or use the toggle in the header. Works across all pages.
 
 ## How it works
 
-Bento Cash uses Better Auth with Google sign-in and cookie sessions. There is
-no Bento password to create or store. Each Bento user can link multiple Lunch
-Money accounts and switch between them. API keys are encrypted at rest and used
-only by authenticated server routes; they are never returned to the browser
-after being connected.
+Bento Cash uses Better Auth with Lunch Money OAuth and cookie sessions. Signing
+in creates a Bento Cash account and connects the selected Lunch Money budget.
+There is no Bento password to create or store. Users can authorize multiple
+budgets and switch between them. OAuth credentials are encrypted at rest and
+used only by authenticated server routes; they are never returned to the browser.
 
-The data model separates identity providers from linked Lunch Money
-connections, so features and preferences can belong to a specific
-user/account combination. When Lunch Money supports OAuth, its authorization
-can create the Bento identity and connection in one flow. See
+The data model separates the Lunch Money user from each authorized budget, so
+features and preferences belong to a specific user and connection. Existing
+Google-backed Bento accounts are linked when the verified email matches. See
 [the auth architecture](docs/auth-architecture.md).
 
 ## Getting started
 
-**Prerequisites:** Node.js 22.13+, pnpm, and a
-[Lunch Money](https://lunchmoney.app) account with an API token (Settings →
-Developers → Request API Access).
+**Prerequisites:** Node.js 22.13+, pnpm, a
+[Lunch Money](https://lunchmoney.app) account, and a confidential OAuth client
+registered in the [Developer Portal](https://alpha.developers.lunchmoney.app/oauth/applications).
 
 ```bash
 git clone https://github.com/your-username/bento-cash-web
@@ -67,12 +66,14 @@ pnpm dev
 ```
 
 Copy `.env.example` to `.env.local`, set a high-entropy `BETTER_AUTH_SECRET`,
-and add a Google OAuth client ID and secret. Then run `pnpm dev`. This runs
+and add `LUNCH_MONEY_CLIENT_ID` and `LUNCH_MONEY_CLIENT_SECRET`. Use
+`LUNCH_MONEY_OAUTH_ISSUER=https://api-alpha.lunchmoney.dev` for the OAuth
+preview. Register `http://localhost:3000/api/auth/callback/lunch_money` and
+the corresponding production HTTPS callback. Then run `pnpm dev`. This runs
 vinext in Cloudflare's local Worker runtime with a locally persisted
 SQLite-backed Durable Object. Committed migrations run when the object starts.
 
-Open [http://localhost:3000](http://localhost:3000), continue with Google, and
-connect one or more Lunch Money API tokens.
+Open [http://localhost:3000](http://localhost:3000) and continue with Lunch Money.
 
 `pnpm dev` runs the vinext development server on port 3000. `pnpm build`
 produces both Cloudflare Workers. The app Worker's `BENTO_DB` binding points to
@@ -96,12 +97,48 @@ Worker with the repository root as its root directory:
 Deploy the database Worker once before the app Worker's first deployment so the
 `BENTO_DB` binding has a target. After that, pushes trigger both Workers Builds
 independently. In the app Worker's **Settings > Variables & Secrets**, configure
-`BETTER_AUTH_SECRET`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, and
+`BETTER_AUTH_SECRET`, `LUNCH_MONEY_CLIENT_ID`,
+`LUNCH_MONEY_CLIENT_SECRET`, `LUNCH_MONEY_OAUTH_ISSUER`, and
 `BENTO_CREDENTIAL_ENCRYPTION_KEY` as runtime secrets. Build secrets are not
 available to the deployed Worker.
 
 GitHub Actions builds both Workers and dry-runs their deploy commands, then
 verifies local Durable Object migrations. It does not deploy to Cloudflare.
+
+### OAuth review environment
+
+The `staging` build mode deploys `bento-cash-web-oauth-test` and
+`bento-cash-web-oauth-test-database` as separate Workers. Its database and
+sessions are isolated from the production Workers. Use the HTTPS test URL
+`https://bento-cash-web-oauth-test.chintans98.workers.dev` for Lunch Money review;
+add this exact callback to the OAuth client in the Developer Portal:
+
+```text
+https://bento-cash-web-oauth-test.chintans98.workers.dev/api/auth/callback/lunch_money
+```
+
+Create an ignored `.env.staging.local` containing `BETTER_AUTH_SECRET` (a new,
+staging-only random value), `LUNCH_MONEY_CLIENT_ID`,
+`LUNCH_MONEY_CLIENT_SECRET`, and
+`LUNCH_MONEY_OAUTH_ISSUER=https://api-alpha.lunchmoney.dev`. Optionally add a
+staging-only `BENTO_CREDENTIAL_ENCRYPTION_KEY`. Do not put secrets in the build
+output or Git. From your test branch, run (sign in first with
+`pnpm exec cf auth login` if needed):
+
+```bash
+pnpm exec cf build --mode staging
+pnpm exec cf deploy --prebuilt --mode staging --worker bento-cash-web-oauth-test-database
+pnpm exec cf deploy --prebuilt --mode staging --secrets-file .env.staging.local
+```
+
+Both staging deploy commands target only the test Workers. Rebuild and redeploy
+the app Worker after code changes. The OAuth client remains owner-only while it
+is in development; Lunch Money reviews the app after the client profile and
+review request are submitted.
+
+The registered client includes scopes for planned features. Lunch Money fixes
+scopes at registration and asks for a feature-based explanation of each scope
+in the review request.
 
 If a dev server was already running when the Durable Object binding was added,
 restart it once to load the new binding. Existing SQLite files and D1 databases
