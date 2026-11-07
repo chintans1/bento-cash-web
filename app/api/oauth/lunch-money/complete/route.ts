@@ -18,8 +18,7 @@ function redirect(request: Request, error?: string): Response {
   return Response.redirect(target, 303);
 }
 
-async function decryptToken(value: string | null): Promise<string | undefined> {
-  if (!value) return undefined;
+async function decryptToken(value: string): Promise<string> {
   const key = process.env.BETTER_AUTH_SECRET;
   if (!key) throw new Error("Better Auth secret is missing");
   return symmetricDecrypt({ key, data: value });
@@ -42,8 +41,9 @@ export async function GET(request: Request): Promise<Response> {
       return redirect(request, "oauth_connection_failed");
 
     const accessToken = await decryptToken(account.accessToken);
-    const refreshToken = await decryptToken(account.refreshToken);
-    if (!accessToken) return redirect(request, "oauth_connection_failed");
+    const refreshToken = account.refreshToken
+      ? await decryptToken(account.refreshToken)
+      : undefined;
     const profile = await getLunchMoneyProfile(accessToken);
     if (
       String(profile.id) !== account.accountId ||
@@ -65,7 +65,6 @@ export async function GET(request: Request): Promise<Response> {
         }),
       },
       {
-        name: profile.name,
         budgetName: profile.budget_name,
         email: profile.email,
         externalAccountId: profile.account_id,

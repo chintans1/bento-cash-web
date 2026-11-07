@@ -5,4 +5,3 @@ alter table "lunch_money_connection" add column "externalUserId" text;
 -- An in-flight refresh stays claimed if a worker loses the replacement token.
 -- This prevents replaying a rotated refresh token; reauthorization clears it.
 alter table "lunch_money_connection" add column "refreshAttemptId" text;
-alter table "lunch_money_connection" add column "refreshStartedAt" text;

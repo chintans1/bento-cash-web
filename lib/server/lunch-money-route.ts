@@ -72,7 +72,7 @@ export async function lunchMoneyRoute<T extends { connectionId: string }>(
       error.status === 401
     ) {
       try {
-        const credential = await refreshOAuthConnection(
+        const { credential } = await refreshOAuthConnection(
           user.id,
           parsed.data.connectionId,
           resolved.ciphertext

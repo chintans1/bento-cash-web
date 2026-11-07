@@ -43,7 +43,6 @@ describe("Lunch Money client resolution", () => {
       status: "ready",
       client,
       authMethod: "api_key",
-      ciphertext: "encrypted",
     });
     expect(mocks.getConnectionCredentialRecord).toHaveBeenCalledWith(
       "user-1",
@@ -70,7 +69,6 @@ describe("Lunch Money client resolution", () => {
         expiresAt: "2099-01-01T00:00:00.000Z",
       },
       ciphertext: "encrypted",
-      externalUserId: "lm-user",
       refreshAttemptId: null,
     });
     mocks.createOAuthClient.mockReturnValue(client);
@@ -95,12 +93,11 @@ describe("Lunch Money client resolution", () => {
         refreshToken: "old-refresh",
       },
       ciphertext: "old-encrypted",
-      externalUserId: "lm-user",
       refreshAttemptId: null,
     };
     mocks.getConnectionCredentialRecord.mockResolvedValue(original);
     mocks.claimOAuthRefresh.mockResolvedValue(true);
-    mocks.replaceOAuthCredential.mockResolvedValue(true);
+    mocks.replaceOAuthCredential.mockResolvedValue("new-encrypted");
     mocks.refreshLunchMoneyTokens.mockResolvedValue({
       access_token: "new-access",
       refresh_token: "new-refresh",
@@ -114,16 +111,19 @@ describe("Lunch Money client resolution", () => {
       original.ciphertext
     );
     expect(replacement).toMatchObject({
-      accessToken: "new-access",
-      refreshToken: "new-refresh",
-      scope: ["me:read", "offline_access"],
+      credential: {
+        accessToken: "new-access",
+        refreshToken: "new-refresh",
+        scope: ["me:read", "offline_access"],
+      },
+      ciphertext: "new-encrypted",
     });
     expect(mocks.replaceOAuthCredential).toHaveBeenCalledWith(
       "user-1",
       "connection-1",
       "old-encrypted",
       expect.any(String),
-      replacement
+      replacement.credential
     );
   });
 });

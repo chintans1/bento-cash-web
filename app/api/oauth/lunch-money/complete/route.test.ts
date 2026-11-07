@@ -71,7 +71,6 @@ describe("Lunch Money OAuth completion", () => {
         scope: ["me:read", "offline_access"],
       },
       {
-        name: "Owner",
         budgetName: "Home",
         email: "owner@example.com",
         externalAccountId: 42,

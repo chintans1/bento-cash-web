@@ -63,7 +63,6 @@ export async function upsertOAuthConnection(
   userId: string,
   credential: Extract<StoredCredential, { type: "oauth" }>,
   profile: {
-    name: string;
     budgetName: string;
     email: string;
     externalAccountId: string | number;
@@ -76,20 +75,14 @@ export async function upsertOAuthConnection(
     [userId, String(profile.externalAccountId)]
   );
   const now = new Date().toISOString();
-  if (
-    existing?.externalUserId &&
-    existing.externalUserId !== String(profile.externalUserId)
-  ) {
-    throw new Error("This budget belongs to another Lunch Money user");
-  }
   const row: ConnectionRow = {
     id: existing?.id ?? `lma_${randomUUID()}`,
     userId,
     externalAccountId: String(profile.externalAccountId),
     externalUserId: String(profile.externalUserId),
-    label: profile.budgetName || profile.name || "Lunch Money",
-    budgetName: profile.budgetName || null,
-    email: profile.email || null,
+    label: profile.budgetName,
+    budgetName: profile.budgetName,
+    email: profile.email,
     authMethod: "oauth",
     credentialCiphertext: encryptCredential(credential),
     createdAt: existing?.createdAt ?? now,
@@ -108,8 +101,7 @@ export async function upsertOAuthConnection(
           "authMethod" = excluded."authMethod",
           "credentialCiphertext" = excluded."credentialCiphertext",
           "updatedAt" = excluded."updatedAt",
-          "refreshAttemptId" = null,
-          "refreshStartedAt" = null
+          "refreshAttemptId" = null
          where "lunch_money_connection"."externalUserId" is null
             or "lunch_money_connection"."externalUserId" = excluded."externalUserId"`,
       params: [
@@ -151,7 +143,6 @@ export async function upsertOAuthConnection(
 export interface ConnectionCredentialRecord {
   credential: StoredCredential;
   ciphertext: string;
-  externalUserId: string | null;
   refreshAttemptId: string | null;
 }
 
@@ -162,17 +153,15 @@ export async function getConnectionCredentialRecord(
   const store = await getStore();
   const row = await store.first<{
     credentialCiphertext: string;
-    externalUserId: string | null;
     refreshAttemptId: string | null;
   }>(
-    'select "credentialCiphertext", "externalUserId", "refreshAttemptId" from "lunch_money_connection" where "id" = ? and "userId" = ?',
+    'select "credentialCiphertext", "refreshAttemptId" from "lunch_money_connection" where "id" = ? and "userId" = ?',
     [connectionId, userId]
   );
   if (!row) return null;
   return {
     credential: decryptCredential(row.credentialCiphertext),
     ciphertext: row.credentialCiphertext,
-    externalUserId: row.externalUserId,
     refreshAttemptId: row.refreshAttemptId,
   };
 }
@@ -186,10 +175,10 @@ export async function claimOAuthRefresh(
   const store = await getStore();
   const result = await store.run(
     `update "lunch_money_connection"
-       set "refreshAttemptId" = ?, "refreshStartedAt" = ?
+       set "refreshAttemptId" = ?
        where "id" = ? and "userId" = ?
          and "credentialCiphertext" = ? and "refreshAttemptId" is null`,
-    [attemptId, new Date().toISOString(), connectionId, userId, ciphertext]
+    [attemptId, connectionId, userId, ciphertext]
   );
   return result.changes === 1;
 }
@@ -200,16 +189,17 @@ export async function replaceOAuthCredential(
   ciphertext: string,
   attemptId: string,
   credential: Extract<StoredCredential, { type: "oauth" }>
-): Promise<boolean> {
+): Promise<string | null> {
   const store = await getStore();
+  const newCiphertext = encryptCredential(credential);
   const result = await store.run(
     `update "lunch_money_connection"
        set "credentialCiphertext" = ?, "refreshAttemptId" = null,
-           "refreshStartedAt" = null, "updatedAt" = ?
+           "updatedAt" = ?
        where "id" = ? and "userId" = ?
          and "credentialCiphertext" = ? and "refreshAttemptId" = ?`,
     [
-      encryptCredential(credential),
+      newCiphertext,
       new Date().toISOString(),
       connectionId,
       userId,
@@ -217,7 +207,7 @@ export async function replaceOAuthCredential(
       attemptId,
     ]
   );
-  return result.changes === 1;
+  return result.changes === 1 ? newCiphertext : null;
 }
 
 export async function setActiveConnection(

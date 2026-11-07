@@ -12,5 +12,3 @@ export const primaryIdentityProvider = {
   explanation:
     "We create your Bento Cash account on your first sign-in. Your budgets stay connected when you sign out.",
 } as const;
-
-export type IdentityProviderId = typeof primaryIdentityProvider.id;

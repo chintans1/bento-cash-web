@@ -9,10 +9,6 @@ import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 
-function IdentityProviderMark() {
-  return <WalletCards aria-hidden="true" className="size-4 text-bento-brand" />;
-}
-
 export function AuthPrompt() {
   const { enterDemo } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -22,14 +18,7 @@ export function AuthPrompt() {
     setLoading(true);
     setError(null);
     try {
-      const result = await signInWithPrimaryIdentityProvider();
-      if (result.error) {
-        setError(
-          result.error.message ||
-            `Couldn't sign in with ${primaryIdentityProvider.name}`
-        );
-        setLoading(false);
-      }
+      await signInWithPrimaryIdentityProvider();
     } catch {
       setError(
         `Couldn't start ${primaryIdentityProvider.name} sign-in. Please try again.`
@@ -58,7 +47,10 @@ export function AuthPrompt() {
           disabled={loading}
         >
           <span className="flex items-center gap-3">
-            <IdentityProviderMark />
+            <WalletCards
+              aria-hidden="true"
+              className="size-4 text-bento-brand"
+            />
             {loading
               ? primaryIdentityProvider.pendingLabel
               : primaryIdentityProvider.signInLabel}

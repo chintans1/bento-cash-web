@@ -95,8 +95,7 @@ export default function SettingsPage() {
     setAdding(true);
     setAddError(null);
     try {
-      const result = await signInWithPrimaryIdentityProvider();
-      if (result.error) throw new Error(result.error.message);
+      await signInWithPrimaryIdentityProvider();
     } catch {
       setAddError("Couldn't open Lunch Money. Please try again.");
       setAdding(false);

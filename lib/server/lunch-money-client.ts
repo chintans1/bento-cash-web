@@ -10,7 +10,6 @@ import {
   claimOAuthRefresh,
   getConnectionCredentialRecord,
   replaceOAuthCredential,
-  type ConnectionCredentialRecord,
 } from "@/lib/server/connections";
 import type { StoredCredential } from "@/lib/server/credential-crypto";
 import {
@@ -19,6 +18,7 @@ import {
 } from "@/lib/server/lunch-money-oauth";
 
 type OAuthCredential = Extract<StoredCredential, { type: "oauth" }>;
+type RefreshedCredential = { credential: OAuthCredential; ciphertext: string };
 
 export class LunchMoneyReauthorizationRequired extends Error {
   constructor() {
@@ -30,18 +30,16 @@ type ConnectionClientResult =
   | {
       status: "ready";
       client: LMClient;
-      authMethod: "api_key" | "oauth";
+      authMethod: "api_key";
+    }
+  | {
+      status: "ready";
+      client: LMClient;
+      authMethod: "oauth";
       ciphertext: string;
     }
   | { status: "not_found" }
   | { status: "reauthorization_required" };
-
-function oauthCredential(record: ConnectionCredentialRecord): OAuthCredential {
-  if (record.credential.type !== "oauth") {
-    throw new LunchMoneyReauthorizationRequired();
-  }
-  return record.credential;
-}
 
 /**
  * A database compare-and-swap claims the rotating refresh token before use.
@@ -52,13 +50,16 @@ export async function refreshOAuthConnection(
   userId: string,
   connectionId: string,
   previousCiphertext?: string
-): Promise<OAuthCredential> {
+): Promise<RefreshedCredential> {
   for (let wait = 0; wait < 50; wait++) {
     const record = await getConnectionCredentialRecord(userId, connectionId);
     if (!record) throw new LunchMoneyReauthorizationRequired();
-    const credential = oauthCredential(record);
+    const credential = record.credential;
+    if (credential.type !== "oauth") {
+      throw new LunchMoneyReauthorizationRequired();
+    }
     if (previousCiphertext && record.ciphertext !== previousCiphertext) {
-      return credential;
+      return { credential, ciphertext: record.ciphertext };
     }
     if (record.refreshAttemptId) {
       await new Promise((resolve) => setTimeout(resolve, 200));
@@ -89,18 +90,17 @@ export async function refreshOAuthConnection(
         ).toISOString(),
         scope: tokens.scope.split(/\s+/).filter(Boolean),
       };
-      if (
-        !(await replaceOAuthCredential(
-          userId,
-          connectionId,
-          record.ciphertext,
-          attemptId,
-          replacement
-        ))
-      ) {
+      const ciphertext = await replaceOAuthCredential(
+        userId,
+        connectionId,
+        record.ciphertext,
+        attemptId,
+        replacement
+      );
+      if (!ciphertext) {
         throw new LunchMoneyReauthorizationRequired();
       }
-      return replacement;
+      return { credential: replacement, ciphertext };
     } catch {
       // The server may have consumed the old refresh token. Never retry it.
       throw new LunchMoneyReauthorizationRequired();
@@ -121,11 +121,9 @@ export async function resolveLunchMoneyClient(
       status: "ready",
       client: createApiKeyClient(record.credential.token),
       authMethod: "api_key",
-      ciphertext: record.ciphertext,
     };
   }
 
-  if (!record.externalUserId) return { status: "reauthorization_required" };
   let credential = record.credential;
   let ciphertext = record.ciphertext;
   if (
@@ -134,14 +132,13 @@ export async function resolveLunchMoneyClient(
       new Date(credential.expiresAt).getTime() - Date.now() < 30_000)
   ) {
     try {
-      credential = await refreshOAuthConnection(
+      const refreshed = await refreshOAuthConnection(
         userId,
         connectionId,
         record.ciphertext
       );
-      ciphertext =
-        (await getConnectionCredentialRecord(userId, connectionId))
-          ?.ciphertext ?? record.ciphertext;
+      credential = refreshed.credential;
+      ciphertext = refreshed.ciphertext;
     } catch {
       return { status: "reauthorization_required" };
     }

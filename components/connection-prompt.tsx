@@ -16,8 +16,7 @@ export function ConnectionPrompt() {
     setConnecting(true);
     setError(null);
     try {
-      const result = await signInWithPrimaryIdentityProvider();
-      if (result.error) throw new Error(result.error.message);
+      await signInWithPrimaryIdentityProvider();
     } catch {
       setError("Couldn't open Lunch Money. Please try again.");
       setConnecting(false);

@@ -22,4 +22,15 @@ describe("primary identity sign-in", () => {
       errorCallbackURL: "/",
     });
   });
+
+  it("reports provider errors to the sign-in screen", async () => {
+    social.mockResolvedValue({
+      data: null,
+      error: { message: "OAuth failed" },
+    });
+
+    await expect(signInWithPrimaryIdentityProvider()).rejects.toThrow(
+      "OAuth failed"
+    );
+  });
 });

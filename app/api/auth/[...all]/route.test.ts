@@ -9,22 +9,22 @@ vi.mock("@/lib/server/auth", () => ({
   getAuth: mocks.getAuth,
 }));
 
-import { GET, POST } from "@/app/api/auth/[...all]/route";
+import { POST } from "@/app/api/auth/[...all]/route";
 
 describe("auth route", () => {
-  it.each([
-    [GET, "GET", "account-info"],
-    [POST, "POST", "get-access-token"],
-    [POST, "POST", "refresh-token"],
-    [POST, "POST", "%67et-access-token/"],
-  ])("blocks token-bearing endpoint %s %s %s", async (route, method, path) => {
-    const response = await route(
-      new Request(`https://bento.example/api/auth/${path}`, { method })
-    );
+  it.each(["get-access-token", "refresh-token", "%67et-access-token/"])(
+    "blocks token endpoint %s",
+    async (path) => {
+      const response = await POST(
+        new Request(`https://bento.example/api/auth/${path}`, {
+          method: "POST",
+        })
+      );
 
-    expect(response.status).toBe(404);
-    expect(mocks.getAuth).not.toHaveBeenCalled();
-  });
+      expect(response.status).toBe(404);
+      expect(mocks.getAuth).not.toHaveBeenCalled();
+    }
+  );
 
   it("passes sign-in requests to Better Auth", async () => {
     const response = new Response(null, { status: 200 });

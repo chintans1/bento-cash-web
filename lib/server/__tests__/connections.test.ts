@@ -186,7 +186,6 @@ describe("Lunch Money connection persistence", () => {
         scope: ["read", "write"],
       },
       {
-        name: "Owner",
         budgetName: original.budgetName ?? original.label,
         email: original.email ?? "owner@example.com",
         externalAccountId: original.externalAccountId,
@@ -229,15 +228,18 @@ describe("Lunch Money connection persistence", () => {
         "attempt-2"
       )
     ).toBe(false);
+    const ciphertext = await connections.replaceOAuthCredential(
+      ownerId,
+      upgraded.id,
+      record!.ciphertext,
+      "attempt-1",
+      { type: "oauth", accessToken: "replacement", refreshToken: "rotated" }
+    );
+    expect(ciphertext).toMatch(/^v1\./);
     expect(
-      await connections.replaceOAuthCredential(
-        ownerId,
-        upgraded.id,
-        record!.ciphertext,
-        "attempt-1",
-        { type: "oauth", accessToken: "replacement", refreshToken: "rotated" }
-      )
-    ).toBe(true);
+      (await connections.getConnectionCredentialRecord(ownerId, upgraded.id))
+        ?.ciphertext
+    ).toBe(ciphertext);
     expect(
       (await connections.getConnectionCredentialRecord(ownerId, upgraded.id))
         ?.credential
@@ -251,7 +253,6 @@ describe("Lunch Money connection persistence", () => {
   it("uses the budget returned on reconnect instead of reusing the previous one", async () => {
     const credential = { type: "oauth" as const, accessToken: "token" };
     const profile = {
-      name: "Owner",
       email: "owner@example.com",
       externalUserId: 17,
     };
