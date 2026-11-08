@@ -23,12 +23,10 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarSeparator,
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
@@ -88,12 +86,10 @@ export function AppSidebar() {
           )}
         </div>
       </SidebarHeader>
-      <SidebarSeparator />
 
       <SidebarContent>
         {hasDataSource && (
           <SidebarGroup>
-            <SidebarGroupLabel>Your money</SidebarGroupLabel>
             <SidebarGroupContent>
               <nav aria-label="Main navigation">
                 <SidebarMenu className="gap-1">
@@ -165,7 +161,6 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
-        <SidebarSeparator className="mx-0" />
         <UserMenu onNavigate={closeMobile} />
         <div className="flex items-center justify-between px-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:px-0">
           <ThemeToggle />
