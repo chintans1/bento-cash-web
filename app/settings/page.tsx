@@ -160,18 +160,6 @@ export default function SettingsPage() {
                         {lunchMoneyUser.primary_currency}
                       </dd>
                     </div>
-                    {lunchMoneyUser.api_key_label && (
-                      <div className="flex min-h-11 items-center justify-between gap-4 py-2">
-                        <dt className="shrink-0 text-bento-subtle">
-                          {activeConnection?.authMethod === "oauth"
-                            ? "Connected app"
-                            : "API key"}
-                        </dt>
-                        <dd className="truncate font-medium">
-                          {lunchMoneyUser.api_key_label}
-                        </dd>
-                      </div>
-                    )}
                   </dl>
                 </CardContent>
               </>
