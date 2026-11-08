@@ -19,7 +19,7 @@ export function IncomeReport({
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3 [&>*:last-child]:col-span-2 lg:[&>*:last-child]:col-span-1">
+      <div className="grid grid-cols-2 gap-3 @4xl/main:grid-cols-3 [&>*:last-child]:col-span-2 @4xl/main:[&>*:last-child]:col-span-1">
         <ReportMetric
           label="Average income"
           value={formatCurrency(data.averageIncome, currency)}

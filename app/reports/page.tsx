@@ -148,7 +148,7 @@ export default function ReportsPage() {
             </p>
           ) : !report ? (
             <div className="space-y-6" aria-label="Loading report">
-              <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <div className="grid grid-cols-2 gap-3 @4xl/main:grid-cols-4">
                 {[1, 2, 3, 4].map((item) => (
                   <Skeleton key={item} className="h-24 rounded-xl" />
                 ))}

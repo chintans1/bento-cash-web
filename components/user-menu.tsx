@@ -3,8 +3,7 @@
 import Link from "next/link";
 import {
   Check,
-  ChevronDown,
-  CircleUserRound,
+  ChevronsUpDown,
   LogOut,
   Settings,
   WalletCards,
@@ -22,7 +21,7 @@ import { cn } from "@/lib/utils";
 const menuItemClassName =
   "flex min-h-10 w-full items-center gap-2.5 rounded-2xl px-3 text-left text-sm transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none";
 
-export function UserMenu() {
+export function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
   const {
     user,
     isDemo,
@@ -38,11 +37,13 @@ export function UserMenu() {
   function selectConnection(connectionId: string) {
     setOpen(false);
     if (connectionId === activeConnection?.id) return;
+    onNavigate?.();
     void switchConnection(connectionId).catch(() => undefined);
   }
 
   function handleSignOut() {
     setOpen(false);
+    onNavigate?.();
     void signOut();
   }
 
@@ -55,16 +56,28 @@ export function UserMenu() {
             variant="ghost"
             size="lg"
             aria-label={`Open account menu for ${user.name}`}
-            className="max-w-44 text-bento-subtle hover:text-bento-default"
+            className="h-14 w-full justify-start gap-2.5 rounded-xl px-2 group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
           />
         }
       >
-        <CircleUserRound data-icon="inline-start" />
-        <span className="hidden min-w-0 truncate sm:inline">{user.name}</span>
-        <ChevronDown className="hidden size-3.5 sm:block" />
+        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-bento-brand/10 font-medium text-bento-brand dark:text-bento-brand-fg">
+          {(user.name || user.email).slice(0, 1).toUpperCase()}
+        </span>
+        <span className="flex min-w-0 flex-1 flex-col items-start text-left group-data-[collapsible=icon]:hidden">
+          <span className="w-full truncate">{user.name || user.email}</span>
+          <span className="text-xs font-normal text-bento-subtle">
+            Account & budgets
+          </span>
+        </span>
+        <ChevronsUpDown className="size-3.5 text-bento-subtle group-data-[collapsible=icon]:hidden" />
       </PopoverTrigger>
 
-      <PopoverContent align="end" sideOffset={8} className="w-72 gap-1 p-1.5">
+      <PopoverContent
+        side="top"
+        align="start"
+        sideOffset={8}
+        className="w-72 gap-1 p-1.5"
+      >
         <div className="flex items-center gap-3 px-3 py-2.5">
           <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-bento-brand/10 font-medium text-bento-brand">
             {(user.name || user.email).slice(0, 1).toUpperCase()}
@@ -109,7 +122,10 @@ export function UserMenu() {
         <Link
           href="/settings"
           className={menuItemClassName}
-          onClick={() => setOpen(false)}
+          onClick={() => {
+            setOpen(false);
+            onNavigate?.();
+          }}
         >
           <Settings className="size-4" strokeWidth={1.5} />
           Settings

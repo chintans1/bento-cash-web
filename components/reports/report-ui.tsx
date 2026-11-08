@@ -19,7 +19,7 @@ export function ReportMetric({
       <p className="text-xs font-medium text-bento-subtle">{label}</p>
       <p
         className={cn(
-          "mt-1 font-heading text-xl font-semibold break-words tabular-nums sm:text-2xl",
+          "mt-1 font-heading text-xl font-semibold break-words tabular-nums @2xl/main:text-2xl",
           tone === "positive" && "text-bento-positive",
           tone === "negative" && "text-bento-negative"
         )}

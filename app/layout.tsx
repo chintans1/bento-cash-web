@@ -5,9 +5,7 @@ import "./globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/hooks/use-auth";
 import { AppDataProvider } from "@/hooks/use-app-data";
-import { Header } from "@/components/header";
-import { Footer } from "@/components/footer";
-import { SessionGate } from "@/components/session-gate";
+import { AppShell } from "@/components/app-shell";
 import { cn } from "@/lib/utils";
 
 const fontHeading = Playfair_Display({
@@ -60,9 +58,7 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             <AppDataProvider>
-              <Header />
-              <SessionGate>{children}</SessionGate>
-              <Footer />
+              <AppShell>{children}</AppShell>
             </AppDataProvider>
           </AuthProvider>
         </ThemeProvider>

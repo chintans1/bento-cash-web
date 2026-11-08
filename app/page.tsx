@@ -94,8 +94,8 @@ function HomePage() {
         />
       </Collapsible>
 
-      <div className="mb-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
+      <div className="mb-4 grid grid-cols-1 gap-4 @4xl/main:grid-cols-3">
+        <div className="@4xl/main:col-span-2">
           <NetWorthCard
             netWorth={netWorth}
             history={netWorthHistory}
@@ -143,8 +143,8 @@ function HomePage() {
         flow them into a single grid leaves gaps whenever a card is missing
         (no budgets configured, no recurring items).
       */}
-      <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-3">
-        <div className="flex flex-col gap-4 lg:col-span-2">
+      <div className="grid grid-cols-1 items-start gap-4 @4xl/main:grid-cols-3">
+        <div className="flex flex-col gap-4 @4xl/main:col-span-2">
           <SpendingTrendCard
             data={cumulativeSpend}
             year={selectedYear}

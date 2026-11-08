@@ -41,7 +41,7 @@ export function CashFlowReport({
 
   return (
     <div className="space-y-8">
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 @4xl/main:grid-cols-4">
         <ReportMetric
           label="Average income"
           value={formatCurrency(data.averageIncome, currency)}

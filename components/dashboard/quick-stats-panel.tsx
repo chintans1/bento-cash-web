@@ -63,7 +63,7 @@ function StatTile({
         <p className="text-(length:--text-caption) font-medium tracking-stat text-bento-subtle uppercase">
           {label}
         </p>
-        <p className="mt-1.5 font-heading text-2xl font-semibold tabular-nums sm:text-3xl">
+        <p className="mt-1.5 font-heading text-2xl font-semibold tabular-nums @2xl/main:text-3xl">
           {value}
         </p>
         <p className="mt-0.5 truncate text-(length:--text-caption) text-bento-subtle">
@@ -106,7 +106,7 @@ export function QuickStatsPanel({
   return (
     <>
       {/* 4-card grid */}
-      <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+      <div className="mb-4 grid grid-cols-2 gap-3 @2xl/main:grid-cols-4 @2xl/main:gap-4">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-24 rounded-2xl" />

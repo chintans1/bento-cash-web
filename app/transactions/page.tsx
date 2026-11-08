@@ -454,8 +454,8 @@ function TransactionsPage() {
   if (!hasDataSource) return <ConnectionPrompt />;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
-      <div className="mb-5 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+    <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 @2xl/main:px-6">
+      <div className="mb-5 flex flex-col items-start justify-between gap-3 @2xl/main:flex-row @2xl/main:items-center">
         <div>
           <h1 className="font-heading text-2xl font-bold text-balance">
             Transactions
@@ -486,7 +486,7 @@ function TransactionsPage() {
         />
       </div>
 
-      <div className="mb-4 grid grid-cols-4 items-center gap-1 rounded-full bg-bento-muted p-1 sm:flex sm:w-fit">
+      <div className="mb-4 grid grid-cols-4 items-center gap-1 rounded-full bg-bento-muted p-1 @2xl/main:flex @2xl/main:w-fit">
         {(
           [
             ["all", "All", "All", transactions.length],
@@ -500,15 +500,15 @@ function TransactionsPage() {
             type="button"
             aria-pressed={reviewFilter === value}
             className={cn(
-              "min-h-10 min-w-0 flex-1 rounded-full px-1 text-xs font-medium whitespace-nowrap transition-field sm:flex-none sm:px-3 sm:text-sm",
+              "min-h-10 min-w-0 flex-1 rounded-full px-1 text-xs font-medium whitespace-nowrap transition-field @2xl/main:flex-none @2xl/main:px-3 @2xl/main:text-sm",
               reviewFilter === value
                 ? "bg-card text-bento-default shadow-sm"
                 : "text-bento-subtle hover:text-bento-default"
             )}
             onClick={() => setReviewFilter(value)}
           >
-            <span className="sm:hidden">{mobileLabel}</span>
-            <span className="hidden sm:inline">{label}</span>{" "}
+            <span className="@2xl/main:hidden">{mobileLabel}</span>
+            <span className="hidden @2xl/main:inline">{label}</span>{" "}
             <span className="tabular-nums">{loading ? "…" : count}</span>
           </button>
         ))}
@@ -557,7 +557,7 @@ function TransactionsPage() {
       )}
 
       {/* Filters */}
-      <div className="mb-4 grid gap-2 sm:grid-cols-transaction-search">
+      <div className="mb-4 grid gap-2 @2xl/main:grid-cols-transaction-search">
         <div className="relative min-w-0">
           <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-3.5 -translate-y-1/2 text-bento-subtle" />
           <Input
@@ -605,7 +605,7 @@ function TransactionsPage() {
         />
       </div>
 
-      <div className="mb-2 sm:hidden">
+      <div className="mb-2 @2xl/main:hidden">
         <Select
           value={`${sortKey}-${sortDir}`}
           onValueChange={(value) => {
@@ -689,15 +689,15 @@ function TransactionsPage() {
         >
           Payee <SortIcon active={sortKey === "payee"} dir={sortDir} />
         </button>
-        <span className="hidden pl-2 sm:block">Category</span>
+        <span className="hidden pl-2 @2xl/main:block">Category</span>
         <button
-          className="hidden min-h-10 text-center hover:text-bento-default sm:block"
+          className="hidden min-h-10 text-center hover:text-bento-default @2xl/main:block"
           onClick={() => toggleSort("date")}
         >
           Date <SortIcon active={sortKey === "date"} dir={sortDir} />
         </button>
         <button
-          className="hidden min-h-10 text-right hover:text-bento-default sm:block"
+          className="hidden min-h-10 text-right hover:text-bento-default @2xl/main:block"
           onClick={() => toggleSort("amount")}
         >
           Amount <SortIcon active={sortKey === "amount"} dir={sortDir} />
@@ -872,7 +872,7 @@ export default function TransactionsPageWrapper() {
   return (
     <Suspense
       fallback={
-        <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
+        <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 @2xl/main:px-6">
           <h1 className="mb-5 font-heading text-2xl font-bold">Transactions</h1>
           <TransactionListLoading />
         </div>

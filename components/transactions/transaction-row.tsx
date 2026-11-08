@@ -27,7 +27,7 @@ import {
 import { canGroupTransaction } from "@/lib/lunchmoney/transaction-structure";
 
 export const TRANSACTION_GRID_COLUMNS =
-  "grid-cols-transaction sm:grid-cols-transaction-sm md:grid-cols-transaction-md lg:grid-cols-transaction-lg";
+  "grid-cols-transaction @2xl/main:grid-cols-transaction-sm @3xl/main:grid-cols-transaction-md @5xl/main:grid-cols-transaction-lg";
 
 export type TransactionRowProps = {
   transaction: Transaction;
@@ -209,7 +209,7 @@ export const TransactionRow = memo(function TransactionRow({
                   Recurring
                 </span>
               )}
-              <span className="shrink-0 font-mono text-(length:--text-micro) text-bento-subtle tabular-nums sm:hidden">
+              <span className="shrink-0 font-mono text-(length:--text-micro) text-bento-subtle tabular-nums @2xl/main:hidden">
                 {formatShortDate(tx.date)}
               </span>
             </div>
@@ -221,7 +221,7 @@ export const TransactionRow = memo(function TransactionRow({
           </div>
         </div>
 
-        <div className="hidden min-w-0 sm:block">
+        <div className="hidden min-w-0 @2xl/main:block">
           {structurallyLocked ? (
             <span className="flex min-h-10 items-center truncate px-2 text-xs text-bento-default">
               {categoryName}
@@ -243,13 +243,13 @@ export const TransactionRow = memo(function TransactionRow({
           )}
         </div>
 
-        <span className="hidden text-center text-xs text-bento-subtle tabular-nums sm:block">
+        <span className="hidden text-center text-xs text-bento-subtle tabular-nums @2xl/main:block">
           {formatShortDate(tx.date)}
         </span>
 
         <span
           className={cn(
-            "hidden text-right font-mono text-sm font-medium tabular-nums sm:block",
+            "hidden text-right font-mono text-sm font-medium tabular-nums @2xl/main:block",
             isCredit && !tx.is_pending && "text-bento-positive"
           )}
         >
@@ -304,7 +304,7 @@ export const TransactionRow = memo(function TransactionRow({
         />
       </div>
 
-      <div className="px-4 pb-2 sm:hidden">
+      <div className="px-4 pb-2 @2xl/main:hidden">
         <div className="flex items-center gap-2">
           <div className="min-w-0 flex-1">
             {structurallyLocked ? (

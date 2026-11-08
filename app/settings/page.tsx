@@ -117,7 +117,7 @@ export default function SettingsPage() {
         </p>
       </header>
 
-      <div className="grid items-start gap-5 lg:grid-cols-settings">
+      <div className="grid items-start gap-5 @4xl/main:grid-cols-settings">
         <div className="flex min-w-0 flex-col gap-5">
           <Card className="w-full">
             {accountLoading ? (

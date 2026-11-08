@@ -12,7 +12,10 @@ export function SessionGate({ children }: { children: React.ReactNode }) {
   return (
     // A connection switch remounts page-level data hooks. No prior account's
     // transient state can remain visible while the next account loads.
-    <main key={dataScopeKey ?? "signed-out"} className="flex-1">
+    <main
+      key={dataScopeKey ?? "signed-out"}
+      className="@container/main min-w-0 flex-1"
+    >
       {isPublicPage ? (
         children
       ) : !isReady ? (
