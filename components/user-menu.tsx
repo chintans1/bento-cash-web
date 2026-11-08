@@ -1,13 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import {
-  Check,
-  ChevronsUpDown,
-  LogOut,
-  Settings,
-  WalletCards,
-} from "lucide-react";
+import { Check, ChevronsUpDown, LogOut, WalletCards } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
@@ -55,7 +48,7 @@ export function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
             type="button"
             variant="ghost"
             size="lg"
-            aria-label={`Open account menu for ${user.name}`}
+            aria-label={`Switch budget or sign out for ${user.name}`}
             className="h-14 w-full justify-start gap-2.5 rounded-xl px-2 group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
           />
         }
@@ -66,7 +59,7 @@ export function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
         <span className="flex min-w-0 flex-1 flex-col items-start text-left group-data-[collapsible=icon]:hidden">
           <span className="w-full truncate">{user.name || user.email}</span>
           <span className="text-xs font-normal text-bento-subtle">
-            Account & budgets
+            Switch budget
           </span>
         </span>
         <ChevronsUpDown className="size-3.5 text-bento-subtle group-data-[collapsible=icon]:hidden" />
@@ -119,17 +112,6 @@ export function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
         )}
 
         <div className="mx-1.5 my-1 h-px bg-bento-hairline" />
-        <Link
-          href="/settings"
-          className={menuItemClassName}
-          onClick={() => {
-            setOpen(false);
-            onNavigate?.();
-          }}
-        >
-          <Settings className="size-4" strokeWidth={1.5} />
-          Settings
-        </Link>
         <button
           type="button"
           className={menuItemClassName}
