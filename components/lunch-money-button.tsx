@@ -13,7 +13,7 @@ function LunchMoneyLogo() {
         width={2631}
         height={1004}
         unoptimized
-        className="-my-3 -ml-4 h-auto w-44 sm:w-48 dark:hidden"
+        className="-my-4 -ml-3 h-auto w-36 sm:-ml-4 sm:w-48 dark:hidden"
       />
       <Image
         src="/lunch-money-horizontal-dark.png"
@@ -21,7 +21,7 @@ function LunchMoneyLogo() {
         width={2631}
         height={1004}
         unoptimized
-        className="-my-3 -ml-4 hidden h-auto w-44 sm:w-48 dark:block"
+        className="-my-4 -ml-3 hidden h-auto w-36 sm:-ml-4 sm:w-48 dark:block"
       />
     </>
   );
@@ -42,17 +42,17 @@ export function LunchMoneyButton({
       size="lg"
       variant="outline"
       aria-label={loading ? "Opening Lunch Money" : `${label} Lunch Money`}
-      className="h-20 w-full justify-between rounded-2xl border-bento-hairline bg-bento-surface px-5 text-left shadow-sm hover:border-bento-brand/40 hover:bg-bento-raised dark:bg-bento-surface dark:hover:bg-bento-raised"
+      className="h-16 w-full justify-between rounded-2xl border-bento-hairline bg-bento-surface px-3 text-left shadow-sm hover:border-bento-brand/40 hover:bg-bento-raised sm:px-5 dark:bg-bento-surface dark:hover:bg-bento-raised"
       onClick={onClick}
       disabled={loading}
     >
-      <span className="flex flex-col items-start">
-        <span className="text-xs text-bento-subtle">
-          {loading ? "Opening Lunch Money…" : label}
+      <span className="flex min-w-0 items-center gap-1">
+        <span className="shrink-0 text-xs font-medium sm:text-sm">
+          {loading ? "Opening" : label}
         </span>
         <LunchMoneyLogo />
       </span>
-      <ArrowRight className="size-5 text-bento-subtle transition-transform duration-150 group-hover/button:translate-x-0.5" />
+      <ArrowRight className="size-4 text-bento-subtle transition-transform duration-150 group-hover/button:translate-x-0.5 sm:size-5" />
     </Button>
   );
 }

@@ -28,8 +28,8 @@ export function AuthPrompt() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-115 px-4 pt-10 pb-14 text-center sm:pt-16">
-      <section className="flex w-full flex-col gap-6 rounded-4xl glass px-5 py-8 sm:px-9 sm:py-10">
+    <div className="mx-auto w-full max-w-115 px-3 pt-10 pb-14 text-center sm:px-4 sm:pt-16">
+      <section className="flex w-full flex-col gap-6 rounded-4xl glass px-4 py-8 sm:px-9 sm:py-10">
         <BentoCashMark />
         <div className="flex flex-col gap-3">
           <h1 className="font-heading text-4xl font-bold tracking-tight sm:text-5xl">
