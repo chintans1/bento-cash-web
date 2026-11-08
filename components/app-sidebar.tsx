@@ -49,20 +49,31 @@ export function AppSidebar() {
   const { hasDataSource, isDemo, activeConnection, signOut } = useAuth();
   const { open, isMobile, setOpenMobile } = useSidebar();
   const closeMobile = () => setOpenMobile(false);
+  const workspaceName = isDemo
+    ? "Demo workspace"
+    : (activeConnection?.label ?? "Your workspace");
 
   return (
     <Sidebar id="app-sidebar" variant="floating" collapsible="icon">
-      <SidebarHeader className="gap-5 px-3 pt-5 pb-4 group-data-[collapsible=icon]:px-2">
+      <SidebarHeader className="px-3 py-4 group-data-[collapsible=icon]:px-2">
         <div className="flex items-center gap-2">
           <Link
             href="/"
             onClick={closeMobile}
             className="flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-            aria-label="Bento Cash home"
+            aria-label={`Bento Cash home. Viewing: ${workspaceName}`}
           >
             <BentoCashMark className="mx-0 size-10 shrink-0 sm:size-10" />
-            <span className="font-heading text-xl font-bold whitespace-nowrap group-data-[collapsible=icon]:hidden">
-              Bento Cash
+            <span className="flex min-w-0 flex-col gap-0.5 group-data-[collapsible=icon]:hidden">
+              <span className="font-heading text-xl font-bold whitespace-nowrap">
+                Bento Cash
+              </span>
+              <span
+                className="truncate text-xs text-bento-subtle"
+                title={`Viewing: ${workspaceName}`}
+              >
+                Viewing: {workspaceName}
+              </span>
             </span>
           </Link>
           {isMobile && (
@@ -75,14 +86,6 @@ export function AppSidebar() {
               <X className="size-5" />
             </Button>
           )}
-        </div>
-        <div className="flex min-w-0 items-center gap-2 px-3 text-xs text-bento-subtle group-data-[collapsible=icon]:hidden">
-          <span className="size-1.5 shrink-0 rounded-full bg-bento-positive" />
-          <span className="truncate">
-            {isDemo
-              ? "Demo workspace"
-              : (activeConnection?.label ?? "Your workspace")}
-          </span>
         </div>
       </SidebarHeader>
       <SidebarSeparator />
