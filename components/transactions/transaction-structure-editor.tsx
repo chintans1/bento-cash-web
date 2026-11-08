@@ -29,6 +29,7 @@ import {
   remainingSplitAmount,
   reviewSplitChildren,
   recurringItemName,
+  splitCategoryId,
   splitCategoryError,
   splitError,
   suggestRecurringItems,
@@ -105,12 +106,19 @@ function initialSplit(parent: Transaction): SplitDraft[] {
   ];
 }
 
-function splitParts(drafts: SplitDraft[]): SplitParts {
+function splitParts(
+  drafts: SplitDraft[],
+  recurringItems: RecurringItem[]
+): SplitParts {
   return drafts.map((draft) => ({
     amount: draft.amount,
     payee: draft.payee.trim(),
     date: draft.date,
-    category_id: draft.category_id,
+    category_id: splitCategoryId(
+      draft.category_id,
+      draft.recurringId,
+      recurringItems
+    ),
     tag_ids: draft.tag_ids,
     notes: draft.notes.trim() || null,
   }));
@@ -137,7 +145,7 @@ export function SplitEditor({
   const [parent, setParent] = useState<Transaction | null>(null);
   const [drafts, setDrafts] = useState<SplitDraft[]>([]);
   const [splitMode, setSplitMode] = useState<"equal" | "custom">("equal");
-  const [original, setOriginal] = useState("");
+  const [originalDrafts, setOriginalDrafts] = useState<SplitDraft[]>([]);
   const [originalLinks, setOriginalLinks] = useState<(number | null)[]>([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -165,7 +173,7 @@ export function SplitEditor({
         setParent(result);
         setDrafts(initial);
         setSplitMode(result.is_split_parent ? "custom" : "equal");
-        setOriginal(JSON.stringify(splitParts(initial)));
+        setOriginalDrafts(initial);
         setOriginalLinks(initial.map((draft) => draft.recurringId));
       })
       .catch((cause: unknown) => {
@@ -181,7 +189,10 @@ export function SplitEditor({
     };
   }, [parentId, transaction.split_parent_id]);
 
-  const parts = useMemo(() => splitParts(drafts), [drafts]);
+  const parts = useMemo(
+    () => splitParts(drafts, recurringItems),
+    [drafts, recurringItems]
+  );
   const recurringIds = drafts.map((draft) => draft.recurringId);
   const validation = parent
     ? (splitError(parent, parts) ?? splitCategoryError(parts, recurringIds))
@@ -201,7 +212,9 @@ export function SplitEditor({
         ),
     [recurringItems]
   );
-  const structureChanged = JSON.stringify(parts) !== original;
+  const structureChanged =
+    JSON.stringify(parts) !==
+    JSON.stringify(splitParts(originalDrafts, recurringItems));
   const linksChanged = drafts.some(
     (draft, index) => draft.recurringId !== originalLinks[index]
   );
@@ -214,6 +227,24 @@ export function SplitEditor({
   function change(index: number, patch: Partial<SplitDraft>) {
     setDrafts((current) =>
       current.map((draft, i) => (i === index ? { ...draft, ...patch } : draft))
+    );
+  }
+
+  function chooseRecurring(index: number, recurringId: number | null) {
+    setDrafts((current) =>
+      current.map((draft, i) =>
+        i === index
+          ? {
+              ...draft,
+              recurringId,
+              category_id: splitCategoryId(
+                draft.category_id,
+                recurringId,
+                recurringItems
+              ),
+            }
+          : draft
+      )
     );
   }
 
@@ -309,7 +340,7 @@ export function SplitEditor({
       })),
     });
     setDrafts(nextDrafts);
-    setOriginal(JSON.stringify(splitParts(nextDrafts)));
+    setOriginalDrafts(nextDrafts);
     setOriginalLinks(actual);
     setSplitMode("custom");
     await onCommitted().catch(() => undefined);
@@ -493,18 +524,33 @@ export function SplitEditor({
                     <div className="space-y-1 text-xs font-medium sm:col-span-2">
                       Category
                       <CategoryPicker
-                        categoryId={draft.category_id}
+                        categoryId={parts[index].category_id ?? null}
                         categoryName={
                           categories.find(
-                            (item) => item.id === draft.category_id
+                            (item) => item.id === parts[index].category_id
                           )?.name ?? "Uncategorized"
                         }
                         options={categories}
                         appearance="field"
+                        disabled={
+                          confirmedRecurringId(
+                            draft.recurringId,
+                            recurringItems
+                          ) != null
+                        }
                         onChange={(category_id) =>
                           change(index, { category_id })
                         }
                       />
+                      {confirmedRecurringId(
+                        draft.recurringId,
+                        recurringItems
+                      ) != null && (
+                        <p className="font-normal text-bento-subtle">
+                          Category is set by the recurring item. Choose Not
+                          recurring to edit it.
+                        </p>
+                      )}
                     </div>
                     <div className="space-y-2 text-xs font-medium sm:col-span-2">
                       <span>Recurring item</span>
@@ -524,9 +570,7 @@ export function SplitEditor({
                               size="sm"
                               className="max-w-full"
                               aria-pressed={draft.recurringId === item.id}
-                              onClick={() =>
-                                change(index, { recurringId: item.id })
-                              }
+                              onClick={() => chooseRecurring(index, item.id)}
                             >
                               <span className="truncate">
                                 {recurringItemName(item)}
@@ -551,10 +595,10 @@ export function SplitEditor({
                         }
                         onValueChange={(value) =>
                           value &&
-                          change(index, {
-                            recurringId:
-                              value === "none" ? null : Number(value),
-                          })
+                          chooseRecurring(
+                            index,
+                            value === "none" ? null : Number(value)
+                          )
                         }
                       >
                         <SelectTrigger

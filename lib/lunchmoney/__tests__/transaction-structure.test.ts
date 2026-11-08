@@ -13,11 +13,36 @@ import {
   remainingSplitAmount,
   reviewSplitChildren,
   splitCategoryError,
+  splitCategoryId,
   splitError,
   suggestRecurringItems,
 } from "../transaction-structure";
 
 describe("transaction structure validation", () => {
+  it("uses a confirmed recurring item's category instead of the split category", async () => {
+    const [rent, subscription] = await createDemoClient().getRecurringItems();
+    const items = [
+      { ...rent, overrides: { category_id: 4 } },
+      { ...subscription, overrides: { category_id: 9 } },
+    ];
+    expect(splitCategoryId(null, rent.id, items)).toBe(4);
+    expect(splitCategoryId(2, rent.id, items)).toBe(4);
+    expect(splitCategoryId(4, subscription.id, items)).toBe(9);
+    expect(splitCategoryId(9, null, items)).toBe(9);
+  });
+
+  it("uses uncategorized for items without a category and ignores unconfirmed links", async () => {
+    const [item] = await createDemoClient().getRecurringItems();
+    expect(splitCategoryId(2, item.id, [item])).toBeNull();
+    expect(
+      splitCategoryId(2, item.id, [
+        { ...item, status: "suggested", overrides: { category_id: 4 } },
+      ])
+    ).toBe(2);
+    expect(splitCategoryId(2, 999999, [item])).toBe(2);
+    expect(splitCategoryId(2, item.id, [])).toBe(2);
+  });
+
   it("adds four decimal place allocations exactly, including credits", () => {
     expect(amountForEditing("12.0000")).toBe("12.00");
     expect(amountForEditing("12.3400")).toBe("12.34");

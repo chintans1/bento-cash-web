@@ -77,6 +77,18 @@ export function recurringItemName(item: RecurringItem): string {
   );
 }
 
+/** A confirmed recurring link owns the split's category, including uncategorized. */
+export function splitCategoryId(
+  categoryId: number | null,
+  recurringId: number | null,
+  items: RecurringItem[]
+): number | null {
+  const item = items.find(
+    (item) => item.id === recurringId && item.status === "reviewed"
+  );
+  return item ? (item.overrides.category_id ?? null) : categoryId;
+}
+
 function normalizedWords(value: string): string[] {
   return value
     .toLowerCase()
