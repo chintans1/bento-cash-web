@@ -7,8 +7,6 @@
 export const primaryIdentityProvider = {
   id: "lunch_money",
   name: "Lunch Money",
-  signInLabel: "Continue with Lunch Money",
-  pendingLabel: "Opening Lunch Money…",
   explanation:
-    "We create your Bento Cash account on your first sign-in. Your budgets stay connected when you sign out.",
+    "Your Bento Cash account is created on first sign-in. Choose a budget on Lunch Money to get started.",
 } as const;

@@ -3,9 +3,9 @@
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { BentoCashMark } from "@/components/bento-cash-mark";
+import { LunchMoneyButton } from "@/components/lunch-money-button";
 import { signInWithPrimaryIdentityProvider } from "@/lib/auth-client";
-import { Button } from "@/components/ui/button";
-import { ArrowRight, WalletCards } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 export function ConnectionPrompt() {
   const { user, enterDemo } = useAuth();
@@ -42,10 +42,11 @@ export function ConnectionPrompt() {
           )}
         </div>
 
-        <Button type="button" size="lg" onClick={connect} disabled={connecting}>
-          <WalletCards data-icon="inline-start" />
-          {connecting ? "Opening Lunch Money…" : "Connect Lunch Money"}
-        </Button>
+        <LunchMoneyButton
+          label="Connect with"
+          loading={connecting}
+          onClick={connect}
+        />
         {error && <p className="text-sm text-bento-danger">{error}</p>}
 
         <div className="border-t border-bento-hairline pt-3">

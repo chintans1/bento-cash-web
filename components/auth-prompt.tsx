@@ -1,13 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowRight, WalletCards } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { BentoCashMark } from "@/components/bento-cash-mark";
+import { LunchMoneyButton } from "@/components/lunch-money-button";
 import { signInWithPrimaryIdentityProvider } from "@/lib/auth-client";
 import { primaryIdentityProvider } from "@/lib/auth/identity-provider";
 import { useAuth } from "@/hooks/use-auth";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 
 export function AuthPrompt() {
   const { enterDemo } = useAuth();
@@ -28,35 +28,23 @@ export function AuthPrompt() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-md px-5 pt-10 pb-12 text-center sm:pt-16">
-      <section className="flex w-full flex-col gap-5 rounded-4xl glass p-5 sm:p-6">
+    <div className="mx-auto w-full max-w-115 px-4 pt-10 pb-14 text-center sm:pt-16">
+      <section className="flex w-full flex-col gap-6 rounded-4xl glass px-5 py-8 sm:px-9 sm:py-10">
         <BentoCashMark />
-        <div className="flex flex-col gap-2">
-          <h1 className="font-heading text-4xl font-bold">Bento Cash</h1>
-          <p className="text-sm leading-6 text-bento-subtle">
-            Sign in with Lunch Money to use Bento Cash and choose a budget.
+        <div className="flex flex-col gap-3">
+          <h1 className="font-heading text-4xl font-bold tracking-tight sm:text-5xl">
+            Bento Cash
+          </h1>
+          <p className="text-sm leading-6 text-bento-subtle sm:text-base sm:leading-7">
+            A fresh perspective on your Lunch Money budget.
           </p>
         </div>
 
-        <Button
-          type="button"
-          size="lg"
-          variant="outline"
-          className="h-12 w-full justify-between rounded-2xl bg-bento-surface px-4"
+        <LunchMoneyButton
+          label="Sign in with"
+          loading={loading}
           onClick={startSignIn}
-          disabled={loading}
-        >
-          <span className="flex items-center gap-3">
-            <WalletCards
-              aria-hidden="true"
-              className="size-4 text-bento-brand"
-            />
-            {loading
-              ? primaryIdentityProvider.pendingLabel
-              : primaryIdentityProvider.signInLabel}
-          </span>
-          <ArrowRight className="size-4 text-bento-subtle" />
-        </Button>
+        />
         {error && (
           <Alert variant="destructive" className="text-left">
             <AlertDescription>{error}</AlertDescription>
@@ -66,7 +54,7 @@ export function AuthPrompt() {
           {primaryIdentityProvider.explanation}
         </p>
 
-        <div className="border-t border-bento-hairline pt-3">
+        <div className="border-t border-bento-hairline pt-4">
           <button
             type="button"
             className="inline-flex min-h-10 items-center gap-2 rounded-full px-3 text-sm font-medium text-bento-subtle transition-colors hover:text-bento-default"
