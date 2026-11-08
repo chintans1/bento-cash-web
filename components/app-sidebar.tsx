@@ -27,7 +27,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
 
@@ -45,7 +44,7 @@ const navButtonClassName =
 export function AppSidebar() {
   const pathname = usePathname();
   const { hasDataSource, isDemo, activeConnection, signOut } = useAuth();
-  const { open, isMobile, setOpenMobile } = useSidebar();
+  const { isMobile, setOpenMobile } = useSidebar();
   const closeMobile = () => setOpenMobile(false);
   const workspaceName = isDemo
     ? "Demo workspace"
@@ -74,7 +73,7 @@ export function AppSidebar() {
               </span>
             </span>
           </Link>
-          {isMobile && (
+          {isMobile ? (
             <Button
               variant="ghost"
               size="icon-lg"
@@ -84,6 +83,8 @@ export function AppSidebar() {
             >
               <X className="size-5" />
             </Button>
+          ) : (
+            <ThemeToggle />
           )}
         </div>
       </SidebarHeader>
@@ -163,20 +164,6 @@ export function AppSidebar() {
           </SidebarMenuItem>
         </SidebarMenu>
         <UserMenu onNavigate={closeMobile} />
-        <div className="flex items-center justify-between px-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:px-0">
-          <ThemeToggle />
-          <SidebarTrigger
-            className="hidden size-10 text-bento-subtle hover:text-bento-default md:inline-flex"
-            aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
-            aria-expanded={open}
-            aria-controls="app-sidebar"
-            title={
-              open
-                ? "Collapse sidebar (⌘B / Ctrl+B)"
-                : "Expand sidebar (⌘B / Ctrl+B)"
-            }
-          />
-        </div>
       </SidebarFooter>
     </Sidebar>
   );

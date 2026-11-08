@@ -26,9 +26,10 @@ function MobileHeader() {
       >
         <Menu className="size-5" />
       </Button>
-      <Link href="/" className="font-heading text-xl font-bold">
+      <Link href="/" className="flex-1 font-heading text-xl font-bold">
         Bento Cash
       </Link>
+      <ThemeToggle />
     </header>
   );
 }
@@ -78,7 +79,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <TooltipProvider delay={150}>
-      <SidebarProvider>
+      <SidebarProvider open enableKeyboardShortcut={false}>
         <AppSidebar />
         <div className="flex min-w-0 flex-1 flex-col">
           <MobileHeader />
