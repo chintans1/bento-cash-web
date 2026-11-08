@@ -6,9 +6,11 @@ import {
   ArrowLeftRight,
   ArrowUpRight,
   ChartNoAxesCombined,
+  ExternalLink,
   LayoutDashboard,
   Landmark,
   Settings,
+  ShieldCheck,
   TrendingUp,
   X,
 } from "lucide-react";
@@ -176,6 +178,51 @@ export function AppSidebar() {
             }
           />
         </div>
+        <SidebarMenu className="flex-row gap-1 px-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:px-0">
+          <SidebarMenuItem className="min-w-0 flex-1">
+            <SidebarMenuButton
+              render={<Link href="/privacy-policy" />}
+              aria-label="Privacy policy"
+              aria-current={pathname === "/privacy-policy" ? "page" : undefined}
+              tooltip="Privacy policy"
+              onClick={closeMobile}
+              className="h-10 justify-center px-1 text-xs text-bento-subtle group-data-[collapsible=icon]:size-10! aria-[current=page]:text-bento-default"
+            >
+              <ShieldCheck
+                className="hidden group-data-[collapsible=icon]:block"
+                aria-hidden="true"
+              />
+              <span className="group-data-[collapsible=icon]:hidden">
+                Privacy policy
+              </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem className="min-w-0 flex-1">
+            <SidebarMenuButton
+              render={
+                <a
+                  href="https://lunchmoney.app"
+                  target="_blank"
+                  rel="noreferrer"
+                />
+              }
+              aria-label="Powered by Lunch Money (opens in a new tab)"
+              tooltip="Powered by Lunch Money"
+              className="h-10 justify-center px-1 text-bento-subtle group-data-[collapsible=icon]:size-10!"
+            >
+              <ExternalLink
+                className="hidden group-data-[collapsible=icon]:block"
+                aria-hidden="true"
+              />
+              <span className="flex flex-col items-center leading-4 group-data-[collapsible=icon]:hidden">
+                <span className="text-(length:--text-micro)">Powered by</span>
+                <span className="font-heading text-sm font-medium">
+                  Lunch Money
+                </span>
+              </span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );

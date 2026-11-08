@@ -1,13 +1,12 @@
-import Image from "next/image";
 import Link from "next/link";
 
 export function Footer() {
   return (
-    <footer className="border-t border-bento-hairline bg-bento-surface">
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
+    <footer className="px-4 py-4 sm:px-6">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-center gap-x-6 text-xs text-bento-subtle">
         <Link
           href="/privacy-policy"
-          className="text-sm text-bento-subtle hover:text-bento-default"
+          className="flex min-h-10 items-center rounded-lg transition-colors hover:text-bento-default focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
           Privacy policy
         </Link>
@@ -16,15 +15,9 @@ export function Footer() {
           target="_blank"
           rel="noreferrer"
           aria-label="Visit Lunch Money"
-          className="rounded-lg dark:bg-footer-brand"
+          className="flex min-h-10 items-center rounded-lg transition-colors hover:text-bento-default focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
         >
-          <Image
-            src="/powered-by-lunch-money.png"
-            alt="Powered by Lunch Money"
-            width={735}
-            height={196}
-            className="h-auto w-48 rounded-lg outline-1 -outline-offset-1 outline-black/10 dark:outline-white/10"
-          />
+          Powered by Lunch Money
         </a>
       </div>
     </footer>

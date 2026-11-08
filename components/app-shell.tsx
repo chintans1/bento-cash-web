@@ -84,7 +84,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <MobileHeader />
           <AuthError />
           <SessionGate>{children}</SessionGate>
-          <Footer />
         </div>
       </SidebarProvider>
     </TooltipProvider>
