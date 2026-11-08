@@ -14,7 +14,6 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { BentoCashMark } from "@/components/bento-cash-mark";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,7 +72,7 @@ export function AppSidebar() {
               </span>
             </span>
           </Link>
-          {isMobile ? (
+          {isMobile && (
             <Button
               variant="ghost"
               size="icon-lg"
@@ -83,8 +82,6 @@ export function AppSidebar() {
             >
               <X className="size-5" />
             </Button>
-          ) : (
-            <ThemeToggle />
           )}
         </div>
       </SidebarHeader>

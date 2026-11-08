@@ -4,6 +4,7 @@ import { Check, ChevronsUpDown, LogOut, WalletCards } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   Popover,
   PopoverContent,
@@ -28,7 +29,10 @@ export function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
   } = useAuth();
   const [open, setOpen] = useState(false);
 
-  if (!user || isDemo) return null;
+  const displayName = isDemo ? "Demo workspace" : user?.name || user?.email;
+  const email = isDemo ? "Sample data" : user?.email;
+
+  if (!displayName) return null;
 
   function selectConnection(connectionId: string) {
     setOpen(false);
@@ -51,21 +55,25 @@ export function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
             type="button"
             variant="ghost"
             size="lg"
-            aria-label={`Switch budget or sign out for ${user.name}`}
+            aria-label={
+              isDemo ? "Open demo menu" : `Open account menu for ${displayName}`
+            }
             className="h-14 w-full justify-start gap-2.5 rounded-xl px-2 text-bento-subtle group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0 hover:text-bento-default aria-expanded:text-bento-default"
           />
         }
       >
         <span className={avatarClassName}>
-          {(user.name || user.email).slice(0, 1).toUpperCase()}
+          {displayName.slice(0, 1).toUpperCase()}
         </span>
         <span className="flex min-w-0 flex-1 flex-col items-start text-left group-data-[collapsible=icon]:hidden">
-          <span className="w-full truncate">{user.name || user.email}</span>
+          <span className="w-full truncate">{displayName}</span>
           <span
             className="w-full truncate text-xs font-normal text-bento-subtle"
-            title={activeConnection?.label}
+            title={isDemo ? "Sample budget" : activeConnection?.label}
           >
-            {activeConnection?.label ?? "No budget connected"}
+            {isDemo
+              ? "Sample budget"
+              : (activeConnection?.label ?? "No budget connected")}
           </span>
         </span>
         <ChevronsUpDown className="size-3.5 group-data-[collapsible=icon]:hidden" />
@@ -79,15 +87,15 @@ export function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
       >
         <div className="flex items-center gap-3 px-3 py-2.5">
           <div className={avatarClassName}>
-            {(user.name || user.email).slice(0, 1).toUpperCase()}
+            {displayName.slice(0, 1).toUpperCase()}
           </div>
           <div className="min-w-0">
-            <p className="truncate font-medium">{user.name}</p>
-            <p className="truncate text-xs text-bento-subtle">{user.email}</p>
+            <p className="truncate font-medium">{displayName}</p>
+            <p className="truncate text-xs text-bento-subtle">{email}</p>
           </div>
         </div>
 
-        {connections.length > 0 && (
+        {!isDemo && connections.length > 0 && (
           <>
             <div className="mx-1.5 h-px bg-bento-hairline" />
             <p className="px-3 pt-2 pb-1 text-xs font-medium text-bento-subtle">
@@ -119,13 +127,14 @@ export function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
         )}
 
         <div className="mx-1.5 my-1 h-px bg-bento-hairline" />
+        <ThemeToggle variant="menu" />
         <button
           type="button"
           className={menuItemClassName}
           onClick={handleSignOut}
         >
           <LogOut className="size-4" strokeWidth={1.5} />
-          Sign out
+          {isDemo ? "Exit demo" : "Sign out"}
         </button>
       </PopoverContent>
     </Popover>

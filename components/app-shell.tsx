@@ -29,7 +29,6 @@ function MobileHeader() {
       <Link href="/" className="flex-1 font-heading text-xl font-bold">
         Bento Cash
       </Link>
-      <ThemeToggle />
     </header>
   );
 }
