@@ -280,9 +280,6 @@ export default function SettingsPage() {
                             </Badge>
                           )}
                         </span>
-                        <span className="mt-0.5 block truncate text-xs text-bento-subtle">
-                          {connection.email || "Lunch Money budget"}
-                        </span>
                       </div>
                       {!selected && (
                         <Button
