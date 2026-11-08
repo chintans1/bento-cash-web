@@ -9,7 +9,6 @@ import {
   LayoutDashboard,
   Landmark,
   Settings,
-  ShieldCheck,
   TrendingUp,
   X,
 } from "lucide-react";
@@ -45,9 +44,12 @@ const navButtonClassName =
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { hasDataSource, isDemo, signOut } = useAuth();
+  const { hasDataSource, isDemo, activeConnection, signOut } = useAuth();
   const { open, isMobile, setOpenMobile } = useSidebar();
   const closeMobile = () => setOpenMobile(false);
+  const workspaceName = isDemo
+    ? "Demo workspace"
+    : (activeConnection?.label ?? "Your workspace");
 
   return (
     <Sidebar id="app-sidebar" variant="floating" collapsible="icon">
@@ -57,15 +59,18 @@ export function AppSidebar() {
             href="/"
             onClick={closeMobile}
             className="flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-            aria-label="Bento Cash home"
+            aria-label={`Bento Cash home. Viewing: ${workspaceName}`}
           >
             <BentoCashMark className="mx-0 size-10 shrink-0 sm:size-10" />
             <span className="flex min-w-0 flex-col gap-0.5 group-data-[collapsible=icon]:hidden">
               <span className="font-heading text-xl font-bold whitespace-nowrap">
                 Bento Cash
               </span>
-              <span className="text-(length:--text-caption) whitespace-nowrap text-bento-subtle">
-                Powered by Lunch Money
+              <span
+                className="truncate text-(length:--text-caption) text-bento-subtle"
+                title={`Viewing: ${workspaceName}`}
+              >
+                Viewing: {workspaceName}
               </span>
             </span>
           </Link>
@@ -159,22 +164,6 @@ export function AppSidebar() {
         <UserMenu onNavigate={closeMobile} />
         <div className="flex items-center justify-between px-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:px-0">
           <ThemeToggle />
-          <SidebarMenuButton
-            render={<Link href="/privacy-policy" />}
-            aria-label="Privacy policy"
-            aria-current={pathname === "/privacy-policy" ? "page" : undefined}
-            tooltip="Privacy policy"
-            onClick={closeMobile}
-            className="h-10 w-auto justify-center px-2 text-xs text-bento-subtle group-data-[collapsible=icon]:size-10! aria-[current=page]:text-bento-default"
-          >
-            <ShieldCheck
-              className="hidden group-data-[collapsible=icon]:block"
-              aria-hidden="true"
-            />
-            <span className="group-data-[collapsible=icon]:hidden">
-              Privacy policy
-            </span>
-          </SidebarMenuButton>
           <SidebarTrigger
             className="hidden size-10 text-bento-subtle md:inline-flex"
             aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
