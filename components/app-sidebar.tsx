@@ -6,7 +6,6 @@ import {
   ArrowLeftRight,
   ArrowUpRight,
   ChartNoAxesCombined,
-  ExternalLink,
   LayoutDashboard,
   Landmark,
   Settings,
@@ -46,33 +45,27 @@ const navButtonClassName =
 
 export function AppSidebar() {
   const pathname = usePathname();
-  const { hasDataSource, isDemo, activeConnection, signOut } = useAuth();
+  const { hasDataSource, isDemo, signOut } = useAuth();
   const { open, isMobile, setOpenMobile } = useSidebar();
   const closeMobile = () => setOpenMobile(false);
-  const workspaceName = isDemo
-    ? "Demo workspace"
-    : (activeConnection?.label ?? "Your workspace");
 
   return (
     <Sidebar id="app-sidebar" variant="floating" collapsible="icon">
-      <SidebarHeader className="px-3 py-4 group-data-[collapsible=icon]:px-2">
+      <SidebarHeader className="px-3 pt-3 pb-2 group-data-[collapsible=icon]:px-2">
         <div className="flex items-center gap-2">
           <Link
             href="/"
             onClick={closeMobile}
             className="flex min-h-10 min-w-0 flex-1 items-center gap-2 rounded-xl focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-            aria-label={`Bento Cash home. Viewing: ${workspaceName}`}
+            aria-label="Bento Cash home"
           >
             <BentoCashMark className="mx-0 size-10 shrink-0 sm:size-10" />
             <span className="flex min-w-0 flex-col gap-0.5 group-data-[collapsible=icon]:hidden">
               <span className="font-heading text-xl font-bold whitespace-nowrap">
                 Bento Cash
               </span>
-              <span
-                className="truncate text-xs text-bento-subtle"
-                title={`Viewing: ${workspaceName}`}
-              >
-                Viewing: {workspaceName}
+              <span className="text-(length:--text-caption) whitespace-nowrap text-bento-subtle">
+                Powered by Lunch Money
               </span>
             </span>
           </Link>
@@ -91,7 +84,7 @@ export function AppSidebar() {
 
       <SidebarContent>
         {hasDataSource && (
-          <SidebarGroup>
+          <SidebarGroup className="pt-0">
             <SidebarGroupContent>
               <nav aria-label="Main navigation">
                 <SidebarMenu className="gap-1">
@@ -166,6 +159,22 @@ export function AppSidebar() {
         <UserMenu onNavigate={closeMobile} />
         <div className="flex items-center justify-between px-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:px-0">
           <ThemeToggle />
+          <SidebarMenuButton
+            render={<Link href="/privacy-policy" />}
+            aria-label="Privacy policy"
+            aria-current={pathname === "/privacy-policy" ? "page" : undefined}
+            tooltip="Privacy policy"
+            onClick={closeMobile}
+            className="h-10 w-auto justify-center px-2 text-xs text-bento-subtle group-data-[collapsible=icon]:size-10! aria-[current=page]:text-bento-default"
+          >
+            <ShieldCheck
+              className="hidden group-data-[collapsible=icon]:block"
+              aria-hidden="true"
+            />
+            <span className="group-data-[collapsible=icon]:hidden">
+              Privacy policy
+            </span>
+          </SidebarMenuButton>
           <SidebarTrigger
             className="hidden size-10 text-bento-subtle md:inline-flex"
             aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
@@ -178,51 +187,6 @@ export function AppSidebar() {
             }
           />
         </div>
-        <SidebarMenu className="flex-row gap-1 px-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:px-0">
-          <SidebarMenuItem className="min-w-0 flex-1">
-            <SidebarMenuButton
-              render={<Link href="/privacy-policy" />}
-              aria-label="Privacy policy"
-              aria-current={pathname === "/privacy-policy" ? "page" : undefined}
-              tooltip="Privacy policy"
-              onClick={closeMobile}
-              className="h-10 justify-center px-1 text-xs text-bento-subtle group-data-[collapsible=icon]:size-10! aria-[current=page]:text-bento-default"
-            >
-              <ShieldCheck
-                className="hidden group-data-[collapsible=icon]:block"
-                aria-hidden="true"
-              />
-              <span className="group-data-[collapsible=icon]:hidden">
-                Privacy policy
-              </span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem className="min-w-0 flex-1">
-            <SidebarMenuButton
-              render={
-                <a
-                  href="https://lunchmoney.app"
-                  target="_blank"
-                  rel="noreferrer"
-                />
-              }
-              aria-label="Powered by Lunch Money (opens in a new tab)"
-              tooltip="Powered by Lunch Money"
-              className="h-10 justify-center px-1 text-bento-subtle group-data-[collapsible=icon]:size-10!"
-            >
-              <ExternalLink
-                className="hidden group-data-[collapsible=icon]:block"
-                aria-hidden="true"
-              />
-              <span className="flex flex-col items-center leading-4 group-data-[collapsible=icon]:hidden">
-                <span className="text-(length:--text-micro)">Powered by</span>
-                <span className="font-heading text-sm font-medium">
-                  Lunch Money
-                </span>
-              </span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
       </SidebarFooter>
     </Sidebar>
   );
