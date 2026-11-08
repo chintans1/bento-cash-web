@@ -42,7 +42,7 @@ const NAV_LINKS = [
 ];
 
 const navButtonClassName =
-  "h-11 gap-3 text-bento-subtle transition-colors hover:text-bento-default data-active:bg-bento-brand data-active:text-bento-brand-fg group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:justify-center [&_svg]:size-4.5";
+  "h-11 gap-3 text-bento-subtle transition-colors hover:text-bento-default data-active:bg-bento-brand data-active:text-bento-brand-fg data-active:hover:bg-bento-brand data-active:hover:text-bento-brand-fg data-active:active:bg-bento-brand data-active:active:text-bento-brand-fg group-data-[collapsible=icon]:size-10! group-data-[collapsible=icon]:justify-center [&_svg]:size-4.5";
 
 export function AppSidebar() {
   const pathname = usePathname();
