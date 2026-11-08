@@ -26,6 +26,10 @@ export const metadata: Metadata = {
   },
   description:
     "A richer analytics interface for Lunch Money — spending insights, net worth and fast transaction editing.",
+  icons: {
+    icon: "/bento-cash-mark.png",
+    apple: "/bento-cash-mark.png",
+  },
 };
 
 export const viewport: Viewport = {

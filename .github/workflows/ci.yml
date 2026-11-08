@@ -14,8 +14,9 @@ jobs:
     timeout-minutes: 15
     env:
       BETTER_AUTH_SECRET: ci-only-better-auth-secret-at-least-32-characters
-      GOOGLE_CLIENT_ID: ci-google-client-id
-      GOOGLE_CLIENT_SECRET: ci-google-client-secret
+      LUNCH_MONEY_CLIENT_ID: ci-lunch-money-client-id
+      LUNCH_MONEY_CLIENT_SECRET: ci-lunch-money-client-secret
+      LUNCH_MONEY_OAUTH_ISSUER: https://api-alpha.lunchmoney.dev
       BENTO_CREDENTIAL_ENCRYPTION_KEY: ci-only-credential-key
 
     steps:
@@ -53,6 +54,15 @@ jobs:
 
       - name: Check app Worker deployment
         run: pnpm exec cf deploy --prebuilt --mode production --dry-run
+
+      - name: Build test Workers
+        run: pnpm exec cf build --mode staging
+
+      - name: Check test database Worker deployment
+        run: pnpm exec cf deploy --prebuilt --mode staging --worker bento-cash-web-oauth-test-database --dry-run
+
+      - name: Check test app Worker deployment
+        run: pnpm exec cf deploy --prebuilt --mode staging --dry-run
 
       - name: Verify Durable Object migrations locally
         run: pnpm db:verify-migrations

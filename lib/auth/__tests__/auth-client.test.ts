@@ -11,14 +11,26 @@ vi.mock("better-auth/react", () => ({
 import { signInWithPrimaryIdentityProvider } from "@/lib/auth-client";
 
 describe("primary identity sign-in", () => {
-  it("starts Google OAuth and returns to the app", async () => {
+  it("starts Lunch Money OAuth and completes the budget connection", async () => {
     social.mockResolvedValue({ data: null, error: null });
 
     await signInWithPrimaryIdentityProvider();
 
     expect(social).toHaveBeenCalledWith({
-      provider: "google",
-      callbackURL: "/",
+      provider: "lunch_money",
+      callbackURL: "/api/oauth/lunch-money/complete",
+      errorCallbackURL: "/",
     });
+  });
+
+  it("reports provider errors to the sign-in screen", async () => {
+    social.mockResolvedValue({
+      data: null,
+      error: { message: "OAuth failed" },
+    });
+
+    await expect(signInWithPrimaryIdentityProvider()).rejects.toThrow(
+      "OAuth failed"
+    );
   });
 });

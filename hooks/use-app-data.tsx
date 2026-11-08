@@ -2,8 +2,8 @@
 
 import {
   createContext,
-  use,
   useCallback,
+  useContext,
   useEffect,
   useRef,
   useState,
@@ -257,7 +257,7 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useAppData(): AppDataContextValue {
-  const ctx = use(AppDataContext);
+  const ctx = useContext(AppDataContext);
   if (!ctx) throw new Error("useAppData must be used within AppDataProvider");
   return ctx;
 }

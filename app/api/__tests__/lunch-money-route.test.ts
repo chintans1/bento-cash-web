@@ -108,12 +108,11 @@ describe("authenticated Lunch Money routes", () => {
     );
   });
 
-  it("reports an unsupported connection method", async () => {
+  it("asks for reauthorization when an OAuth grant is unusable", async () => {
     mocks.resolveLunchMoneyClient.mockReturnValue({
-      status: "unsupported_auth",
-      authMethod: "oauth",
+      status: "reauthorization_required",
     });
-    expect((await getMe(request(`me?${query}`))).status).toBe(409);
+    expect((await getMe(request(`me?${query}`))).status).toBe(401);
   });
 
   it("validates endpoint inputs before opening a connection", async () => {

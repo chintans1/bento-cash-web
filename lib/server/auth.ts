@@ -11,6 +11,7 @@ export async function getAuth() {
         "localhost:3000",
         "bento-cash.chintan-cf.work",
         "bento-cash-web.chintans98.workers.dev",
+        "bento-cash-web-oauth-test.chintans98.workers.dev",
         "*-bento-cash-web.chintans98.workers.dev",
       ],
     },
@@ -18,10 +19,14 @@ export async function getAuth() {
       enabled: false,
     },
     account: {
+      encryptOAuthTokens: true,
+      // The database-backed strategy's state cookie lasts only five minutes.
+      // Encrypted cookie state gives the full ten-minute OAuth consent window.
+      storeStateStrategy: "cookie",
       accountLinking: {
         updateUserInfoOnLink: true,
       },
     },
-    socialProviders: identityProviderOptions(),
+    plugins: identityProviderOptions(),
   });
 }

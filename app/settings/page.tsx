@@ -10,7 +10,7 @@ import {
   WalletCards,
 } from "lucide-react";
 import { ConnectionPrompt } from "@/components/connection-prompt";
-import { ConnectAccountForm } from "@/components/connect-account-form";
+import { signInWithPrimaryIdentityProvider } from "@/lib/auth-client";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -58,7 +58,8 @@ export default function SettingsPage() {
   } = useAppData();
   const { months: floorMonths, setMonths } = useInvestableMonths();
   const [floorMonthsInput, setFloorMonthsInput] = useState<string | null>(null);
-  const [addOpen, setAddOpen] = useState(false);
+  const [adding, setAdding] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
   const [removeTarget, setRemoveTarget] = useState<LunchMoneyConnection | null>(
     null
   );
@@ -83,10 +84,21 @@ export default function SettingsPage() {
       setRemoveTarget(null);
     } catch (cause) {
       setRemoveError(
-        cause instanceof Error ? cause.message : "Couldn't remove account"
+        cause instanceof Error ? cause.message : "Couldn't remove budget"
       );
     } finally {
       setRemoving(false);
+    }
+  }
+
+  async function addBudget() {
+    setAdding(true);
+    setAddError(null);
+    try {
+      await signInWithPrimaryIdentityProvider();
+    } catch {
+      setAddError("Couldn't open Lunch Money. Please try again.");
+      setAdding(false);
     }
   }
 
@@ -101,7 +113,7 @@ export default function SettingsPage() {
         <p className="mt-1 text-sm text-pretty text-bento-subtle">
           {isDemo
             ? "Adjust how Bento Cash calculates your demo insights."
-            : "Manage your Lunch Money accounts, cash reserve, and historical data."}
+            : "Manage your Lunch Money budgets, cash reserve, and historical data."}
         </p>
       </header>
 
@@ -110,14 +122,14 @@ export default function SettingsPage() {
           <Card className="w-full">
             {accountLoading ? (
               <CardContent className="flex min-h-64 items-center justify-center text-sm text-bento-subtle">
-                Loading account…
+                Loading budget…
               </CardContent>
             ) : lunchMoneyUser ? (
               <>
                 <CardHeader>
-                  <CardTitle className="text-lg">Account</CardTitle>
+                  <CardTitle className="text-lg">Active budget</CardTitle>
                   <CardDescription>
-                    Your active Lunch Money budget
+                    Your selected Lunch Money budget
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-5">
@@ -148,14 +160,6 @@ export default function SettingsPage() {
                         {lunchMoneyUser.primary_currency}
                       </dd>
                     </div>
-                    {lunchMoneyUser.api_key_label && (
-                      <div className="flex min-h-11 items-center justify-between gap-4 py-2">
-                        <dt className="shrink-0 text-bento-subtle">API key</dt>
-                        <dd className="truncate font-medium">
-                          {lunchMoneyUser.api_key_label}
-                        </dd>
-                      </div>
-                    )}
                   </dl>
                 </CardContent>
               </>
@@ -222,20 +226,24 @@ export default function SettingsPage() {
                     className="size-5 text-bento-brand"
                     strokeWidth={1.5}
                   />
-                  Lunch Money accounts
+                  Lunch Money budgets
                 </CardTitle>
                 <CardDescription>
-                  Switch budgets here. Each connection keeps its own preferences
-                  and features.
+                  Add another budget from your Lunch Money account.
                 </CardDescription>
                 <CardAction>
-                  <Button size="sm" onClick={() => setAddOpen(true)}>
+                  <Button size="sm" onClick={addBudget} disabled={adding}>
                     <Plus data-icon="inline-start" />
-                    Add account
+                    {adding ? "Opening…" : "Add budget"}
                   </Button>
                 </CardAction>
               </CardHeader>
               <CardContent className="flex flex-col gap-2">
+                {addError && (
+                  <Alert variant="destructive">
+                    <AlertDescription>{addError}</AlertDescription>
+                  </Alert>
+                )}
                 {connections.map((connection) => {
                   const selected = connection.id === activeConnection?.id;
                   return (
@@ -259,9 +267,6 @@ export default function SettingsPage() {
                               <Check data-icon="inline-start" /> Active
                             </Badge>
                           )}
-                        </span>
-                        <span className="mt-0.5 block truncate text-xs text-bento-subtle">
-                          {connection.email || "Connected with an API token"}
                         </span>
                       </div>
                       {!selected && (
@@ -297,8 +302,8 @@ export default function SettingsPage() {
                     className="mt-0.5 size-3.5 shrink-0 text-bento-brand"
                     strokeWidth={1.5}
                   />
-                  Connection credentials are encrypted on the server and are
-                  never sent back to your browser.
+                  Lunch Money tokens are encrypted at rest and used by the
+                  server for API requests.
                 </p>
               </CardContent>
             </Card>
@@ -321,24 +326,6 @@ export default function SettingsPage() {
       <p className="text-center font-mono text-xs text-bento-subtle">
         Press <Kbd>d</Kbd> to toggle dark mode
       </p>
-
-      <Dialog open={addOpen} onOpenChange={setAddOpen}>
-        <div className="pr-7">
-          <DialogTitle className="font-heading text-2xl font-semibold">
-            Add a Lunch Money account
-          </DialogTitle>
-          <DialogDescription className="mt-2 text-sm leading-6 text-bento-subtle">
-            Connect another budget now. You can switch between accounts from the
-            header.
-          </DialogDescription>
-        </div>
-        <div className="mt-6">
-          <ConnectAccountForm
-            buttonLabel="Add account"
-            onConnected={() => setAddOpen(false)}
-          />
-        </div>
-      </Dialog>
 
       <Dialog
         open={removeTarget !== null}
@@ -375,7 +362,7 @@ export default function SettingsPage() {
             disabled={removing}
           >
             <Trash2 data-icon="inline-start" />
-            {removing ? "Removing…" : "Remove account"}
+            {removing ? "Removing…" : "Remove budget"}
           </Button>
         </div>
       </Dialog>

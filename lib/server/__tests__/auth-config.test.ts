@@ -2,9 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   betterAuth: vi.fn((options: unknown) => ({ options })),
-  identityProviderOptions: vi.fn(() => ({
-    google: { clientId: "client", clientSecret: "secret" },
-  })),
+  identityProviderOptions: vi.fn(() => [{ id: "generic-oauth" }]),
 }));
 
 vi.mock("better-auth", () => ({ betterAuth: mocks.betterAuth }));
@@ -28,14 +26,17 @@ describe("Better Auth configuration", () => {
             "localhost:3000",
             "bento-cash.chintan-cf.work",
             "bento-cash-web.chintans98.workers.dev",
+            "bento-cash-web-oauth-test.chintans98.workers.dev",
             "*-bento-cash-web.chintans98.workers.dev",
           ],
         },
         emailAndPassword: { enabled: false },
-        account: { accountLinking: { updateUserInfoOnLink: true } },
-        socialProviders: {
-          google: { clientId: "client", clientSecret: "secret" },
+        account: {
+          encryptOAuthTokens: true,
+          storeStateStrategy: "cookie",
+          accountLinking: { updateUserInfoOnLink: true },
         },
+        plugins: [{ id: "generic-oauth" }],
       })
     );
   });

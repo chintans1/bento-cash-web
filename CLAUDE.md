@@ -115,7 +115,7 @@ Lunch Money API
 
 ### Server-side secrets
 
-LM API keys are encrypted with AES-256-GCM before being stored and are never returned to the browser. Set `BETTER_AUTH_SECRET` and optionally a separate `BENTO_CREDENTIAL_ENCRYPTION_KEY`. Authenticated API routes enforce that the selected connection belongs to the current user.
+Lunch Money OAuth credentials and legacy API keys are encrypted with AES-256-GCM before being stored and are never returned to the browser. Set `BETTER_AUTH_SECRET` and optionally a separate `BENTO_CREDENTIAL_ENCRYPTION_KEY`. Authenticated API routes enforce that the selected connection belongs to the current user.
 
 ---
 
@@ -270,7 +270,7 @@ Shows net worth hero (assets − liabilities), grouped by institution within Ass
 
 ### `/settings` — Settings (`app/settings/page.tsx`)
 
-Connection manager. Adding an account calls `getMe()` to verify its token and stores the returned Lunch Money account identity and display metadata. Users can switch or remove linked accounts. It also shows the active user name, budget name, primary currency, and API key label.
+Connection manager. Adding an account starts Lunch Money OAuth, validates `/v2/me`, and stores the selected budget's identity and encrypted credentials. Users can switch or remove linked accounts. It also shows the active user name, budget name, and primary currency.
 
 ---
 

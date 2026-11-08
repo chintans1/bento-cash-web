@@ -3,18 +3,18 @@
 Bento Cash uses [Better Auth](https://www.better-auth.com/) with a SQLite-backed
 Cloudflare Durable Object. The system separates identity from financial-data access:
 
-- **Bento user** — a provider-backed identity with a server-managed session.
-  Google is the only provider today; Bento does not accept passwords.
+- **Bento user** — a Lunch Money-backed identity with a server-managed session.
+  Bento does not accept passwords.
 - **Lunch Money connection** — one budgeting account linked to that Bento user
-  through an API key today or OAuth later.
+  through OAuth. Previously saved API-key connections remain usable.
 
-Migration `003_google_identity_migration.sql` retires accounts from the brief
-email/password prototype. It invalidates their old sessions, removes the
-disabled credential login, and allows the same Bento user (and its existing
-Lunch Money connections) to be claimed through Google's verified email. This
-keeps Better Auth's strict default linking policy intact for future providers.
-The configured identity provider supplies the user's display name and avatar
-when it is linked, so no profile data from the retired login remains visible.
+Migration `003_google_identity_migration.sql` retired the old email/password
+prototype. Google sign-in is now disabled, but existing Google-backed Bento
+users and their connections remain. Better Auth links a Lunch Money identity
+to one of those users when the normalized, verified emails match. A different
+email cannot claim that account. The Lunch Money user ID becomes the stable
+OAuth provider subject; the selected budget's `account_id` identifies its
+connection.
 
 ## Persistence and ownership
 
@@ -32,57 +32,59 @@ and are remounted when that scope changes.
 
 ## Credential handling
 
-When a user adds an API key, the server first verifies it with Lunch Money's
-`/me` endpoint. The key is encrypted with AES-256-GCM using
+When a user signs in, Better Auth exchanges the authorization code with PKCE
+and client-secret Basic authentication. The completion route verifies `/v2/me`
+before persisting a connection. OAuth credentials are encrypted with AES-256-GCM using
 `BENTO_CREDENTIAL_ENCRYPTION_KEY`, or `BETTER_AUTH_SECRET` when a separate key
-is not configured. Only ciphertext is stored in SQLite.
+is not configured. Better Auth's temporary provider tokens are encrypted too.
 
-The browser receives public connection metadata but never receives a saved
-credential. Lunch Money reads and writes go through the authenticated
+The browser receives public connection metadata but never a saved credential.
+Lunch Money reads and writes go through the authenticated
 `/api/lunch-money` route, which checks connection ownership before decrypting a
 credential. The allowed RPC operations are explicitly listed server-side.
 
-## Provider and OAuth migration
+## OAuth sign-in and connection
 
 Better Auth's `account` table owns sign-in-provider identities independently of
-Bento's Lunch Money connections. Google currently creates the Bento user. When
-Lunch Money OAuth becomes available, one authorization callback can do both:
+Bento's Lunch Money connections. One Lunch Money authorization now does both:
 
-1. create or resolve the Better Auth user through the Lunch Money provider;
-2. upsert that Lunch Money account's `lunch_money_connection`; and
-3. select the connection in `bento_user_context`.
+1. create or resolve the Better Auth user through the Lunch Money user ID and
+   authenticated Lunch Money email;
+2. verify the returned user ID and selected `account_id` with `/v2/me`, then
+   upsert the encrypted connection; and
+3. select it in `bento_user_context`.
 
-An existing Google-authenticated user should add Lunch Money through an
-explicit account-linking flow. Do not merge users by an unverified matching
-email address. A returning user can then use Lunch Money itself as the sole
-sign-in provider, while users who previously linked Google keep both provider
-accounts attached to the same Bento user.
+Google provider accounts stay attached to their original Bento users for
+ownership and settings continuity, but Google is not offered for sign-in.
+New budget connections use OAuth. Existing API-key connections remain usable
+until reauthorized with OAuth.
 
-The connection record already has an `authMethod` discriminator. The OAuth
-flow can store encrypted access/refresh credentials in the same server-only
-field without changing connection ownership, active-account switching,
-feature settings, or client cache scopes. Token refresh belongs in the server
-connection resolver; OAuth credentials must never be returned through the
-connections API.
+Lunch Money's OAuth preview grants every scope registered on the client. It
+ignores a narrower `scope` authorization parameter; changing the scope set
+requires registering a replacement client and updating its credentials.
+
+The connection record stores the Lunch Money user ID and encrypted access and
+refresh credentials. Refresh-token rotation is claimed with a database
+compare-and-swap before the token is sent. If a refresh response is lost, the
+claim remains and the user must reauthorize instead of replaying the consumed
+token. Reauthorization clears the claim. API-key connections keep their
+existing ownership, settings, and cache scopes.
 
 Provider-specific code stays behind two boundaries:
 
-- `lib/server/identity-provider.ts` configures the current Better Auth identity
-  provider.
+- `lib/server/identity-provider.ts` configures Lunch Money as the Better Auth
+  identity provider.
 - `lib/server/lunch-money-client.ts` turns a stored connection credential into
-  a Lunch Money API client.
+  a Lunch Money API client and coordinates refresh.
 
-The future OAuth implementation belongs in those adapters and its callback;
-pages, account switching, feature settings, and browser RPC do not need to
-change.
-
-The API-token UI is intentionally presented as a temporary connection method,
-not as the user's Bento identity.
+`app/api/oauth/lunch-money/complete/route.ts` finishes the connection after
+Better Auth sets the Bento session.
 
 ## Operations
 
 - Copy `.env.example` to `.env.local` and set `BETTER_AUTH_SECRET`,
-  `GOOGLE_CLIENT_ID`, and `GOOGLE_CLIENT_SECRET`.
+  `LUNCH_MONEY_CLIENT_ID`, `LUNCH_MONEY_CLIENT_SECRET`, and
+  `LUNCH_MONEY_OAUTH_ISSUER` for the preview.
 - `pnpm dev` uses a locally persisted Durable Object under `.cloudflare/state/`.
 - The object applies unapplied SQL migrations transactionally when it starts,
   both locally and after deployment.

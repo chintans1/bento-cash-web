@@ -10,6 +10,7 @@ export interface LunchMoneyConnection {
   budgetName: string | null;
   email: string | null;
   externalAccountId: string;
+  externalUserId: string | null;
   createdAt: string;
 }
 
