@@ -71,7 +71,7 @@ export default function InvestmentsPage() {
     : null;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
+    <div>
       <h1 className="mb-5 font-heading text-2xl font-bold">Investments</h1>
       {/* Hero */}
       <div className="mb-6 text-center">
@@ -92,7 +92,7 @@ export default function InvestmentsPage() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 @2xl/main:grid-cols-2">
           {[1, 2].map((i) => (
             <Skeleton key={i} className="h-64 rounded-xl" />
           ))}
@@ -110,7 +110,7 @@ export default function InvestmentsPage() {
             avgMonthlySpend={avgMonthlySpend}
           />
 
-          <div className="grid grid-cols-1 items-start gap-6 sm:grid-cols-2">
+          <div className="grid grid-cols-1 items-start gap-6 @2xl/main:grid-cols-2">
             {/* Left column: allocation + cash */}
             <div>
               {investmentAccounts.length > 0 ? (

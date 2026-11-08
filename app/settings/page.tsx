@@ -105,7 +105,7 @@ export default function SettingsPage() {
   if (!hasDataSource) return <ConnectionPrompt />;
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 px-4 pt-8 pb-12 sm:px-6">
+    <div className="flex w-full flex-col gap-6">
       <header>
         <h1 className="font-heading text-3xl font-bold tracking-tight text-balance">
           Settings

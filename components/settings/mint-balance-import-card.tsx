@@ -209,7 +209,7 @@ export function MintBalanceImportCard({
                   event.currentTarget.value = "";
                 }}
                 onChange={(event) => void handleFile(event.target.files?.[0])}
-                className="peer sr-only"
+                className="peer sr-only size-px border-0 p-0"
               />
 
               {fileName ? (

@@ -4,9 +4,11 @@ import { LoaderCircle } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { AuthPrompt } from "@/components/auth-prompt";
+import { cn } from "@/lib/utils";
 
 export function SessionGate({ children }: { children: React.ReactNode }) {
-  const { isReady, isSignedIn, isDemo, dataScopeKey } = useAuth();
+  const { isReady, isSignedIn, isDemo, hasDataSource, dataScopeKey } =
+    useAuth();
   const isPublicPage = usePathname() === "/privacy-policy";
 
   return (
@@ -14,7 +16,10 @@ export function SessionGate({ children }: { children: React.ReactNode }) {
     // transient state can remain visible while the next account loads.
     <main
       key={dataScopeKey ?? "signed-out"}
-      className="@container/main min-w-0 flex-1"
+      className={cn(
+        "@container/main min-w-0 flex-1",
+        hasDataSource && !isPublicPage && "px-4 pt-6 pb-10 md:px-6 lg:px-8"
+      )}
     >
       {isPublicPage ? (
         children

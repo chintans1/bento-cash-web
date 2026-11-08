@@ -52,7 +52,7 @@ export default function AccountsPage() {
   if (!hasDataSource) return <ConnectionPrompt />;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 sm:px-6">
+    <div>
       <h1 className="mb-5 font-heading text-2xl font-bold">Accounts</h1>
       {/* Net worth hero */}
       <div className="mb-6 text-center">
@@ -113,7 +113,7 @@ export default function AccountsPage() {
             state={investable}
             primaryCurrency={primaryCurrency}
           />
-          <div className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-6">
+          <div className="grid grid-cols-1 items-start gap-4 @2xl/main:grid-cols-2 @2xl/main:gap-6">
             <AccountSection
               title="Assets"
               accounts={active.filter((a) => !a.isLiability)}
@@ -145,7 +145,7 @@ export default function AccountsPage() {
               <Collapsible open={showInactive}>
                 <div
                   id="inactive-accounts"
-                  className="grid grid-cols-1 items-start gap-4 sm:grid-cols-2 sm:gap-6"
+                  className="grid grid-cols-1 items-start gap-4 @2xl/main:grid-cols-2 @2xl/main:gap-6"
                 >
                   <AccountSection
                     title="Inactive / Revoked"

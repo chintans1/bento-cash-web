@@ -454,7 +454,7 @@ function TransactionsPage() {
   if (!hasDataSource) return <ConnectionPrompt />;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 @2xl/main:px-6">
+    <div>
       <div className="mb-5 flex flex-col items-start justify-between gap-3 @2xl/main:flex-row @2xl/main:items-center">
         <div>
           <h1 className="font-heading text-2xl font-bold text-balance">
@@ -872,7 +872,7 @@ export default function TransactionsPageWrapper() {
   return (
     <Suspense
       fallback={
-        <div className="mx-auto max-w-6xl px-4 pt-6 pb-10 @2xl/main:px-6">
+        <div>
           <h1 className="mb-5 font-heading text-2xl font-bold">Transactions</h1>
           <TransactionListLoading />
         </div>
