@@ -58,8 +58,11 @@ export function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
         </span>
         <span className="flex min-w-0 flex-1 flex-col items-start text-left group-data-[collapsible=icon]:hidden">
           <span className="w-full truncate">{user.name || user.email}</span>
-          <span className="text-xs font-normal text-bento-subtle">
-            Switch budget
+          <span
+            className="w-full truncate text-xs font-normal text-bento-subtle"
+            title={activeConnection?.label}
+          >
+            {activeConnection?.label ?? "No budget connected"}
           </span>
         </span>
         <ChevronsUpDown className="size-3.5 text-bento-subtle group-data-[collapsible=icon]:hidden" />
