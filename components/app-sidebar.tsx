@@ -51,7 +51,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar id="app-sidebar" variant="floating" collapsible="icon">
-      <SidebarHeader className="px-3 pt-3 pb-2 group-data-[collapsible=icon]:px-2">
+      <SidebarHeader className="px-3 pt-3 pb-4 group-data-[collapsible=icon]:px-2">
         <div className="flex items-center gap-2">
           <Link
             href="/"
