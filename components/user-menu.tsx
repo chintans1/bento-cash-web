@@ -12,7 +12,10 @@ import {
 import { cn } from "@/lib/utils";
 
 const menuItemClassName =
-  "flex min-h-10 w-full items-center gap-2.5 rounded-2xl px-3 text-left text-sm transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none";
+  "flex min-h-10 w-full items-center gap-2.5 rounded-2xl px-3 text-left text-sm text-bento-subtle transition-colors hover:bg-bento-raised hover:text-bento-default focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none";
+
+const avatarClassName =
+  "flex size-9 shrink-0 items-center justify-center rounded-full bg-bento-muted font-medium";
 
 export function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
   const {
@@ -49,11 +52,11 @@ export function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
             variant="ghost"
             size="lg"
             aria-label={`Switch budget or sign out for ${user.name}`}
-            className="h-14 w-full justify-start gap-2.5 rounded-xl px-2 group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0"
+            className="h-14 w-full justify-start gap-2.5 rounded-xl px-2 text-bento-subtle group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:p-0 hover:text-bento-default aria-expanded:text-bento-default"
           />
         }
       >
-        <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-bento-brand/10 font-medium text-bento-brand dark:text-bento-brand-fg">
+        <span className={avatarClassName}>
           {(user.name || user.email).slice(0, 1).toUpperCase()}
         </span>
         <span className="flex min-w-0 flex-1 flex-col items-start text-left group-data-[collapsible=icon]:hidden">
@@ -65,17 +68,17 @@ export function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
             {activeConnection?.label ?? "No budget connected"}
           </span>
         </span>
-        <ChevronsUpDown className="size-3.5 text-bento-subtle group-data-[collapsible=icon]:hidden" />
+        <ChevronsUpDown className="size-3.5 group-data-[collapsible=icon]:hidden" />
       </PopoverTrigger>
 
       <PopoverContent
         side="top"
         align="start"
         sideOffset={8}
-        className="w-72 gap-1 p-1.5"
+        className="w-72 gap-1 p-1.5 text-bento-subtle"
       >
         <div className="flex items-center gap-3 px-3 py-2.5">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-bento-brand/10 font-medium text-bento-brand">
+          <div className={avatarClassName}>
             {(user.name || user.email).slice(0, 1).toUpperCase()}
           </div>
           <div className="min-w-0">
@@ -99,7 +102,8 @@ export function UserMenu({ onNavigate }: { onNavigate?: () => void }) {
                   aria-pressed={active}
                   className={cn(
                     menuItemClassName,
-                    active && "bg-bento-brand/10 text-bento-brand"
+                    active &&
+                      "bg-bento-brand text-bento-brand-fg hover:bg-bento-brand hover:text-bento-brand-fg"
                   )}
                   onClick={() => selectConnection(connection.id)}
                 >

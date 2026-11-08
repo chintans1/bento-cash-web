@@ -79,6 +79,7 @@ export function AppSidebar() {
               variant="ghost"
               size="icon-lg"
               aria-label="Close navigation"
+              className="text-bento-subtle hover:text-bento-default"
               onClick={closeMobile}
             >
               <X className="size-5" />
@@ -165,7 +166,7 @@ export function AppSidebar() {
         <div className="flex items-center justify-between px-1 group-data-[collapsible=icon]:flex-col group-data-[collapsible=icon]:px-0">
           <ThemeToggle />
           <SidebarTrigger
-            className="hidden size-10 text-bento-subtle md:inline-flex"
+            className="hidden size-10 text-bento-subtle hover:text-bento-default md:inline-flex"
             aria-label={open ? "Collapse sidebar" : "Expand sidebar"}
             aria-expanded={open}
             aria-controls="app-sidebar"
