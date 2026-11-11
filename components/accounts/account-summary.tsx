@@ -106,7 +106,7 @@ function CompositionBreakdown({
         <>
           <div
             aria-hidden="true"
-            className="mt-3 mb-2 flex h-3 gap-0.5 overflow-hidden rounded-full bg-bento-raised"
+            className="mt-3 mb-2 flex h-3 gap-px overflow-hidden rounded-full bg-bento-raised"
             onPointerLeave={() => setHoveredId(null)}
           >
             {composition.map((row) => (
@@ -159,7 +159,7 @@ function CompositionBreakdown({
                   {row.label}
                 </dt>
                 <dd className="text-bento-subtle tabular-nums">
-                  {row.percent.toFixed(1)}%
+                  {row.percent < 0.05 ? "<0.1%" : `${row.percent.toFixed(1)}%`}
                 </dd>
                 <dd className="min-w-20 text-right font-medium tabular-nums">
                   {formatCurrency(row.amount, primaryCurrency, true)}
