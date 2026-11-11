@@ -15,7 +15,6 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
 
 export function AllocationBreakdown({
   accounts,
@@ -47,8 +46,7 @@ export function AllocationBreakdown({
           {
             bucket: {
               label: "Other",
-              color: "bg-bento-subtle",
-              subtypes: new Set<string>(),
+              color: "var(--bento-subtle)",
             },
             bucketAccounts: otherAccounts,
             amount: otherAmount,
@@ -88,13 +86,12 @@ export function AllocationBreakdown({
                 </div>
                 <div className="h-2 w-full overflow-hidden rounded-full bg-bento-hairline">
                   <div
-                    className={cn(
-                      "w-(--progress-width)",
-                      "h-full rounded-full",
-                      bucket.color
-                    )}
+                    className="h-full w-(--progress-width) rounded-full bg-(--allocation-color)"
                     style={
-                      { "--progress-width": `${pct}%` } as React.CSSProperties
+                      {
+                        "--progress-width": `${pct}%`,
+                        "--allocation-color": bucket.color,
+                      } as React.CSSProperties
                     }
                   />
                 </div>

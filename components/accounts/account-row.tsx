@@ -8,111 +8,112 @@ import {
 } from "@/lib/account-utils";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 
 export function AccountRow({
   account,
   primaryCurrency,
+  byInstitution = false,
 }: {
   account: NormalizedAccount;
   primaryCurrency: string;
+  byInstitution?: boolean;
 }) {
   const showNative =
     account.currency.toLowerCase() !== primaryCurrency.toLowerCase();
   const isInactive = account.status !== "active";
   const usage = isInactive ? null : creditUsage(account);
+  const detail = [
+    !byInstitution && (account.institution || "Other"),
+    account.subtype
+      ? formatSubtype(account.subtype)
+      : formatSubtype(account.type),
+    account.source === "manual" && "Manual",
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
-    <li className="border-b border-bento-hairline/50 py-3 last:border-0">
-      <div className="flex items-center gap-3">
+    <li className="border-b border-bento-hairline/60 py-4 last:border-0">
+      <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
+          <p
+            title={account.name}
+            className={cn(
+              "text-sm font-medium wrap-break-word",
+              isInactive && "text-bento-subtle"
+            )}
+          >
+            {account.name}
+          </p>
+          <p className="mt-1 text-xs leading-relaxed text-bento-subtle">
+            {detail}
+          </p>
+          {isInactive && (
             <span
-              title={account.name}
               className={cn(
-                "min-w-0 truncate text-sm font-medium",
-                isInactive && "text-bento-subtle"
+                "mt-1 inline-block rounded-md px-1.5 py-0.5 text-xs",
+                account.status === "revoked"
+                  ? "bg-warning/10 text-warning-foreground"
+                  : "bg-bento-raised text-bento-subtle"
               )}
             >
-              {account.name}
+              {formatSubtype(account.status)}
             </span>
-            {account.subtype && (
-              <Badge variant="secondary">
-                {formatSubtype(account.subtype)}
-              </Badge>
-            )}
-            {isInactive && <Badge variant="secondary">{account.status}</Badge>}
-          </div>
+          )}
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-0.5">
+        <div className="flex shrink-0 flex-col items-end gap-1">
           {account.balanceValid ? (
             <>
-              <span className="font-mono text-sm font-medium tabular-nums">
-                {showNative
-                  ? formatCurrency(account.balance, account.currency, true)
-                  : formatCurrency(account.toBase, primaryCurrency, true)}
+              <span className="text-sm font-medium tabular-nums">
+                {formatCurrency(account.toBase, primaryCurrency, true)}
               </span>
               {showNative && (
-                <span className="font-mono text-xs text-bento-subtle tabular-nums">
-                  ≈ {formatCurrency(account.toBase, primaryCurrency, true)}
+                <span className="text-xs text-bento-subtle tabular-nums">
+                  {formatCurrency(account.balance, account.currency, true)}
                 </span>
               )}
             </>
           ) : (
-            <span className="text-sm text-bento-subtle">—</span>
+            <span className="text-sm text-bento-subtle">
+              Balance unavailable
+            </span>
           )}
           <span className="text-xs text-bento-subtle">
-            {formatUpdated(account.lastUpdated)}
+            {account.lastUpdated
+              ? `Updated ${formatUpdated(account.lastUpdated)}`
+              : "Update unavailable"}
           </span>
         </div>
       </div>
-      {account.type === "credit" && (
-        <div className="mt-2">
-          {account.creditLimit === null ? (
-            <p className="text-xs text-bento-subtle">
-              Credit limit unavailable
-            </p>
-          ) : (
-            <>
-              <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5 text-xs text-bento-subtle">
-                <span>
-                  Credit limit{" "}
-                  <span className="font-mono tabular-nums">
-                    {formatCurrency(account.creditLimit, account.currency)}
-                  </span>
-                </span>
-                {usage && (
-                  <span>
-                    {Math.round(usage.percentUsed)}% used ·{" "}
-                    <span className="font-mono tabular-nums">
-                      {formatCurrency(usage.available, account.currency, true)}
-                    </span>{" "}
-                    available
-                  </span>
-                )}
-              </div>
-              {usage && (
-                <div
-                  aria-hidden="true"
-                  className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-bento-hairline"
-                >
-                  <div
-                    className={cn(
-                      "h-full w-(--progress-width) rounded-full",
-                      usage.percentUsed >= 100
-                        ? "bg-bento-negative"
-                        : "bg-bento-brand"
-                    )}
-                    style={
-                      {
-                        "--progress-width": `${Math.min(usage.percentUsed, 100)}%`,
-                      } as React.CSSProperties
-                    }
-                  />
-                </div>
+      {account.type === "credit" && usage && (
+        <div className="mt-3 flex items-center gap-3">
+          <div
+            role="meter"
+            aria-label={`${account.name} credit used`}
+            aria-valuetext={`${Math.round(usage.percentUsed)}% of ${formatCurrency(account.creditLimit!, account.currency, true)} credit limit used`}
+            aria-valuenow={Math.round(usage.percentUsed)}
+            aria-valuemin={0}
+            aria-valuemax={Math.max(100, Math.round(usage.percentUsed))}
+            className="h-1 max-w-24 min-w-12 flex-1 overflow-hidden rounded-full bg-bento-raised"
+          >
+            <div
+              className={cn(
+                "h-full w-(--progress-width) rounded-full",
+                usage.percentUsed >= 100
+                  ? "bg-bento-negative"
+                  : "bg-bento-subtle/60"
               )}
-            </>
-          )}
+              style={
+                {
+                  "--progress-width": `${Math.min(usage.percentUsed, 100)}%`,
+                } as React.CSSProperties
+              }
+            />
+          </div>
+          <span className="text-xs text-bento-subtle tabular-nums">
+            {Math.round(usage.percentUsed)}% used ·{" "}
+            {formatCurrency(usage.available, account.currency, true)} available
+          </span>
         </div>
       )}
     </li>

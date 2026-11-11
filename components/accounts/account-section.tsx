@@ -1,69 +1,85 @@
 "use client";
 
 import {
-  type NormalizedAccount,
-  groupByInstitution,
-  sumBalances,
-} from "@/lib/account-utils";
+  Building2,
+  CreditCard,
+  Landmark,
+  Wallet,
+  ChartNoAxesCombined,
+  House,
+  HandCoins,
+  PiggyBank,
+} from "lucide-react";
+import type { NormalizedAccount } from "@/lib/account-utils";
 import { formatCurrency } from "@/lib/format";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { cn } from "@/lib/utils";
 import { AccountRow } from "./account-row";
+
+const GROUP_ICONS = {
+  checking: Wallet,
+  savings: PiggyBank,
+  "other-cash": Wallet,
+  "other-assets": House,
+  credit: CreditCard,
+  loans: Landmark,
+  "other-liabilities": HandCoins,
+};
 
 export function AccountSection({
   title,
+  groupId,
   accounts,
   total,
   primaryCurrency,
+  isLiability = false,
+  byInstitution = false,
 }: {
   title: string;
+  groupId: string;
   accounts: NormalizedAccount[];
   total: number;
   primaryCurrency: string;
+  isLiability?: boolean;
+  byInstitution?: boolean;
 }) {
-  if (accounts.length === 0) return null;
-
-  const groups = groupByInstitution(accounts);
+  const groupIcon = GROUP_ICONS[groupId as keyof typeof GROUP_ICONS];
+  const Icon = byInstitution ? Building2 : (groupIcon ?? ChartNoAxesCombined);
 
   return (
-    <Card className="pb-0">
-      <CardHeader className="pb-2">
-        <div className="flex items-baseline justify-between">
-          <CardTitle className="text-lg">{title}</CardTitle>
-          <span className="font-mono text-sm text-bento-subtle tabular-nums">
-            {formatCurrency(total, primaryCurrency, true)}
+    <section
+      aria-label={title}
+      className="border-b border-bento-hairline last:border-0"
+    >
+      <div className="flex items-center gap-3 bg-bento-raised/50 px-4 py-3 sm:px-5">
+        <Icon
+          className="size-4 shrink-0 text-bento-subtle"
+          strokeWidth={1.7}
+          aria-hidden="true"
+        />
+        <h2 className="min-w-0 flex-1 text-sm font-semibold">
+          {title}{" "}
+          <span className="ml-1 text-xs font-normal text-bento-subtle">
+            {accounts.length}
           </span>
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
-        {groups.map(([institution, groupAccounts], i) => {
-          const groupTotal = sumBalances(groupAccounts);
-          return (
-            <div
-              key={institution}
-              className={cn(i > 0 && "border-t border-bento-hairline")}
-            >
-              <div className="flex items-baseline justify-between bg-bento-raised px-6 py-2">
-                <span className="text-xs font-semibold tracking-wide text-bento-subtle uppercase">
-                  {institution}
-                </span>
-                <span className="font-mono text-xs font-medium tabular-nums">
-                  {formatCurrency(groupTotal, primaryCurrency, true)}
-                </span>
-              </div>
-              <ul className="flex flex-col px-6">
-                {groupAccounts.map((a) => (
-                  <AccountRow
-                    key={a.id}
-                    account={a}
-                    primaryCurrency={primaryCurrency}
-                  />
-                ))}
-              </ul>
-            </div>
-          );
-        })}
-      </CardContent>
-    </Card>
+        </h2>
+        <p className="shrink-0 text-right text-sm font-medium tabular-nums">
+          {formatCurrency(total, primaryCurrency, true)}
+          {isLiability && (
+            <span className="ml-1 text-xs font-normal text-bento-subtle">
+              owed
+            </span>
+          )}
+        </p>
+      </div>
+      <ul className="px-4 sm:px-5">
+        {accounts.map((account) => (
+          <AccountRow
+            key={account.id}
+            account={account}
+            primaryCurrency={primaryCurrency}
+            byInstitution={byInstitution}
+          />
+        ))}
+      </ul>
+    </section>
   );
 }

@@ -316,6 +316,11 @@
 @utility grid-cols-performance {
   grid-template-columns: minmax(0, 1fr) auto auto;
 }
+
+/* Account list and its summary rail share the available content width. */
+@utility grid-cols-accounts {
+  grid-template-columns: minmax(0, 1fr) calc(var(--spacing) * 90);
+}
 @utility grid-cols-category {
   grid-template-columns: minmax(0, 1fr) auto 1rem;
 }

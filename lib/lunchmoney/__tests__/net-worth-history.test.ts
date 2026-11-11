@@ -345,6 +345,53 @@ describe("account-group performance", () => {
     ).toEqual([groupedHistory[3]]);
   });
 
+  it("selects checking, savings, and other cash independently", () => {
+    const history = [
+      ...groupedHistory,
+      manual(4, [["2026-01", 200]]),
+      manual(7, [["2026-01", 25]]),
+    ];
+    const accounts = [
+      ...groupedAccounts,
+      {
+        id: "manual-7",
+        type: "cash",
+        subtype: null,
+        isLiability: false,
+      } as NormalizedAccount,
+    ];
+    expect(historyForAccountGroup(history, accounts, "checking")).toEqual([
+      history[0],
+    ]);
+    expect(historyForAccountGroup(history, accounts, "savings")).toEqual([
+      history[5],
+    ]);
+    expect(historyForAccountGroup(history, accounts, "other-cash")).toEqual([
+      history[6],
+    ]);
+  });
+
+  it("filters investment history using the account's subtype and Roth IRA name", () => {
+    const accounts = groupedAccounts.map((account) =>
+      account.id === "manual-6"
+        ? { ...account, name: "Roth IRA", subtype: "ira" }
+        : account
+    );
+    expect(
+      historyForAccountGroup(
+        groupedHistory,
+        accounts,
+        "tax-deferred-retirement"
+      )
+    ).toEqual([groupedHistory[2]]);
+    expect(
+      historyForAccountGroup(groupedHistory, accounts, "tax-free-retirement")
+    ).toEqual([groupedHistory[4]]);
+    expect(
+      historyForAccountGroup(groupedHistory, accounts, "investments")
+    ).toEqual([groupedHistory[2], groupedHistory[4]]);
+  });
+
   it("builds one line per account and carries gaps within its history", () => {
     const history = [
       manual(1, [

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { ArrowDownRight, ArrowUpRight } from "lucide-react";
 import { Area, CartesianGrid, ComposedChart, XAxis, YAxis } from "recharts";
 import type { NormalizedAccount } from "@/lib/account-utils";
+import { INVESTMENT_GROUPS } from "@/lib/investment-utils";
 import type { BalanceHistoryAccount } from "@/lib/lunchmoney/client";
 import {
   computeNetWorthPerformance,
@@ -15,14 +16,44 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
+import { AccountSegmentedControl } from "./account-segmented-control";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-const GROUPS: { value: AccountGroup; label: string }[] = [
+type GroupOption = { value: AccountGroup; label: string };
+
+const CASH_OPTIONS: GroupOption[] = [
   { value: "all", label: "All" },
-  { value: "cash", label: "Cash" },
-  { value: "investments", label: "Investments" },
+  { value: "checking", label: "Checking" },
+  { value: "savings", label: "Savings" },
+  { value: "other-cash", label: "Other cash" },
+];
+const ALL_INVESTMENTS: GroupOption = {
+  value: "investments",
+  label: "All investments",
+};
+const INVESTMENT_OPTIONS = INVESTMENT_GROUPS.map(({ id, label }) => ({
+  value: id,
+  label,
+}));
+const OTHER_OPTIONS: GroupOption[] = [
   { value: "debt", label: "Debt" },
   { value: "other", label: "Other" },
 ];
+const GROUPS = [
+  ...CASH_OPTIONS,
+  ALL_INVESTMENTS,
+  ...INVESTMENT_OPTIONS,
+  ...OTHER_OPTIONS,
+];
+const OPTION_CLASS = "h-8 rounded-lg py-0 text-xs";
 
 const RANGES = [
   { value: 3, label: "3M" },
@@ -130,41 +161,18 @@ function PerformanceTooltip({
   );
 }
 
-function Control({
-  active,
-  children,
-  onClick,
-}: {
-  active: boolean;
-  children: React.ReactNode;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      onClick={onClick}
-      aria-pressed={active}
-      className={cn(
-        "pointer-press min-h-10 shrink-0 rounded-full px-3 text-xs font-medium transition-control",
-        active
-          ? "bg-bento-surface text-bento-default shadow-sm"
-          : "text-bento-subtle hover:text-bento-default"
-      )}
-    >
-      {children}
-    </button>
-  );
-}
-
 export function NetWorthPerformanceCard({
   history,
   error,
   accounts,
   primaryCurrency,
+  compact = false,
 }: {
   history: BalanceHistoryAccount[] | null;
   error?: string | null;
   accounts: NormalizedAccount[];
   primaryCurrency: string;
+  compact?: boolean;
 }) {
   const [group, setGroup] = useState<AccountGroup>("all");
   const [range, setRange] = useState(12);
@@ -185,41 +193,72 @@ export function NetWorthPerformanceCard({
   const Arrow = change !== null && change < 0 ? ArrowDownRight : ArrowUpRight;
 
   return (
-    <Card className="mb-6 gap-4">
-      <CardHeader className="gap-4">
+    <Card
+      size={compact ? "sm" : "default"}
+      className={compact ? "gap-3" : "mb-6 gap-4"}
+    >
+      <CardHeader className="gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <CardTitle className="text-lg">Net Worth Performance</CardTitle>
-          <div
-            role="group"
-            aria-label="History period"
-            className="flex rounded-full bg-bento-raised p-1"
-          >
-            {RANGES.map((item) => (
-              <Control
-                key={item.value}
-                active={range === item.value}
-                onClick={() => setRange(item.value)}
-              >
-                {item.label}
-              </Control>
-            ))}
-          </div>
+          <CardTitle className={compact ? "text-sm font-semibold" : "text-lg"}>
+            {compact ? "Balance history" : "Net Worth Performance"}
+          </CardTitle>
+          <AccountSegmentedControl
+            label="History period"
+            options={RANGES}
+            value={range}
+            onChange={setRange}
+            className="grid auto-cols-fr grid-flow-col"
+          />
         </div>
-        <div
-          role="group"
-          aria-label="Account group"
-          className="-mx-1 flex overflow-x-auto rounded-full bg-bento-raised p-1"
+        <Select
+          items={GROUPS}
+          value={group}
+          onValueChange={(value) => value && setGroup(value)}
         >
-          {GROUPS.map((item) => (
-            <Control
-              key={item.value}
-              active={group === item.value}
-              onClick={() => setGroup(item.value)}
-            >
-              {item.label}
-            </Control>
-          ))}
-        </div>
+          <SelectTrigger
+            aria-label="Account group"
+            size="sm"
+            className="w-full rounded-lg text-xs"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent
+            alignItemWithTrigger={false}
+            className="rounded-xl p-1"
+          >
+            {CASH_OPTIONS.map(({ value, label }) => (
+              <SelectItem key={value} value={value} className={OPTION_CLASS}>
+                {label}
+              </SelectItem>
+            ))}
+            <SelectSeparator className="mx-1 my-1" />
+            <SelectGroup aria-label="Investments" className="p-0">
+              <SelectItem
+                value={ALL_INVESTMENTS.value}
+                className={cn(OPTION_CLASS, "font-semibold")}
+              >
+                {ALL_INVESTMENTS.label}
+              </SelectItem>
+              <div className="ms-3 border-s border-bento-hairline ps-1">
+                {INVESTMENT_OPTIONS.map(({ value, label }) => (
+                  <SelectItem
+                    key={value}
+                    value={value}
+                    className={OPTION_CLASS}
+                  >
+                    {label}
+                  </SelectItem>
+                ))}
+              </div>
+            </SelectGroup>
+            <SelectSeparator className="mx-1 my-1" />
+            {OTHER_OPTIONS.map(({ value, label }) => (
+              <SelectItem key={value} value={value} className={OPTION_CLASS}>
+                {label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </CardHeader>
 
       {error ? (
@@ -230,7 +269,7 @@ export function NetWorthPerformanceCard({
         </CardContent>
       ) : history === null ? (
         <CardContent>
-          <Skeleton className="h-64 rounded-xl" />
+          <Skeleton className={cn("h-64 rounded-xl", compact && "h-40")} />
         </CardContent>
       ) : !chart || chart.points.length < 2 || latest === undefined ? (
         <CardContent className="py-14 text-center text-bento-subtle">
@@ -239,13 +278,19 @@ export function NetWorthPerformanceCard({
       ) : (
         <>
           <CardContent className="flex flex-wrap items-end gap-x-4 gap-y-1">
-            <p className="font-heading text-3xl font-semibold tabular-nums">
+            <p
+              className={cn(
+                "font-heading text-3xl font-semibold tabular-nums",
+                compact && "text-2xl"
+              )}
+            >
               {formatCurrency(latest, primaryCurrency, true)}
             </p>
             {change !== null && changePct !== null && (
               <p
                 className={cn(
                   "mb-1 flex items-center gap-1 text-sm font-medium tabular-nums",
+                  compact && "text-xs",
                   improving ? "text-bento-positive" : "text-bento-negative"
                 )}
               >
@@ -259,7 +304,10 @@ export function NetWorthPerformanceCard({
           </CardContent>
 
           <CardContent className="px-2 sm:px-4">
-            <ChartContainer config={CHART_CONFIG} className="h-64 w-full">
+            <ChartContainer
+              config={CHART_CONFIG}
+              className={cn("h-64 w-full", compact && "h-40")}
+            >
               <ComposedChart
                 data={chart.points}
                 margin={{ top: 8, right: 14, bottom: 4, left: 4 }}

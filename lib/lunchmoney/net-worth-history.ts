@@ -5,9 +5,19 @@ import {
   type NormalizedAccount,
 } from "../account-utils";
 import type { BalanceHistoryAccount } from "./client";
-import { isInvestmentKind } from "../investment-utils";
+import { getAccountGroup } from "../account-groups";
+import { isInvestmentKind, type InvestmentGroupId } from "../investment-utils";
 
-export type AccountGroup = "all" | "cash" | "investments" | "debt" | "other";
+export type AccountGroup =
+  | "all"
+  | "cash"
+  | "checking"
+  | "savings"
+  | "other-cash"
+  | "investments"
+  | "debt"
+  | "other"
+  | InvestmentGroupId;
 
 /** A month's net worth, in the same shape as today's — see `computeNetWorth`. */
 export type NetWorthPoint = NetWorth & {
@@ -203,16 +213,17 @@ export function trailingMonths(
 }
 
 function matchesGroup(
-  type: string,
-  subtype: string | null,
-  isLiability: boolean,
+  account: Parameters<typeof getAccountGroup>[0],
   group: AccountGroup
 ): boolean {
-  if (group === "debt") return isLiability;
-  if (isLiability) return false;
-  if (group === "investments") return isInvestmentKind(type, subtype);
-  if (group === "cash") return type.toLowerCase() === "cash";
-  return type.toLowerCase() !== "cash" && !isInvestmentKind(type, subtype);
+  if (group === "debt") return account.isLiability;
+  if (account.isLiability) return false;
+  if (group === "investments")
+    return isInvestmentKind(account.type, account.subtype);
+  if (group === "cash") return account.type.toLowerCase() === "cash";
+  return (
+    getAccountGroup(account) === (group === "other" ? "other-assets" : group)
+  );
 }
 
 /** Keeps the history sources that belong to one high-level account group. */
@@ -225,9 +236,7 @@ export function historyForAccountGroup(
 
   const included = new Set(
     accounts
-      .filter((account) =>
-        matchesGroup(account.type, account.subtype, account.isLiability, group)
-      )
+      .filter((account) => matchesGroup(account, group))
       .map((account) => account.id)
   );
 
@@ -239,12 +248,15 @@ export function historyForAccountGroup(
       return included.has(accountKey("plaid", source.plaid_account_id));
     }
     if (source.type === "crypto_manual" || source.type === "crypto_synced") {
-      return group === "investments";
+      return group === "investments" || group === "crypto";
     }
     return matchesGroup(
-      source.account_type ?? "other asset",
-      source.subtype,
-      source.account_type ? isLiabilityType(source.account_type) : false,
+      {
+        name: sourceName(source),
+        type: source.account_type ?? "other asset",
+        subtype: source.subtype,
+        isLiability: isLiabilityType(source.account_type ?? "other asset"),
+      },
       group
     );
   });

@@ -10,9 +10,11 @@ import { cn } from "@/lib/utils";
 export function InvestableCashCard({
   state,
   primaryCurrency,
+  compact = false,
 }: {
   state: InvestableState;
   primaryCurrency: string;
+  compact?: boolean;
 }) {
   const ready = state.status === "ready" ? state : null;
   const checkingOk =
@@ -22,10 +24,15 @@ export function InvestableCashCard({
     : 0;
 
   return (
-    <Card className="mb-6">
+    <Card
+      size={compact ? "sm" : "default"}
+      className={compact ? "gap-3" : "mb-6"}
+    >
       <CardHeader className="pb-2">
         <div className="flex items-baseline justify-between">
-          <CardTitle className="text-lg">Investable Cash</CardTitle>
+          <CardTitle className={compact ? "text-sm font-semibold" : "text-lg"}>
+            Investable cash
+          </CardTitle>
           <Link
             href="/settings"
             className="-my-2 inline-flex min-h-10 items-center text-xs text-bento-subtle underline-offset-4 hover:text-bento-default hover:underline"
@@ -51,6 +58,7 @@ export function InvestableCashCard({
               <p
                 className={cn(
                   "font-mono text-3xl font-bold tabular-nums",
+                  compact && "text-2xl",
                   state.investableAmount > 0
                     ? "text-bento-positive"
                     : "text-bento-subtle"
@@ -82,7 +90,12 @@ export function InvestableCashCard({
                     Checking buffer (1mo)
                   </span>
                 </div>
-                <span className="shrink-0 font-mono text-sm text-bento-subtle tabular-nums">
+                <span
+                  className={cn(
+                    "shrink-0 font-mono text-sm text-bento-subtle tabular-nums",
+                    compact && "w-full pl-5 text-xs"
+                  )}
+                >
                   {formatCurrency(
                     state.totalCheckingBalance,
                     primaryCurrency,
@@ -118,7 +131,12 @@ export function InvestableCashCard({
                     Emergency fund ({state.savingsMonths}mo)
                   </span>
                 </div>
-                <span className="shrink-0 font-mono text-sm text-bento-subtle tabular-nums">
+                <span
+                  className={cn(
+                    "shrink-0 font-mono text-sm text-bento-subtle tabular-nums",
+                    compact && "w-full pl-5 text-xs"
+                  )}
+                >
                   {formatCurrency(
                     state.totalSavingsBalance,
                     primaryCurrency,
