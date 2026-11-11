@@ -4,6 +4,7 @@ import {
   assetComposition,
   groupAccounts,
   getAccountGroup,
+  liabilityComposition,
 } from "@/lib/account-groups";
 
 function account(
@@ -259,5 +260,34 @@ describe("asset composition", () => {
       account({ type: "investment", toBase: 200 }),
     ]);
     expect(rows[0].percent).toBe(100);
+  });
+});
+
+describe("liability composition", () => {
+  it("splits positive debt balances and excludes closed or unavailable accounts", () => {
+    const rows = liabilityComposition([
+      account({ type: "credit", isLiability: true, toBase: 180 }),
+      account({ type: "loan", isLiability: true, balance: 650, toBase: 820 }),
+      account({
+        type: "loan",
+        isLiability: true,
+        status: "closed",
+        toBase: 500,
+      }),
+      account({
+        type: "credit",
+        isLiability: true,
+        balanceValid: false,
+        toBase: 500,
+      }),
+      account({ type: "other liability", isLiability: true, toBase: -25 }),
+      account({ toBase: 1000 }),
+    ]);
+    expect(
+      rows.map(({ id, amount, percent }) => ({ id, amount, percent }))
+    ).toEqual([
+      { id: "loans", amount: 820, percent: 82 },
+      { id: "credit", amount: 180, percent: 18 },
+    ]);
   });
 });

@@ -119,19 +119,30 @@ export function groupAccounts(
 }
 
 /** Closed and invalid balances never contribute to composition. */
-export function assetComposition(accounts: NormalizedAccount[]) {
-  const assets = accounts.filter(
+function balanceComposition(
+  accounts: NormalizedAccount[],
+  isLiability: boolean
+) {
+  const eligible = accounts.filter(
     (account) =>
       account.status !== "closed" &&
       account.balanceValid &&
-      !account.isLiability
+      account.isLiability === isLiability
   );
   const rows = ACCOUNT_GROUPS.map((group) => ({
     ...group,
     amount: sumBalances(
-      assets.filter((account) => getAccountGroup(account) === group.id)
+      eligible.filter((account) => getAccountGroup(account) === group.id)
     ),
   })).filter((group) => group.amount > 0);
   const total = rows.reduce((sum, row) => sum + row.amount, 0);
   return rows.map((row) => ({ ...row, percent: (row.amount / total) * 100 }));
+}
+
+export function assetComposition(accounts: NormalizedAccount[]) {
+  return balanceComposition(accounts, false);
+}
+
+export function liabilityComposition(accounts: NormalizedAccount[]) {
+  return balanceComposition(accounts, true).sort((a, b) => b.amount - a.amount);
 }
