@@ -24,7 +24,7 @@ export function InstitutionGroups({
       key={institution}
       className={cn(i > 0 && "border-t border-bento-hairline")}
     >
-      <div className="flex items-baseline justify-between bg-bento-raised px-6 py-2">
+      <div className="flex items-baseline justify-between bg-bento-raised px-(--card-spacing) py-2">
         <span className="text-xs font-semibold tracking-wide text-bento-subtle uppercase">
           {institution}
         </span>
@@ -34,7 +34,7 @@ export function InstitutionGroups({
           </span>
         )}
       </div>
-      <ul className="flex flex-col px-6">
+      <ul className="flex flex-col px-(--card-spacing)">
         {accounts.map((a) => (
           <AccountRow
             key={a.id}

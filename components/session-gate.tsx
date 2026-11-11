@@ -18,7 +18,9 @@ export function SessionGate({ children }: { children: React.ReactNode }) {
       key={dataScopeKey ?? "signed-out"}
       className={cn(
         "@container/main min-w-0 flex-1",
-        hasDataSource && !isPublicPage && "px-4 pt-6 pb-10 md:px-6 lg:px-8"
+        hasDataSource &&
+          !isPublicPage &&
+          "px-page-gutter pt-page-gap pb-page-end md:px-page-gutter-wide"
       )}
     >
       {isPublicPage ? (

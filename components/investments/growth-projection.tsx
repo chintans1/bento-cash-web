@@ -191,7 +191,7 @@ export function GrowthProjection({
   );
 
   return (
-    <Card className="mt-6">
+    <Card className="mt-page-gap">
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>

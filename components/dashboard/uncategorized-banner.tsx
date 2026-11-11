@@ -12,7 +12,7 @@ export function UncategorizedBanner({
   href: string;
 }) {
   return (
-    <Alert className="mb-4 border-0 glass bg-cat-3/30 pl-4">
+    <Alert className="mb-page-gap border-0 glass bg-cat-3/30 pl-4">
       <AlertTriangle className="text-cat-3" />
       <AlertTitle className="text-bento-default">
         <span className="font-semibold">

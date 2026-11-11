@@ -56,7 +56,7 @@ export function AllocationBreakdown({
   ];
 
   return (
-    <Card className="mb-6">
+    <Card className="mb-page-gap">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg">Allocation</CardTitle>
         <CardDescription>Select a group to see its accounts</CardDescription>

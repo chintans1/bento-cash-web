@@ -106,7 +106,7 @@ export function QuickStatsPanel({
   return (
     <>
       {/* 4-card grid */}
-      <div className="mb-4 grid grid-cols-2 gap-3 @2xl/main:grid-cols-4 @2xl/main:gap-4">
+      <div className="mb-page-gap grid grid-cols-2 gap-3 @2xl/main:grid-cols-4 @2xl/main:gap-page-gap">
         {loading ? (
           Array.from({ length: 4 }).map((_, i) => (
             <Skeleton key={i} className="h-24 rounded-2xl" />
@@ -148,7 +148,7 @@ export function QuickStatsPanel({
       {/* Drill-down panel */}
       <Collapsible
         open={!loading && !!openPanel && !!quickStats}
-        className="mb-4"
+        className="mb-page-gap"
       >
         {openPanel && quickStats && (
           <div

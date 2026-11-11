@@ -306,6 +306,26 @@
   --warning-foreground: var(--color-amber-300);
 }
 
+/* Shared page and panel density. Keep local spacing for content and controls. */
+@theme static {
+  --spacing-page-gutter: 1rem;
+  --spacing-page-gutter-wide: 1.5rem;
+  --spacing-page-end: 2rem;
+  --spacing-page-gap: 1rem;
+  --spacing-panel: 1.125rem;
+  --spacing-panel-compact: 0.875rem;
+  --spacing-panel-gap: 0.875rem;
+  --spacing-panel-row: 0.625rem;
+}
+
+@utility card-inset {
+  --card-spacing: var(--spacing-panel);
+
+  &[data-size="sm"] {
+    --card-spacing: var(--spacing-panel-compact);
+  }
+}
+
 /* Layout contracts shared by responsive pages and component primitives. */
 @utility grid-cols-settings {
   grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);

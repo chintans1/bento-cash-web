@@ -40,7 +40,7 @@ export function CashFlowReport({
   const savingsTone = data.averageSaved >= 0 ? "positive" : "negative";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-page-gap">
       <div className="grid grid-cols-2 gap-3 @4xl/main:grid-cols-4">
         <ReportMetric
           label="Average income"

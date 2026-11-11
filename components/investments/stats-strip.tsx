@@ -34,7 +34,7 @@ export function StatsStrip({
       : null;
 
   return (
-    <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+    <div className="mb-page-gap grid grid-cols-2 gap-3 sm:grid-cols-4">
       <StatCard
         label="Net Worth"
         value={formatCurrency(netWorth, primaryCurrency, false)}

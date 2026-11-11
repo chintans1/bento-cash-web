@@ -67,7 +67,7 @@ function HomePage() {
 
   return (
     <div>
-      <div className="mb-5 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+      <div className="mb-page-gap flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
         <h1 className="font-heading text-2xl font-bold text-balance">
           Overview
         </h1>
@@ -89,7 +89,7 @@ function HomePage() {
         />
       </Collapsible>
 
-      <div className="mb-4 grid grid-cols-1 gap-4 @4xl/main:grid-cols-3">
+      <div className="mb-page-gap grid grid-cols-1 gap-page-gap @4xl/main:grid-cols-3">
         <div className="@4xl/main:col-span-2">
           <NetWorthCard
             netWorth={netWorth}
@@ -138,8 +138,8 @@ function HomePage() {
         flow them into a single grid leaves gaps whenever a card is missing
         (no budgets configured, no recurring items).
       */}
-      <div className="grid grid-cols-1 items-start gap-4 @4xl/main:grid-cols-3">
-        <div className="flex flex-col gap-4 @4xl/main:col-span-2">
+      <div className="grid grid-cols-1 items-start gap-page-gap @4xl/main:grid-cols-3">
+        <div className="flex flex-col gap-page-gap @4xl/main:col-span-2">
           <SpendingTrendCard
             data={cumulativeSpend}
             year={selectedYear}
@@ -169,7 +169,7 @@ function HomePage() {
           />
         </div>
 
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-page-gap">
           {budgetSummary && (
             <BudgetProgressCard
               summary={budgetSummary}

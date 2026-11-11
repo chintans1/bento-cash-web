@@ -174,7 +174,7 @@ export function NetWorthCard({
       </CardContent>
 
       {charted && (
-        <div className="-mb-6">
+        <div className="-mb-(--card-spacing)">
           <ChartContainer config={chartConfig} className="h-32 w-full sm:h-40">
             <AreaChart
               data={history}

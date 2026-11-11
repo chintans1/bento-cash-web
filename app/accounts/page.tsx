@@ -69,7 +69,7 @@ export default function AccountsPage() {
 
   return (
     <div>
-      <header className="mb-6">
+      <header className="mb-page-gap">
         <h1 className="font-heading text-3xl font-semibold tracking-tight">
           Accounts
         </h1>
@@ -78,7 +78,7 @@ export default function AccountsPage() {
         <div
           aria-label="Loading accounts"
           role="status"
-          className="grid gap-6 @4xl/main:grid-cols-accounts"
+          className="grid gap-page-gap @4xl/main:grid-cols-accounts"
         >
           <Skeleton className="h-96 rounded-4xl" />
           <Skeleton className="h-120 rounded-4xl" />
@@ -92,9 +92,9 @@ export default function AccountsPage() {
           <h2 className="font-heading text-xl">No accounts in this budget</h2>
         </Card>
       ) : (
-        <div className="grid items-start gap-7 @4xl/main:grid-cols-accounts @4xl/main:gap-8">
+        <div className="grid items-start gap-page-gap @4xl/main:grid-cols-accounts">
           <section aria-label="Account list" className="min-w-0">
-            <div className="mb-4 flex min-h-6 flex-wrap items-baseline justify-between gap-2">
+            <div className="mb-panel-row flex min-h-6 flex-wrap items-baseline justify-between gap-2">
               <h2 className="text-sm font-semibold">
                 All accounts{" "}
                 <span className="ml-1 text-bento-subtle">{active.length}</span>
@@ -106,7 +106,7 @@ export default function AccountsPage() {
               </span>
             </div>
             <Card className="gap-0 py-0">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-bento-hairline px-4 py-3 sm:px-5">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-bento-hairline px-(--card-spacing) py-panel-row">
                 <AccountSegmentedControl
                   label="Group accounts by"
                   options={[
@@ -127,7 +127,10 @@ export default function AccountsPage() {
                     placeholder="Search accounts"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    className="h-8 rounded-lg pr-8 pl-8 text-sm md:text-xs [&::-webkit-search-cancel-button]:appearance-none"
+                    className={cn(
+                      "h-8 rounded-lg pl-8 text-sm md:text-xs [&::-webkit-search-cancel-button]:appearance-none",
+                      query ? "pr-8" : "pr-2.5"
+                    )}
                   />
                   {query && (
                     <Button
@@ -168,7 +171,7 @@ export default function AccountsPage() {
                   </p>
                 </div>
               )}
-              <div className="border-t border-bento-hairline px-5 py-3 text-xs text-bento-subtle">
+              <div className="border-t border-bento-hairline px-(--card-spacing) py-panel-row text-xs text-bento-subtle">
                 {search
                   ? `${visibleActive.length} of ${active.length} active accounts`
                   : "Balances shown in " + primaryCurrency.toUpperCase()}
@@ -222,10 +225,10 @@ export default function AccountsPage() {
             )}
           </section>
           <aside aria-label="Account summary" className="min-w-0">
-            <h2 className="mb-4 flex min-h-6 items-center text-sm font-semibold">
+            <h2 className="mb-panel-row flex min-h-6 items-center text-sm font-semibold">
               Summary
             </h2>
-            <div className="space-y-5">
+            <div className="space-y-page-gap">
               <AccountSummary
                 accounts={accounts}
                 primaryCurrency={primaryCurrency}

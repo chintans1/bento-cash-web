@@ -49,7 +49,7 @@ export function AccountSection({
       aria-label={title}
       className="border-b border-bento-hairline last:border-0"
     >
-      <div className="flex items-center gap-3 bg-bento-raised/50 px-4 py-3 sm:px-5">
+      <div className="flex items-center gap-3 bg-bento-raised/50 px-(--card-spacing) py-panel-row">
         <Icon
           className="size-4 shrink-0 text-bento-subtle"
           strokeWidth={1.7}
@@ -70,7 +70,7 @@ export function AccountSection({
           )}
         </p>
       </div>
-      <ul className="px-4 sm:px-5">
+      <ul className="px-(--card-spacing)">
         {accounts.map((account) => (
           <AccountRow
             key={account.id}

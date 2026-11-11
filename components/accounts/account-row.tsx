@@ -33,7 +33,7 @@ export function AccountRow({
     .join(" · ");
 
   return (
-    <li className="border-b border-bento-hairline/60 py-4 last:border-0">
+    <li className="border-b border-bento-hairline/60 py-panel-row last:border-0">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
           <p

@@ -20,7 +20,7 @@ export function AccountSummary({
 }) {
   const { netWorth, totalAssets, totalLiabilities } = computeNetWorth(accounts);
   return (
-    <Card className="gap-0 p-5 sm:p-6">
+    <Card className="gap-0 px-(--card-spacing)">
       <div>
         <h3 className="text-sm text-bento-subtle">Net worth</h3>
         <p
@@ -32,7 +32,7 @@ export function AccountSummary({
           {formatCurrency(netWorth, primaryCurrency, true)}
         </p>
       </div>
-      <dl className="mt-6 grid grid-cols-2 gap-4 border-b border-bento-hairline pb-6">
+      <dl className="mt-panel grid grid-cols-2 gap-4 border-b border-bento-hairline pb-panel">
         <div>
           <dt className="flex items-center gap-1.5 text-xs text-bento-subtle">
             <span className="size-1.5 rounded-full bg-bento-positive" />
@@ -89,8 +89,8 @@ function CompositionBreakdown({
   return (
     <section
       className={cn(
-        "pt-5",
-        isLiability && "mt-5 border-t border-bento-hairline"
+        "pt-panel",
+        isLiability && "mt-panel border-t border-bento-hairline"
       )}
     >
       <h3 className="text-sm font-semibold">

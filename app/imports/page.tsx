@@ -14,7 +14,7 @@ export default function ImportsPage() {
   if (!hasDataSource) return <ConnectionPrompt />;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-page-gap">
       <h1 className="font-heading text-3xl font-semibold tracking-tight text-balance">
         Imports
       </h1>
@@ -23,7 +23,7 @@ export default function ImportsPage() {
           <AlertTitle>Connect a Lunch Money budget to import.</AlertTitle>
         </Alert>
       )}
-      <div className="grid grid-cols-1 items-start gap-5 @4xl/main:grid-cols-2">
+      <div className="grid grid-cols-1 items-start gap-page-gap @4xl/main:grid-cols-2">
         <MintBalanceImportCard
           currency={user?.primary_currency ?? "usd"}
           isDemo={isDemo}

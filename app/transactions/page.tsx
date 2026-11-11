@@ -455,7 +455,7 @@ function TransactionsPage() {
 
   return (
     <div>
-      <div className="mb-5 flex flex-col items-start justify-between gap-3 @2xl/main:flex-row @2xl/main:items-center">
+      <div className="mb-page-gap flex flex-col items-start justify-between gap-3 @2xl/main:flex-row @2xl/main:items-center">
         <h1 className="font-heading text-2xl font-bold text-balance">
           Transactions
         </h1>
@@ -470,7 +470,7 @@ function TransactionsPage() {
         />
       </div>
 
-      <div className="mb-4 grid grid-cols-4 items-center gap-1 rounded-full bg-bento-muted p-1 @2xl/main:flex @2xl/main:w-fit">
+      <div className="mb-page-gap grid grid-cols-4 items-center gap-1 rounded-full bg-bento-muted p-1 @2xl/main:flex @2xl/main:w-fit">
         {(
           [
             ["all", "All", "All", transactions.length],
@@ -857,7 +857,9 @@ export default function TransactionsPageWrapper() {
     <Suspense
       fallback={
         <div>
-          <h1 className="mb-5 font-heading text-2xl font-bold">Transactions</h1>
+          <h1 className="mb-page-gap font-heading text-2xl font-bold">
+            Transactions
+          </h1>
           <TransactionListLoading />
         </div>
       }

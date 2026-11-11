@@ -35,7 +35,7 @@ export function SpendingReport({
         : "negative";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-page-gap">
       <div className="grid grid-cols-2 gap-3 @4xl/main:grid-cols-3 [&>*:last-child]:col-span-2 @4xl/main:[&>*:last-child]:col-span-1">
         <ReportMetric
           label="Average spending"

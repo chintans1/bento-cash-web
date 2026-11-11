@@ -72,9 +72,11 @@ export default function InvestmentsPage() {
 
   return (
     <div>
-      <h1 className="mb-5 font-heading text-2xl font-bold">Investments</h1>
+      <h1 className="mb-page-gap font-heading text-2xl font-bold">
+        Investments
+      </h1>
       {/* Hero */}
-      <div className="mb-6 text-center">
+      <div className="mb-page-gap text-center">
         <p className="mb-1 text-sm text-bento-subtle">Portfolio Value</p>
         {loading ? (
           <Skeleton className="mx-auto h-12 w-56 rounded-lg" />
@@ -92,7 +94,7 @@ export default function InvestmentsPage() {
       </div>
 
       {loading ? (
-        <div className="grid grid-cols-1 gap-6 @2xl/main:grid-cols-2">
+        <div className="grid grid-cols-1 gap-page-gap @2xl/main:grid-cols-2">
           {[1, 2].map((i) => (
             <Skeleton key={i} className="h-64 rounded-xl" />
           ))}
@@ -110,7 +112,7 @@ export default function InvestmentsPage() {
             avgMonthlySpend={avgMonthlySpend}
           />
 
-          <div className="grid grid-cols-1 items-start gap-6 @2xl/main:grid-cols-2">
+          <div className="grid grid-cols-1 items-start gap-page-gap @2xl/main:grid-cols-2">
             {/* Left column: allocation + cash */}
             <div>
               {investmentAccounts.length > 0 ? (
@@ -119,7 +121,7 @@ export default function InvestmentsPage() {
                   primaryCurrency={primaryCurrency}
                 />
               ) : (
-                <Card className="mb-6">
+                <Card className="mb-page-gap">
                   <CardContent className="py-8 text-center">
                     <p className="text-sm text-bento-subtle">
                       No investment accounts found.
@@ -180,7 +182,7 @@ export default function InvestmentsPage() {
           )}
 
           {otherAccounts.length > 0 && (
-            <Card className="mt-6 pb-0">
+            <Card className="mt-page-gap pb-0">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base text-bento-subtle">
                   Other Accounts

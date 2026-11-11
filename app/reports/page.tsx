@@ -83,7 +83,7 @@ export default function ReportsPage() {
 
   return (
     <div>
-      <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+      <div className="mb-page-gap flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <h1 className="font-heading text-2xl font-bold text-balance">
           Reports
         </h1>
@@ -99,7 +99,7 @@ export default function ReportsPage() {
       </div>
 
       <Card className="gap-0 py-0">
-        <CardHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
+        <CardHeader className="pt-(--card-spacing)">
           <div className="overflow-x-auto pb-1">
             <SegmentedControl
               label="Report type"
@@ -110,7 +110,7 @@ export default function ReportsPage() {
           </div>
         </CardHeader>
 
-        <CardContent className="px-4 py-6 sm:px-6 sm:py-8">
+        <CardContent className="py-panel">
           {history.error ? (
             <p
               role="alert"
@@ -119,7 +119,7 @@ export default function ReportsPage() {
               {history.error}
             </p>
           ) : !report ? (
-            <div className="space-y-6" aria-label="Loading report">
+            <div className="space-y-page-gap" aria-label="Loading report">
               <div className="grid grid-cols-2 gap-3 @4xl/main:grid-cols-4">
                 {[1, 2, 3, 4].map((item) => (
                   <Skeleton key={item} className="h-24 rounded-xl" />

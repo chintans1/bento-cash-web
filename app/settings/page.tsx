@@ -97,15 +97,15 @@ export default function SettingsPage() {
   if (!hasDataSource) return <ConnectionPrompt />;
 
   return (
-    <div className="flex w-full flex-col gap-6">
+    <div className="flex w-full flex-col gap-page-gap">
       <header>
         <h1 className="font-heading text-3xl font-bold tracking-tight text-balance">
           Settings
         </h1>
       </header>
 
-      <div className="grid items-start gap-5 @4xl/main:grid-cols-settings">
-        <div className="flex min-w-0 flex-col gap-5">
+      <div className="grid items-start gap-page-gap @4xl/main:grid-cols-settings">
+        <div className="flex min-w-0 flex-col gap-page-gap">
           <Card className="w-full">
             {accountLoading ? (
               <CardContent className="flex min-h-64 items-center justify-center text-sm text-bento-subtle">
@@ -116,7 +116,7 @@ export default function SettingsPage() {
                 <CardHeader>
                   <CardTitle className="text-lg">Active budget</CardTitle>
                 </CardHeader>
-                <CardContent className="flex flex-col gap-5">
+                <CardContent className="flex flex-col gap-panel-gap">
                   <div className="flex items-center gap-3">
                     <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-bento-brand/10 font-heading text-sm font-semibold text-bento-brand">
                       {initials(lunchMoneyUser.name)}
@@ -198,7 +198,7 @@ export default function SettingsPage() {
           </Card>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-5">
+        <div className="flex min-w-0 flex-col gap-page-gap">
           {!isDemo && (
             <Card id="connections" className="scroll-mt-28">
               <CardHeader>
