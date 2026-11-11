@@ -66,10 +66,7 @@ export function CashFlowReport({
         />
       </div>
 
-      <ReportSection
-        title="Income, spending, and what stayed"
-        description="Compare complete months. The line shows the amount left after spending."
-      >
+      <ReportSection title="Monthly cash flow">
         <ChartContainer
           config={chartConfig}
           className="aspect-auto h-72 w-full"

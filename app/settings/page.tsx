@@ -18,19 +18,15 @@ import {
   Card,
   CardAction,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Dialog, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Kbd } from "@/components/ui/kbd";
 import { useAuth } from "@/hooks/use-auth";
 import type { LunchMoneyConnection } from "@/lib/lunchmoney/connection-types";
 import { useInvestableMonths } from "@/hooks/use-investable-months";
 import { useAppData } from "@/hooks/use-app-data";
-import { MintBalanceImportCard } from "@/components/settings/mint-balance-import-card";
-import { AppleCardImportCard } from "@/components/settings/apple-card-import-card";
 
 function initials(name: string): string {
   return name
@@ -51,11 +47,7 @@ export default function SettingsPage() {
     hasDataSource,
     isDemo,
   } = useAuth();
-  const {
-    user: lunchMoneyUser,
-    loading: accountLoading,
-    refreshAccounts,
-  } = useAppData();
+  const { user: lunchMoneyUser, loading: accountLoading } = useAppData();
   const { months: floorMonths, setMonths } = useInvestableMonths();
   const [floorMonthsInput, setFloorMonthsInput] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
@@ -110,11 +102,6 @@ export default function SettingsPage() {
         <h1 className="font-heading text-3xl font-bold tracking-tight text-balance">
           Settings
         </h1>
-        <p className="mt-1 text-sm text-pretty text-bento-subtle">
-          {isDemo
-            ? "Adjust how Bento Cash calculates your demo insights."
-            : "Manage your Lunch Money budgets, cash reserve, and historical data."}
-        </p>
       </header>
 
       <div className="grid items-start gap-5 @4xl/main:grid-cols-settings">
@@ -128,9 +115,6 @@ export default function SettingsPage() {
               <>
                 <CardHeader>
                   <CardTitle className="text-lg">Active budget</CardTitle>
-                  <CardDescription>
-                    Your selected Lunch Money budget
-                  </CardDescription>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-5">
                   <div className="flex items-center gap-3">
@@ -173,9 +157,6 @@ export default function SettingsPage() {
           <Card className="w-full">
             <CardHeader>
               <CardTitle className="text-lg">Cash reserve</CardTitle>
-              <CardDescription>
-                Set the savings buffer used in your investment plan
-              </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
               <div className="flex items-center justify-between gap-3 rounded-xl bg-bento-raised p-3">
@@ -228,9 +209,6 @@ export default function SettingsPage() {
                   />
                   Lunch Money budgets
                 </CardTitle>
-                <CardDescription>
-                  Add another budget from your Lunch Money account.
-                </CardDescription>
                 <CardAction>
                   <Button size="sm" onClick={addBudget} disabled={adding}>
                     <Plus data-icon="inline-start" />
@@ -308,24 +286,8 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           )}
-
-          <MintBalanceImportCard
-            currency={lunchMoneyUser?.primary_currency ?? "usd"}
-            isDemo={isDemo}
-            accountLoading={accountLoading}
-            onImported={refreshAccounts}
-          />
-          <AppleCardImportCard
-            key={activeConnection?.id ?? (isDemo ? "demo" : "none")}
-            isDemo={isDemo}
-            onImported={refreshAccounts}
-          />
         </div>
       </div>
-
-      <p className="text-center font-mono text-xs text-bento-subtle">
-        Press <Kbd>d</Kbd> to toggle dark mode
-      </p>
 
       <Dialog
         open={removeTarget !== null}

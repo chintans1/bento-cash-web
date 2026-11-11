@@ -6,7 +6,6 @@ import {
   CircleCheckBig,
   FileCheck2,
   LoaderCircle,
-  ShieldCheck,
   TriangleAlert,
   UploadCloud,
 } from "lucide-react";
@@ -16,16 +15,12 @@ import {
   Card,
   CardAction,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-  formatMintMonth,
-  MintImportReview,
-} from "@/components/settings/mint-import-review";
+import { formatMintMonth, MintImportReview } from "./mint-import-review";
 import { cn } from "@/lib/utils";
 import {
   applyMintImport,
@@ -173,29 +168,21 @@ export function MintBalanceImportCard({
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="text-lg">Mint balance history</CardTitle>
-        <CardDescription className="max-w-2xl text-pretty">
-          Restore Mint&apos;s monthly net worth without inventing account-level
-          history.
-        </CardDescription>
-        <CardAction>
-          <span className="inline-flex h-7 items-center rounded-full bg-bento-raised px-3 font-mono text-xs font-medium text-bento-subtle uppercase tabular-nums">
-            {currency}
-          </span>
-        </CardAction>
+        <CardTitle className="text-lg">
+          <h2>Mint balance history</h2>
+        </CardTitle>
+        {!isDemo && (
+          <CardAction>
+            <span className="inline-flex h-7 items-center rounded-full bg-bento-raised px-3 font-mono text-xs font-medium text-bento-subtle uppercase tabular-nums">
+              {currency}
+            </span>
+          </CardAction>
+        )}
       </CardHeader>
 
       <CardContent className="flex flex-col gap-5">
         {isDemo ? (
-          <Alert>
-            <ShieldCheck aria-hidden="true" />
-            <AlertTitle>Connect a Lunch Money budget to import</AlertTitle>
-            <AlertDescription>
-              Demo mode cannot write balance history. Your CSV stays in this
-              browser and is sent only to Lunch Money when you confirm the
-              import.
-            </AlertDescription>
-          </Alert>
+          <p className="text-bento-subtle">Mint Trends CSV</p>
         ) : (
           <>
             <div>
@@ -256,8 +243,8 @@ export function MintBalanceImportCard({
               )}
 
               <p className="mt-2 text-xs text-pretty text-bento-subtle">
-                Aggregate Mint history is imported in your default currency. No
-                account mapping is needed.
+                Imports monthly totals in your budget currency. The CSV stays in
+                your browser.
               </p>
             </div>
 

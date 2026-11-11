@@ -33,23 +33,16 @@ export function ReportMetric({
 
 export function ReportSection({
   title,
-  description,
   children,
 }: {
   title: string;
-  description: string;
   children: ReactNode;
 }) {
   return (
     <section>
-      <div className="mb-4">
-        <h2 className="font-heading text-lg font-semibold text-balance">
-          {title}
-        </h2>
-        <p className="mt-1 text-sm text-pretty text-bento-subtle">
-          {description}
-        </p>
-      </div>
+      <h2 className="mb-4 font-heading text-lg font-semibold text-balance">
+        {title}
+      </h2>
       {children}
     </section>
   );

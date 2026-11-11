@@ -15,22 +15,9 @@ import { buildReportData } from "@/lib/lunchmoney/reports";
 import { cn } from "@/lib/utils";
 
 const REPORTS = [
-  {
-    id: "cash-flow",
-    label: "Cash Flow",
-    description:
-      "See whether income is consistently staying ahead of spending.",
-  },
-  {
-    id: "spending",
-    label: "Spending",
-    description: "Find where your money goes and what changed recently.",
-  },
-  {
-    id: "income",
-    label: "Income",
-    description: "Understand the stability and mix of your income.",
-  },
+  { id: "cash-flow", label: "Cash Flow" },
+  { id: "spending", label: "Spending" },
+  { id: "income", label: "Income" },
 ] as const;
 
 const RANGES = [
@@ -92,23 +79,16 @@ export default function ReportsPage() {
         : null,
     [history.months, periods, categoryMap]
   );
-  const selected = REPORTS.find(({ id }) => id === activeReport)!;
-
   if (!hasDataSource) return <ConnectionPrompt />;
 
   return (
     <div>
-      <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-        <div>
-          <h1 className="font-heading text-2xl font-bold text-balance">
-            Reports
-          </h1>
-          <p className="mt-1 text-sm text-pretty text-bento-subtle">
-            Clear answers from your completed months.
-          </p>
-        </div>
+      <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <h1 className="font-heading text-2xl font-bold text-balance">
+          Reports
+        </h1>
         <SegmentedControl
-          label="Report period"
+          label="Report period in completed months"
           value={range}
           onChange={setRange}
           options={RANGES.map(({ months, label }) => ({
@@ -119,7 +99,7 @@ export default function ReportsPage() {
       </div>
 
       <Card className="gap-0 py-0">
-        <CardHeader className="gap-5 px-4 pt-4 sm:px-6 sm:pt-6">
+        <CardHeader className="px-4 pt-4 sm:px-6 sm:pt-6">
           <div className="overflow-x-auto pb-1">
             <SegmentedControl
               label="Report type"
@@ -127,14 +107,6 @@ export default function ReportsPage() {
               onChange={setActiveReport}
               options={REPORTS.map(({ id, label }) => ({ value: id, label }))}
             />
-          </div>
-          <div className="border-b border-bento-hairline pb-5">
-            <h2 className="font-heading text-xl font-semibold text-balance">
-              {selected.label}
-            </h2>
-            <p className="mt-1 text-sm text-pretty text-bento-subtle">
-              {selected.description}
-            </p>
           </div>
         </CardHeader>
 

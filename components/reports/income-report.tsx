@@ -37,10 +37,7 @@ export function IncomeReport({
         />
       </div>
 
-      <ReportSection
-        title="Monthly income"
-        description="See whether take-home income is steady, seasonal, or changing over time."
-      >
+      <ReportSection title="Monthly income">
         <MonthlyBarChart
           data={data.months}
           dataKey="income"
@@ -50,10 +47,7 @@ export function IncomeReport({
         />
       </ReportSection>
 
-      <ReportSection
-        title="Income sources"
-        description="See how much each source contributes and how often it appeared."
-      >
+      <ReportSection title="Income sources">
         {data.incomeSources.length ? (
           <ul className="divide-y divide-bento-hairline">
             {data.incomeSources.map((source) => (

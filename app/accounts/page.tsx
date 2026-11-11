@@ -89,10 +89,7 @@ export default function AccountsPage() {
         </p>
       ) : accounts.length === 0 ? (
         <Card className="items-center px-6 py-14 text-center">
-          <h2 className="font-heading text-xl">No accounts yet</h2>
-          <p className="text-sm text-bento-subtle">
-            Accounts in your Lunch Money budget will appear here.
-          </p>
+          <h2 className="font-heading text-xl">No accounts in this budget</h2>
         </Card>
       ) : (
         <div className="grid items-start gap-7 @4xl/main:grid-cols-accounts @4xl/main:gap-8">

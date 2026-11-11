@@ -31,10 +31,6 @@ export function ConnectionPrompt() {
           <h1 className="font-heading text-4xl font-bold">
             Connect Lunch Money
           </h1>
-          <p className="text-sm leading-6 text-bento-subtle">
-            Choose a Lunch Money budget to start exploring your financial
-            picture.
-          </p>
           {user && (
             <p className="text-xs text-bento-subtle">
               Signed in as {user.email}

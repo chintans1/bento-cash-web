@@ -10,6 +10,7 @@ import {
   Landmark,
   Settings,
   TrendingUp,
+  Upload,
   X,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
@@ -35,6 +36,7 @@ const NAV_LINKS = [
   { href: "/reports", label: "Reports", icon: ChartNoAxesCombined },
   { href: "/accounts", label: "Accounts", icon: Landmark },
   { href: "/investments", label: "Investments", icon: TrendingUp },
+  { href: "/imports", label: "Imports", icon: Upload },
 ];
 
 const navButtonClassName =
@@ -119,28 +121,20 @@ export function AppSidebar() {
 
       <SidebarFooter className="gap-3 pb-3">
         {isDemo && (
-          <div className="rounded-2xl bg-bento-brand/10 p-3 group-data-[collapsible=icon]:bg-transparent group-data-[collapsible=icon]:p-0">
-            <div className="mb-3 px-1 group-data-[collapsible=icon]:hidden">
-              <p className="text-sm font-medium">You’re in demo mode</p>
-              <p className="mt-1 text-xs leading-relaxed text-bento-subtle">
-                Connect Lunch Money to see your own budget here.
-              </p>
-            </div>
-            <Button
-              className="h-10 w-full group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:p-0"
-              aria-label="Connect Lunch Money"
-              title="Connect Lunch Money"
-              onClick={() => {
-                closeMobile();
-                void signOut();
-              }}
-            >
-              <ArrowUpRight className="size-4" />
-              <span className="group-data-[collapsible=icon]:hidden">
-                Connect Lunch Money
-              </span>
-            </Button>
-          </div>
+          <Button
+            className="h-10 w-full group-data-[collapsible=icon]:size-10 group-data-[collapsible=icon]:p-0"
+            aria-label="Connect Lunch Money"
+            title="Connect Lunch Money"
+            onClick={() => {
+              closeMobile();
+              void signOut();
+            }}
+          >
+            <ArrowUpRight className="size-4" />
+            <span className="group-data-[collapsible=icon]:hidden">
+              Connect Lunch Money
+            </span>
+          </Button>
         )}
         <SidebarMenu>
           <SidebarMenuItem>

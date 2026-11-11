@@ -17,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardFooter,
   CardHeader,
   CardTitle,
@@ -268,20 +267,13 @@ export function AppleCardImportCard({
   return (
     <Card className="w-full">
       <CardHeader>
-        <CardTitle className="text-lg">Apple Card transactions</CardTitle>
-        <CardDescription className="text-pretty">
-          Import statement transactions into a manual Lunch Money credit
-          account.
-        </CardDescription>
+        <CardTitle className="text-lg">
+          <h2>Apple Card transactions</h2>
+        </CardTitle>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
         {isDemo ? (
-          <Alert>
-            <AlertTitle>Connect a Lunch Money budget to import</AlertTitle>
-            <AlertDescription>
-              Transaction imports are unavailable in demo mode.
-            </AlertDescription>
-          </Alert>
+          <p className="text-bento-subtle">Apple Card CSV or PDF statement</p>
         ) : (
           <>
             <div className="rounded-2xl bg-bento-raised p-4 text-sm leading-6 text-bento-subtle">
@@ -294,19 +286,19 @@ export function AppleCardImportCard({
                   Choose a monthly statement, then Export Transactions (CSV) or
                   Download PDF Statement.
                 </li>
-                <li>
-                  Save the file and select it below. You can also export at{" "}
-                  <a
-                    className="text-bento-brand underline underline-offset-2"
-                    href="https://card.apple.com"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    card.apple.com
-                  </a>
-                  .
-                </li>
               </ol>
+              <p className="mt-1">
+                Statements are also available at{" "}
+                <a
+                  className="text-bento-brand underline underline-offset-2"
+                  href="https://card.apple.com"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  card.apple.com
+                </a>
+                .
+              </p>
             </div>
             <input
               id="apple-card-file"

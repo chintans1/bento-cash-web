@@ -55,10 +55,7 @@ export function SpendingReport({
         />
       </div>
 
-      <ReportSection
-        title="Monthly spending"
-        description="A clean month-by-month view makes changes easier to spot than a dense category stack."
-      >
+      <ReportSection title="Monthly spending">
         <MonthlyBarChart
           data={data.months}
           dataKey="spend"
@@ -68,10 +65,7 @@ export function SpendingReport({
         />
       </ReportSection>
 
-      <ReportSection
-        title="Where your money went"
-        description="Categories are ranked across the selected period; the note compares the latest two months."
-      >
+      <ReportSection title="Spending by category">
         {data.spendingCategories.length ? (
           <ul className="divide-y divide-bento-hairline">
             {data.spendingCategories.map((category) => (
