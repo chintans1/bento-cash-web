@@ -27,7 +27,7 @@ import {
 import { canGroupTransaction } from "@/lib/lunchmoney/transaction-structure";
 
 export const TRANSACTION_GRID_COLUMNS =
-  "grid-cols-transaction @2xl/ledger:grid-cols-transaction-sm @3xl/ledger:grid-cols-transaction-md";
+  "grid-cols-transaction @xl/ledger:grid-cols-transaction-sm @3xl/ledger:grid-cols-transaction-md";
 
 export type TransactionRowProps = {
   transaction: Transaction;
@@ -102,7 +102,7 @@ export const TransactionRow = memo(function TransactionRow({
     >
       <div
         className={cn(
-          "grid items-center gap-x-1 px-2 py-1 @2xl/ledger:gap-x-2",
+          "grid items-center gap-x-1 px-2 py-1 @xl/ledger:gap-x-2",
           TRANSACTION_GRID_COLUMNS
         )}
       >
@@ -177,8 +177,8 @@ export const TransactionRow = memo(function TransactionRow({
               ) : (
                 <EditableText
                   value={payee}
-                  className="w-auto max-w-full min-w-0 @2xl/ledger:min-h-7"
-                  inputClassName="@2xl/ledger:h-7"
+                  className="w-auto max-w-full min-w-0 @xl/ledger:min-h-7"
+                  inputClassName="@xl/ledger:h-7"
                   placeholder="Add a description…"
                   suggestions={payeeSuggestions}
                   ariaLabel={
@@ -212,14 +212,14 @@ export const TransactionRow = memo(function TransactionRow({
               {tx.split_parent_id != null && (
                 <Badge variant="secondary">Split</Badge>
               )}
-              <span className="ml-auto shrink-0 text-xs text-bento-subtle tabular-nums @2xl/ledger:hidden">
+              <span className="ml-auto shrink-0 text-xs text-bento-subtle tabular-nums @xl/ledger:hidden">
                 {date}
               </span>
             </div>
             {accountName && (
               <span
                 title={accountName}
-                className="hidden truncate px-1.5 text-xs leading-4 text-bento-subtle @2xl/ledger:block"
+                className="hidden truncate px-1.5 text-xs leading-4 text-bento-subtle @xl/ledger:block"
               >
                 {accountName}
               </span>
@@ -232,16 +232,16 @@ export const TransactionRow = memo(function TransactionRow({
           </div>
         </div>
 
-        <div className="col-span-3 col-start-2 row-start-2 flex min-w-0 items-center gap-2 @2xl/ledger:contents">
+        <div className="col-span-3 col-start-2 row-start-2 flex min-w-0 items-center gap-2 @xl/ledger:contents">
           {accountName && (
             <span
               title={accountName}
-              className="min-w-0 flex-3 truncate pl-1.5 text-xs text-bento-subtle @2xl/ledger:hidden"
+              className="min-w-0 flex-3 truncate pl-1.5 text-xs text-bento-subtle @xl/ledger:hidden"
             >
               {accountName}
             </span>
           )}
-          <div className="min-w-0 flex-2 @2xl/ledger:col-start-3 @2xl/ledger:row-start-1">
+          <div className="min-w-0 flex-2 @xl/ledger:col-start-3 @xl/ledger:row-start-1">
             {structurallyLocked ? (
               <span className="block truncate px-2 text-xs text-bento-default">
                 {categoryName}
@@ -261,13 +261,13 @@ export const TransactionRow = memo(function TransactionRow({
             )}
           </div>
 
-          <span className="hidden text-center text-xs text-bento-subtle tabular-nums @2xl/ledger:col-start-4 @2xl/ledger:row-start-1 @2xl/ledger:block">
+          <span className="hidden text-center text-xs text-bento-subtle tabular-nums @xl/ledger:col-start-4 @xl/ledger:row-start-1 @xl/ledger:block">
             {date}
           </span>
 
           <span
             className={cn(
-              "shrink-0 justify-self-end text-right font-mono text-xs font-medium whitespace-nowrap tabular-nums @2xl/ledger:col-start-5 @2xl/ledger:row-start-1 @2xl/ledger:text-sm",
+              "shrink-0 justify-self-end text-right font-mono text-xs font-medium whitespace-nowrap tabular-nums @xl/ledger:col-start-5 @xl/ledger:row-start-1 @xl/ledger:text-sm",
               isCredit && !tx.is_pending && "text-bento-positive"
             )}
           >
@@ -275,7 +275,7 @@ export const TransactionRow = memo(function TransactionRow({
             {formatCurrency(Math.abs(amount), tx.currency, true)}
           </span>
         </div>
-        <div className="col-start-3 row-start-1 @2xl/ledger:col-start-6">
+        <div className="col-start-3 row-start-1 @xl/ledger:col-start-6">
           {(!structurallyLocked || tx.tag_ids.length > 0) && (
             <TagPicker
               appearance="cell"
@@ -287,7 +287,7 @@ export const TransactionRow = memo(function TransactionRow({
             />
           )}
         </div>
-        <div className="col-start-4 row-start-1 @2xl/ledger:col-start-7">
+        <div className="col-start-4 row-start-1 @xl/ledger:col-start-7">
           {tx.is_pending ? (
             <span aria-hidden="true" className="size-8" />
           ) : structurallyLocked ? (

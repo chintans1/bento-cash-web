@@ -1,4 +1,28 @@
+"use client";
+
+import { useState, type PointerEvent } from "react";
 import { cn } from "@/lib/utils";
+
+export function useCompositionHighlight<Id extends string | number>() {
+  const [hoveredId, setHoveredId] = useState<Id | null>(null);
+  const [focusedId, setFocusedId] = useState<Id | null>(null);
+
+  return {
+    activeId: hoveredId ?? focusedId,
+    onHover: setHoveredId,
+    rowHandlers: (id: Id) => ({
+      onPointerEnter: (event: PointerEvent) => {
+        if (event.pointerType !== "touch") setHoveredId(id);
+      },
+      onPointerLeave: () => setHoveredId(null),
+      onFocus: () => {
+        setHoveredId(null);
+        setFocusedId(id);
+      },
+      onBlur: () => setFocusedId(null),
+    }),
+  };
+}
 
 export function CompositionBar<Id extends string | number>({
   segments,

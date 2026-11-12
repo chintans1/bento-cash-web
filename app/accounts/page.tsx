@@ -22,6 +22,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  PageSidebar,
+  PageSidebarLayout,
+} from "@/components/ui/page-sidebar-layout";
 import { cn } from "@/lib/utils";
 import { useBalanceHistory } from "@/hooks/use-balance-history";
 import { NetWorthPerformanceCard } from "@/components/accounts/net-worth-performance-card";
@@ -120,9 +124,6 @@ export default function AccountsPage() {
     .toSorted((a, b) => a.name.localeCompare(b.name));
   const groups = groupAccounts(visibleActive, grouping);
   const inactiveGroups = groupAccounts(visibleInactive, grouping);
-  const institutionCount = new Set(
-    accounts.map((account) => account.institution?.trim()).filter(Boolean)
-  ).size;
   const matchCount =
     visibleActive.length +
     attentionRows.length +
@@ -162,14 +163,10 @@ export default function AccountsPage() {
         </h1>
       </header>
       {loading ? (
-        <div
-          aria-label="Loading accounts"
-          role="status"
-          className="grid gap-page-gap @4xl/main:grid-cols-accounts"
-        >
+        <PageSidebarLayout aria-label="Loading accounts" role="status">
           <Skeleton className="h-96 rounded-4xl" />
           <Skeleton className="h-120 rounded-4xl" />
-        </div>
+        </PageSidebarLayout>
       ) : error ? (
         <p role="alert" className="text-sm text-bento-danger">
           {error}
@@ -179,21 +176,12 @@ export default function AccountsPage() {
           <h2 className="font-heading text-xl">No accounts in this budget</h2>
         </Card>
       ) : (
-        <div className="grid items-start gap-page-gap @4xl/main:grid-cols-accounts">
+        <PageSidebarLayout>
           <section aria-label="Account list" className="min-w-0">
-            <div className="mb-panel-row flex min-h-6 flex-wrap items-baseline justify-between gap-2">
-              <h2 className="text-sm font-semibold">
-                All accounts{" "}
-                <span className="ml-1 text-bento-subtle">
-                  {accounts.length}
-                </span>
-              </h2>
-              <span className="text-xs text-bento-subtle">
-                {institutionCount}{" "}
-                {institutionCount === 1 ? "institution" : "institutions"} ·{" "}
-                {primaryCurrency.toUpperCase()}
-              </span>
-            </div>
+            <h2 className="mb-panel-row flex min-h-6 items-center text-sm font-semibold">
+              All accounts{" "}
+              <span className="ml-2 text-bento-subtle">{accounts.length}</span>
+            </h2>
             <Card className="gap-0 py-0">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-bento-hairline px-(--card-spacing) py-panel-row">
                 <SegmentedControl
@@ -357,7 +345,7 @@ export default function AccountsPage() {
               </AccountDisclosure>
             )}
           </section>
-          <aside aria-label="Account summary" className="min-w-0">
+          <PageSidebar aria-label="Account summary">
             <h2 className="mb-panel-row flex min-h-6 items-center text-sm font-semibold">
               Summary
             </h2>
@@ -379,8 +367,8 @@ export default function AccountsPage() {
                 primaryCurrency={primaryCurrency}
               />
             </div>
-          </aside>
-        </div>
+          </PageSidebar>
+        </PageSidebarLayout>
       )}
       {selectedAccount && (
         <AccountDetailSheet

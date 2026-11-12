@@ -36,6 +36,10 @@ import { isCurrentOrFutureMonth } from "@/lib/date-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  PageSidebar,
+  PageSidebarLayout,
+} from "@/components/ui/page-sidebar-layout";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -478,10 +482,10 @@ function TransactionsPage() {
         />
       </header>
 
-      <div className="grid items-start gap-page-gap @transactions-rail/main:grid-cols-transactions-page">
-        <aside
+      <PageSidebarLayout>
+        <PageSidebar
           aria-labelledby="transactions-month-summary"
-          className="min-w-0 @transactions-rail/main:sticky @transactions-rail/main:top-page-gap @transactions-rail/main:col-start-2 @transactions-rail/main:row-start-1"
+          className="@page-sidebar/main:sticky @page-sidebar/main:top-page-gap"
         >
           <MonthSummary
             transactions={transactions}
@@ -496,12 +500,12 @@ function TransactionsPage() {
               searchRef.current?.focus();
             }}
           />
-        </aside>
+        </PageSidebar>
         <section
           aria-label="Transaction list"
-          className="@container/ledger min-w-0 @transactions-rail/main:col-start-1 @transactions-rail/main:row-start-1"
+          className="@container/ledger min-w-0 @page-sidebar/main:col-start-1 @page-sidebar/main:row-start-1"
         >
-          <div className="mb-2 grid grid-cols-transaction-search gap-2 @2xl/ledger:grid-cols-transaction-toolbar">
+          <div className="mb-2 grid grid-cols-transaction-search gap-2 @xl/ledger:grid-cols-2 @2xl/ledger:grid-cols-transaction-toolbar">
             <SegmentedControl
               label="Transaction status"
               value={reviewFilter}
@@ -575,7 +579,7 @@ function TransactionsPage() {
               onChange={setCategoryFilter}
             />
 
-            <div className="min-w-0 @2xl/ledger:hidden">
+            <div className="min-w-0 @xl/ledger:hidden">
               <Select
                 value={`${sortKey}-${sortDir}`}
                 onValueChange={(value) => {
@@ -674,7 +678,7 @@ function TransactionsPage() {
           {/* Table header */}
           <div
             className={cn(
-              "grid items-center gap-x-1 px-2 text-xs font-semibold text-bento-subtle @2xl/ledger:gap-x-2",
+              "grid items-center gap-x-1 px-2 text-xs font-semibold text-bento-subtle @xl/ledger:gap-x-2",
               TRANSACTION_GRID_COLUMNS
             )}
           >
@@ -717,22 +721,22 @@ function TransactionsPage() {
               </span>
             </button>
             <button
-              className="hidden min-h-8 pl-10 text-left hover:text-bento-default @2xl/ledger:block"
+              className="hidden min-h-8 pl-10 text-left hover:text-bento-default @xl/ledger:block"
               onClick={() => toggleSort("payee")}
             >
               Description{" "}
               <SortIcon active={sortKey === "payee"} dir={sortDir} />
             </button>
-            <span className="pl-10 @2xl/ledger:hidden">Description</span>
-            <span className="hidden pl-2 @2xl/ledger:block">Category</span>
+            <span className="pl-10 @xl/ledger:hidden">Description</span>
+            <span className="hidden pl-2 @xl/ledger:block">Category</span>
             <button
-              className="hidden min-h-8 text-center hover:text-bento-default @2xl/ledger:block"
+              className="hidden min-h-8 text-center hover:text-bento-default @xl/ledger:block"
               onClick={() => toggleSort("date")}
             >
               Date <SortIcon active={sortKey === "date"} dir={sortDir} />
             </button>
             <button
-              className="hidden min-h-8 text-right hover:text-bento-default @2xl/ledger:block"
+              className="hidden min-h-8 text-right hover:text-bento-default @xl/ledger:block"
               onClick={() => toggleSort("amount")}
             >
               Amount <SortIcon active={sortKey === "amount"} dir={sortDir} />
@@ -855,7 +859,7 @@ function TransactionsPage() {
             </>
           )}
         </section>
-      </div>
+      </PageSidebarLayout>
 
       {editingTransaction && (
         <TransactionEditor

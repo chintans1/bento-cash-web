@@ -2,7 +2,10 @@ import { useMemo } from "react";
 import { ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CompositionBar } from "@/components/ui/composition-bar";
+import {
+  CompositionBar,
+  useCompositionHighlight,
+} from "@/components/ui/composition-bar";
 import { formatCurrency } from "@/lib/format";
 import {
   computeCategoryTotals,
@@ -32,6 +35,9 @@ function CategoryBreakdown({
   primaryCurrency: string;
   onCategorySelect: (id: number) => void;
 }) {
+  const { activeId, onHover, rowHandlers } = useCompositionHighlight<
+    number | "other"
+  >();
   const remaining = categories.slice(CATEGORY_LIMIT);
   const entries = categories.slice(0, CATEGORY_LIMIT).map((category) => ({
     ...category,
@@ -67,8 +73,10 @@ function CategoryBreakdown({
       </div>
       {total > 0 && (
         <>
-          <CompositionBar
+          <CompositionBar<number | "other">
             className="mt-3 mb-2"
+            activeId={activeId}
+            onHover={onHover}
             segments={segments.map(({ id, amount, color }) => ({
               id: id ?? "other",
               percent: (amount / total) * 100,
@@ -77,7 +85,13 @@ function CategoryBreakdown({
           />
           <ul className="mt-1 divide-y divide-bento-hairline/50">
             {segments.map(({ id, name, amount, txCount, color }) => {
+              const segmentId = id ?? "other";
               const share = (amount / total) * 100;
+              const rowClassName = cn(
+                CATEGORY_ROW,
+                "transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none motion-reduce:transition-none",
+                activeId === segmentId && "bg-bento-raised"
+              );
               const content = (
                 <>
                   <span className="flex min-w-0 items-center gap-1.5">
@@ -103,18 +117,22 @@ function CategoryBreakdown({
                 </>
               );
               return (
-                <li key={id ?? "other"}>
+                <li key={segmentId}>
                   {id === null ? (
-                    <div className={CATEGORY_ROW}>{content}</div>
+                    <div
+                      tabIndex={0}
+                      {...rowHandlers(segmentId)}
+                      className={rowClassName}
+                    >
+                      {content}
+                    </div>
                   ) : (
                     <button
                       type="button"
                       title={name}
                       onClick={() => onCategorySelect(id)}
-                      className={cn(
-                        CATEGORY_ROW,
-                        "transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none"
-                      )}
+                      {...rowHandlers(segmentId)}
+                      className={rowClassName}
                     >
                       {content}
                     </button>
@@ -193,7 +211,7 @@ export function MonthSummary({
   );
 
   return (
-    <Card className="@transactions-rail/main:max-h-transaction-summary @transactions-rail/main:overflow-y-auto">
+    <Card className="@page-sidebar/main:max-h-transaction-summary @page-sidebar/main:overflow-y-auto">
       <CardHeader>
         <CardTitle>
           <h2 id="transactions-month-summary">Month summary</h2>
@@ -229,7 +247,7 @@ export function MonthSummary({
                 </dd>
               </div>
             </dl>
-            <dl className="mt-panel-gap flex flex-wrap justify-between gap-2 border-t border-bento-hairline pt-panel-gap @transactions-rail/main:hidden">
+            <dl className="mt-panel-gap flex flex-wrap justify-between gap-2 border-t border-bento-hairline pt-panel-gap @page-sidebar/main:hidden">
               <div>
                 <dt className="text-xs text-bento-subtle">Income</dt>
                 <dd className="font-mono text-sm text-bento-positive tabular-nums">
@@ -243,10 +261,10 @@ export function MonthSummary({
                 </dd>
               </div>
             </dl>
-            <div className="mt-panel-gap hidden @transactions-rail/main:block">
+            <div className="mt-panel-gap hidden @page-sidebar/main:block">
               {breakdown}
             </div>
-            <details className="group/breakdown mt-panel-gap border-t border-bento-hairline @transactions-rail/main:hidden">
+            <details className="group/breakdown mt-panel-gap border-t border-bento-hairline @page-sidebar/main:hidden">
               <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 rounded-lg text-xs font-medium text-bento-subtle focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
                 Income and spending breakdown
                 <ChevronDown

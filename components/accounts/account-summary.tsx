@@ -1,7 +1,9 @@
 "use client";
 
-import { CompositionBar } from "@/components/ui/composition-bar";
-import { useState } from "react";
+import {
+  CompositionBar,
+  useCompositionHighlight,
+} from "@/components/ui/composition-bar";
 import { type NormalizedAccount, computeNetWorth } from "@/lib/account-utils";
 import {
   assetComposition,
@@ -79,9 +81,8 @@ function CompositionBreakdown({
   primaryCurrency: string;
   isLiability?: boolean;
 }) {
-  const [hoveredId, setHoveredId] = useState<AccountGroupId | null>(null);
-  const [focusedId, setFocusedId] = useState<AccountGroupId | null>(null);
-  const activeId = hoveredId ?? focusedId;
+  const { activeId, onHover, rowHandlers } =
+    useCompositionHighlight<AccountGroupId>();
   const compositionTotal = composition.reduce(
     (sum, row) => sum + row.amount,
     0
@@ -108,7 +109,7 @@ function CompositionBreakdown({
           <CompositionBar
             segments={composition}
             activeId={activeId}
-            onHover={setHoveredId}
+            onHover={onHover}
             className="mt-3 mb-2"
           />
           <dl className="space-y-0.5">
@@ -116,15 +117,7 @@ function CompositionBreakdown({
               <div
                 key={row.id}
                 tabIndex={0}
-                onPointerEnter={(event) => {
-                  if (event.pointerType !== "touch") setHoveredId(row.id);
-                }}
-                onPointerLeave={() => setHoveredId(null)}
-                onFocus={() => {
-                  setHoveredId(null);
-                  setFocusedId(row.id);
-                }}
-                onBlur={() => setFocusedId(null)}
+                {...rowHandlers(row.id)}
                 className={cn(
                   "-mx-2 flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none",
                   activeId === row.id && "bg-bento-raised"
