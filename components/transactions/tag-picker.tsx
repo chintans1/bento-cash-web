@@ -60,7 +60,7 @@ export function TagPicker({
             disabled={disabled}
             aria-label={`Remove tag ${tag.name}`}
             title={`Remove ${tag.name}`}
-            className="inline-flex min-h-10 max-w-full items-center gap-1.5 rounded-full bg-bento-raised px-2.5 text-xs font-medium text-bento-default transition-colors hover:bg-bento-muted focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-60"
+            className="inline-flex min-h-8 max-w-full items-center gap-1.5 rounded-lg bg-bento-raised px-2.5 text-xs font-medium text-bento-default transition-colors hover:bg-bento-muted focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-60"
             onClick={() => onChange(value.filter((id) => id !== tag.id))}
           >
             <span className="truncate">{tag.name}</span>
@@ -90,7 +90,7 @@ export function TagPicker({
             "inline-flex items-center justify-center rounded-full text-xs font-medium transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-60",
             cell
               ? "pointer-press relative size-8 text-bento-subtle hover:text-bento-default aria-expanded:bg-bento-raised"
-              : "min-h-10 gap-1.5 bg-card px-3 text-bento-default"
+              : "pointer-press min-h-8 gap-1.5 rounded-lg bg-card px-2.5 text-bento-default"
           )}
         >
           {cell ? (

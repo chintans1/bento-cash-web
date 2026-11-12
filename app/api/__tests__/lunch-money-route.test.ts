@@ -371,6 +371,55 @@ describe("authenticated Lunch Money routes", () => {
     });
   });
 
+  it.each([
+    { source: "manual", plaid_account_id: null, currency: "cad", status: 200 },
+    { source: "plaid", plaid_account_id: 4, currency: "cad", status: 400 },
+    { source: "manual", plaid_account_id: 4, currency: "cad", status: 400 },
+    { source: "manual", plaid_account_id: null, currency: "xyz", status: 400 },
+  ])(
+    "validates currency edits for $source transactions ($plaid_account_id, $currency)",
+    async ({ source, plaid_account_id, currency, status }) => {
+      client.getTransaction.mockResolvedValue({
+        id: 8,
+        source,
+        plaid_account_id,
+        currency: "usd",
+      });
+      client.updateTransaction.mockResolvedValue({ id: 8, currency });
+
+      const response = await updateTransaction(
+        request("transactions/8", "PATCH", { patch: { currency } }),
+        { params: Promise.resolve({ id: "8" }) }
+      );
+
+      expect(response.status).toBe(status);
+      if (status === 200) {
+        expect(client.updateTransaction).toHaveBeenCalledWith(8, { currency });
+      } else {
+        expect(client.updateTransaction).not.toHaveBeenCalled();
+      }
+    }
+  );
+
+  it("rejects a bulk currency edit for a Plaid transaction before writing", async () => {
+    client.getTransaction.mockResolvedValue({
+      id: 9,
+      source: "plaid",
+      plaid_account_id: 4,
+      currency: "usd",
+    });
+    const response = await updateTransactions(
+      request("transactions/bulk", "PATCH", {
+        transactions: [
+          { id: 8, payee: "Cafe" },
+          { id: 9, currency: "cad" },
+        ],
+      })
+    );
+    expect(response.status).toBe(400);
+    expect(client.updateTransactions).not.toHaveBeenCalled();
+  });
+
   it("deletes an ordinary transaction through an owned connection", async () => {
     client.getTransaction.mockResolvedValue({ id: 8, split_parent_id: null });
     client.deleteTransaction.mockResolvedValue(undefined);

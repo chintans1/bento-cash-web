@@ -21,6 +21,38 @@ export function isTransactionAccountOption(
   return account.status !== "closed" && account.allowTransactionModifications;
 }
 
+export function canEditTransactionCurrency(
+  transaction: Pick<
+    Transaction,
+    | "source"
+    | "plaid_account_id"
+    | "is_split_parent"
+    | "split_parent_id"
+    | "is_group_parent"
+    | "group_parent_id"
+  >
+): boolean {
+  return (
+    transaction.source === "manual" &&
+    transaction.plaid_account_id == null &&
+    !transaction.is_split_parent &&
+    transaction.split_parent_id == null &&
+    !transaction.is_group_parent &&
+    transaction.group_parent_id == null
+  );
+}
+
+export function isCurrencyUpdateAllowed(
+  transaction: Transaction,
+  patch: TransactionPatch
+): boolean {
+  return (
+    patch.currency === undefined ||
+    patch.currency === transaction.currency ||
+    (canEditTransactionCurrency(transaction) && patch.plaid_account_id == null)
+  );
+}
+
 export function isStructurallyLockedTransaction(
   transaction: Pick<
     Transaction,

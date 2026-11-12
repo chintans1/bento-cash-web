@@ -1,5 +1,7 @@
 import { z } from "zod";
 import type { TransactionPatch } from "@/lib/lunchmoney/client";
+import { SUPPORTED_CURRENCIES } from "@/lib/lunchmoney/currencies";
+import { isCurrencyUpdateAllowed } from "@/lib/lunchmoney/transaction-state";
 import {
   connectionQuery,
   InvalidLunchMoneyRequest,
@@ -7,7 +9,11 @@ import {
   recordBody,
 } from "@/lib/server/lunch-money-route";
 
-const updateSchema = connectionQuery.extend({ patch: recordBody });
+const updateSchema = connectionQuery.extend({
+  patch: recordBody.and(
+    z.object({ currency: z.enum(SUPPORTED_CURRENCIES).optional() })
+  ),
+});
 
 type Context = { params: Promise<{ id: string }> };
 
@@ -30,6 +36,11 @@ export async function PATCH(request: Request, { params }: Context) {
   return lunchMoneyRoute(request, updateSchema, async (client, { patch }) => {
     const current = await client.getTransaction(transactionId.data);
     const change = patch as TransactionPatch;
+    if (!isCurrencyUpdateAllowed(current, change)) {
+      throw new InvalidLunchMoneyRequest(
+        "Currency can only be changed on manual transactions."
+      );
+    }
     if (
       current.split_parent_id != null &&
       ("category_id" in change ? change.category_id : current.category_id) ==

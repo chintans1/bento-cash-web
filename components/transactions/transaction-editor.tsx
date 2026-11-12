@@ -11,9 +11,22 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import type { RecurringItem, Tag, Transaction } from "@/lib/lunchmoney/client";
+import {
+  getTransaction,
+  type RecurringItem,
+  type Tag,
+  type Transaction,
+} from "@/lib/lunchmoney/client";
+import { SUPPORTED_CURRENCIES } from "@/lib/lunchmoney/currencies";
+import {
+  detailDate,
+  DetailFields,
+  Metadata,
+} from "@/components/accounts/account-detail-fields";
+import { DatePicker } from "@/components/ui/date-picker";
 import type { NormalizedAccount } from "@/lib/account-utils";
 import {
+  canEditTransactionCurrency,
   changedPatch,
   isStructurallyLockedTransaction,
   isTransactionAccountOption,
@@ -41,7 +54,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { formatCurrency, formatShortDate } from "@/lib/format";
+import { formatCurrency } from "@/lib/format";
 import { amountForEditing } from "@/lib/lunchmoney/transaction-structure";
 import {
   confirmedRecurringId,
@@ -53,7 +66,7 @@ type Draft = {
   payee: string;
   date: string;
   amount: string;
-  currency: string;
+  currency: Transaction["currency"];
   categoryId: number | null;
   account: string;
   recurringId: string;
@@ -77,7 +90,7 @@ function makeDraft(transaction: Transaction): Draft {
     payee: transaction.payee ?? "",
     date: transaction.date,
     amount: amountForEditing(transaction.amount),
-    currency: transaction.currency.toUpperCase(),
+    currency: transaction.currency,
     categoryId: transaction.category_id,
     account: accountValue(transaction),
     recurringId: transaction.recurring_id?.toString() ?? "none",
@@ -85,6 +98,14 @@ function makeDraft(transaction: Transaction): Draft {
     notes: transaction.notes ?? "",
     status: transaction.status,
   };
+}
+
+const currencyNames = new Intl.DisplayNames("en-US", { type: "currency" });
+
+function currencyLabel(code: string) {
+  const upper = code.toUpperCase();
+  const name = currencyNames.of(upper);
+  return name && name !== upper ? `${upper} · ${name}` : upper;
 }
 
 function recurringName(item: RecurringItem) {
@@ -200,6 +221,10 @@ export function TransactionEditor({
   const structurallyLocked = isStructurallyLockedTransaction(transaction);
   const groupParent = transaction.is_group_parent;
   const splitChild = transaction.split_parent_id != null;
+  const canEditCurrency =
+    !locked &&
+    !draft.account.startsWith("plaid-") &&
+    canEditTransactionCurrency(transaction);
   const canDelete =
     !locked &&
     !transaction.is_split_parent &&
@@ -215,7 +240,7 @@ export function TransactionEditor({
       payee: draft.payee.trim(),
       date: draft.date,
       amount: draft.amount,
-      currency: draft.currency.toLowerCase() as Transaction["currency"],
+      ...(canEditCurrency && { currency: draft.currency }),
       category_id: draft.categoryId,
       ...(draft.account === accountValue(transaction)
         ? {}
@@ -226,14 +251,12 @@ export function TransactionEditor({
       notes: draft.notes.trim() || null,
       ...(draft.status === "delete_pending" ? {} : { status: draft.status }),
     });
-  }, [accounts, draft, transaction]);
+  }, [accounts, canEditCurrency, draft, transaction]);
 
   const amountValid = /^-?\d+(\.\d{1,4})?$/.test(draft.amount);
-  const currencyValid = /^[A-Za-z]{3}$/.test(draft.currency);
   const categoryValid =
     !splitChild || draft.recurringId !== "none" || draft.categoryId != null;
-  const valid =
-    draft.date !== "" && amountValid && currencyValid && categoryValid;
+  const valid = draft.date !== "" && amountValid && categoryValid;
   const categoryName =
     categoryOptions.find((option) => option.id === (draft.categoryId ?? -1))
       ?.name ?? "Uncategorized";
@@ -288,7 +311,7 @@ export function TransactionEditor({
                 {draft.payee || transaction.original_name || "Transaction"}
               </SheetTitle>
               <SheetDescription className="mt-1 text-sm text-bento-subtle tabular-nums">
-                {draft.date ? formatShortDate(draft.date) : "Date needed"} ·{" "}
+                {detailDate(draft.date) ?? "Date needed"} ·{" "}
                 <span
                   className={
                     draft.categoryId == null
@@ -316,7 +339,11 @@ export function TransactionEditor({
               )}
               {draft.amount.trim() !== "" && Number.isFinite(amount) && (
                 <p className="mt-3 font-mono text-lg font-semibold text-bento-default tabular-nums">
-                  {formatCurrency(Math.abs(amount), draft.currency, true)}
+                  {formatCurrency(
+                    Math.abs(amount),
+                    canEditCurrency ? draft.currency : transaction.currency,
+                    true
+                  )}
                   <span className="ml-2 text-xs font-normal text-bento-subtle">
                     {amount < 0 ? "Credit" : "Debit"}
                   </span>
@@ -525,12 +552,11 @@ export function TransactionEditor({
                   )}
               </Field>
               <Field label="Date">
-                <Input
-                  type="date"
-                  aria-label="Date"
+                <DatePicker
+                  label="Date"
                   value={draft.date}
                   disabled={structurallyLocked}
-                  onChange={(event) => updateDraft("date", event.target.value)}
+                  onChange={(value) => updateDraft("date", value)}
                 />
               </Field>
               <Field label="Category">
@@ -574,28 +600,37 @@ export function TransactionEditor({
                 </p>
               </Field>
               <Field label="Currency">
-                <Input
-                  maxLength={3}
-                  aria-invalid={!currencyValid}
-                  aria-label="Currency"
-                  value={draft.currency}
-                  disabled={
-                    locked || structurallyLocked || groupParent || splitChild
-                  }
-                  className="uppercase"
-                  onChange={(event) =>
-                    updateDraft("currency", event.target.value)
-                  }
-                />
+                {canEditCurrency ? (
+                  <Select
+                    value={draft.currency}
+                    onValueChange={(value) =>
+                      value && updateDraft("currency", value)
+                    }
+                  >
+                    <SelectTrigger
+                      aria-label="Currency"
+                      className="w-full rounded-xl"
+                    >
+                      <SelectValue>
+                        {(value: string) => currencyLabel(value)}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent alignItemWithTrigger={false}>
+                      {SUPPORTED_CURRENCIES.map((currency) => (
+                        <SelectItem key={currency} value={currency}>
+                          {currencyLabel(currency)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    aria-label="Currency"
+                    value={currencyLabel(transaction.currency)}
+                    readOnly
+                  />
+                )}
               </Field>
-              {!currencyValid && (
-                <p
-                  role="status"
-                  className="text-xs text-bento-negative sm:col-span-2"
-                >
-                  Use a three-letter currency code, such as USD or CAD.
-                </p>
-              )}
               <Field label="Account" className="sm:col-span-2">
                 <Select
                   value={draft.account}
@@ -752,22 +787,11 @@ export function TransactionEditor({
               </Field>
             </section>
 
-            <section className="rounded-2xl bg-bento-raised p-4 text-xs text-bento-subtle">
-              <dl className="grid grid-cols-icon-content gap-x-4 gap-y-2">
-                <dt>Source</dt>
-                <dd className="min-w-0 text-right wrap-anywhere text-bento-default capitalize">
-                  {transaction.source ?? "Unknown"}
-                </dd>
-                <dt>Updated</dt>
-                <dd className="min-w-0 text-right wrap-anywhere text-bento-default tabular-nums">
-                  {new Date(transaction.updated_at).toLocaleString()}
-                </dd>
-                <dt>Transaction ID</dt>
-                <dd className="min-w-0 text-right font-mono wrap-anywhere text-bento-default">
-                  {transaction.id}
-                </dd>
-              </dl>
-            </section>
+            <TransactionSourceDetails
+              key={transaction.id}
+              transaction={transaction}
+              isDemo={isDemo}
+            />
           </div>
 
           <footer className="border-t border-bento-hairline bg-card px-5 py-4 sm:px-6">
@@ -863,6 +887,87 @@ export function TransactionEditor({
         </form>
       </SheetContent>
     </Sheet>
+  );
+}
+
+function TransactionSourceDetails({
+  transaction,
+  isDemo,
+}: {
+  transaction: Transaction;
+  isDemo: boolean;
+}) {
+  const isPlaid =
+    transaction.source === "plaid" || transaction.plaid_account_id != null;
+  const existingMetadata = transaction.plaid_metadata;
+  const [metadata, setMetadata] = useState<Transaction["plaid_metadata"]>(
+    existingMetadata ?? undefined
+  );
+  const [metadataUnavailable, setMetadataUnavailable] = useState(false);
+  const loadingMetadata =
+    isPlaid && metadata === undefined && !metadataUnavailable;
+
+  useEffect(() => {
+    if (!isPlaid || existingMetadata) return;
+    let active = true;
+    void getTransaction(transaction.id).then(
+      (details) => {
+        if (active) setMetadata(details.plaid_metadata ?? null);
+      },
+      () => {
+        if (active) setMetadataUnavailable(true);
+      }
+    );
+    return () => {
+      active = false;
+    };
+  }, [existingMetadata, isPlaid, transaction.id]);
+
+  return (
+    <section className="space-y-3 rounded-2xl bg-bento-raised p-4 text-xs">
+      <DetailFields
+        fields={[
+          [
+            "Source",
+            transaction.source === "plaid" ? (
+              "Plaid"
+            ) : (
+              <span className="capitalize">
+                {transaction.source ?? "Unknown"}
+              </span>
+            ),
+          ],
+          ["Created", detailDate(transaction.created_at, true)],
+          ["Last updated", detailDate(transaction.updated_at, true)],
+          ["Transaction ID", transaction.id],
+        ]}
+      />
+      {isPlaid &&
+        (loadingMetadata ? (
+          <p role="status" className="text-bento-subtle">
+            Loading Plaid metadata…
+          </p>
+        ) : metadata && Object.keys(metadata).length > 0 ? (
+          <Metadata label="Plaid metadata" data={metadata} />
+        ) : (
+          <p className="text-bento-subtle">
+            {metadataUnavailable
+              ? "Couldn’t load Plaid metadata."
+              : "No Plaid metadata available."}
+          </p>
+        ))}
+      {!isDemo && (
+        <a
+          href="https://support.lunchmoney.app/finances/transactions/other-features#view-change-history"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex min-h-8 items-center gap-1.5 text-bento-subtle underline underline-offset-2 hover:text-bento-default"
+        >
+          How to view change history in Lunch Money
+          <ExternalLink aria-hidden="true" className="size-3" />
+        </a>
+      )}
+    </section>
   );
 }
 
