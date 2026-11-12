@@ -8,6 +8,7 @@ import {
   ChartTooltip,
   type ChartConfig,
 } from "@/components/ui/chart";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/format";
 import { MONTH_NAMES, prevMonthOf } from "@/lib/date-utils";
@@ -124,26 +125,15 @@ export function SpendingTrendCard({
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-          <div
-            className="flex rounded-full bg-bento-control p-1"
-            aria-label="Spending view"
-          >
-            {(["flexible", "total"] as const).map((option) => (
-              <button
-                key={option}
-                type="button"
-                aria-pressed={view === option}
-                onClick={() => setView(option)}
-                className={`pointer-press relative h-8 min-w-16 rounded-full px-3 text-xs font-medium capitalize transition-segmented outline-none before:absolute before:inset-x-0 before:-inset-y-1 before:content-empty focus-visible:ring-3 focus-visible:ring-ring/30 ${
-                  view === option
-                    ? "bg-bento-surface text-bento-default shadow-sm"
-                    : "text-bento-subtle hover:text-bento-default"
-                }`}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl
+            label="Spending view"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "flexible", label: "Flexible" },
+              { value: "total", label: "Total" },
+            ]}
+          />
           <p className="text-xs text-bento-subtle tabular-nums">
             {formatCurrency(currentFlexible, primaryCurrency)} flexible ·{" "}
             {formatCurrency(currentRecurring, primaryCurrency)} recurring

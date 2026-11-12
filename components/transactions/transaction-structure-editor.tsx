@@ -39,6 +39,7 @@ import {
   confirmedRecurringId,
   recurringMatch,
 } from "@/lib/lunchmoney/recurring-match";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -428,22 +429,16 @@ export function SplitEditor({
                 <h3 className="text-sm font-semibold">
                   How should this be split?
                 </h3>
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <Button
-                    variant={splitMode === "equal" ? "default" : "outline"}
-                    aria-pressed={splitMode === "equal"}
-                    onClick={() => chooseMode("equal")}
-                  >
-                    Split equally
-                  </Button>
-                  <Button
-                    variant={splitMode === "custom" ? "default" : "outline"}
-                    aria-pressed={splitMode === "custom"}
-                    onClick={() => chooseMode("custom")}
-                  >
-                    Custom amounts
-                  </Button>
-                </div>
+                <SegmentedControl
+                  label="Split method"
+                  className="mt-3"
+                  value={splitMode}
+                  onChange={chooseMode}
+                  options={[
+                    { value: "equal", label: "Split equally" },
+                    { value: "custom", label: "Custom amounts" },
+                  ]}
+                />
                 <p className="mt-2 text-xs text-bento-subtle">
                   {splitMode === "equal"
                     ? "Amounts stay equal as you add or remove parts."

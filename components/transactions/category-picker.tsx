@@ -200,10 +200,10 @@ export function CategoryPicker({
         disabled={disabled}
         aria-disabled={saving || undefined}
         className={cn(
-          "group/cat flex min-h-10 w-full items-center gap-1.5 text-left outline-none [&>svg]:ml-auto [&>svg]:shrink-0 [&>svg]:text-bento-subtle",
+          "group/cat flex w-full items-center gap-1.5 text-left outline-none [&>svg]:ml-auto [&>svg]:shrink-0 [&>svg]:text-bento-subtle",
           appearance === "field"
             ? "h-10 rounded-xl border border-transparent bg-input/50 px-3 text-sm transition-field hover:bg-input focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
-            : "rounded-lg py-1 pr-1.5 pl-2 text-xs transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40",
+            : "min-h-8 rounded-lg pr-1.5 pl-2 text-xs transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40",
           appearance !== "field" &&
             "[&>svg]:size-3 [&>svg]:opacity-65 [&>svg]:transition-opacity focus-within:[&>svg]:opacity-100 hover:[&>svg]:opacity-100",
           (saving || disabled) && "opacity-60"
@@ -278,7 +278,7 @@ export function CategoryFilterPicker({
     >
       <ComboboxTrigger
         aria-label={`Filter by category: ${selected.name}. Change`}
-        className="flex h-10 w-full min-w-0 items-center justify-between gap-1.5 rounded-3xl border border-transparent bg-input/50 px-3 text-sm whitespace-nowrap transition-field outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 [&>svg]:shrink-0"
+        className="flex h-8 w-full min-w-0 items-center justify-between gap-1.5 rounded-lg border border-transparent bg-input/50 px-2.5 text-xs whitespace-nowrap transition-field outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 [&>svg]:size-3.5 [&>svg]:shrink-0"
       >
         <span
           className={cn(

@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useTransactionHistory } from "@/hooks/use-transaction-history";
 import { lastFullMonths } from "@/lib/date-utils";
 import { buildReportData } from "@/lib/lunchmoney/reports";
-import { cn } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 
 const REPORTS = [
   { id: "cash-flow", label: "Cash Flow" },
@@ -27,43 +27,6 @@ const RANGES = [
 ] as const;
 
 type ReportId = (typeof REPORTS)[number]["id"];
-
-function SegmentedControl<T extends string | number>({
-  label,
-  options,
-  value,
-  onChange,
-}: {
-  label: string;
-  options: readonly { value: T; label: string }[];
-  value: T;
-  onChange: (value: T) => void;
-}) {
-  return (
-    <div
-      role="group"
-      aria-label={label}
-      className="flex w-fit rounded-full bg-bento-raised p-1"
-    >
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          aria-pressed={value === option.value}
-          onClick={() => onChange(option.value)}
-          className={cn(
-            "pointer-press min-h-10 rounded-full px-4 text-sm font-medium transition-control duration-150 ease-out",
-            value === option.value
-              ? "bg-bento-surface text-bento-default shadow-sm"
-              : "text-bento-subtle hover:text-bento-default"
-          )}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  );
-}
 
 export default function ReportsPage() {
   const { hasDataSource, dataScopeKey } = useAuth();

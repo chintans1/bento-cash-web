@@ -13,7 +13,7 @@ import { formatCurrency } from "@/lib/format";
 import type { Transaction } from "@/lib/lunchmoney/client";
 import type { CategoryInfo } from "@/lib/lunchmoney/categories";
 import { estimateMonthlyContrib } from "@/lib/lunchmoney/analytics";
-import { cn } from "@/lib/utils";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { useConnectionSetting } from "@/hooks/use-connection-setting";
 
 // Theme tokens rather than fixed hex: the old slate/amber/green were picked
@@ -245,24 +245,16 @@ export function GrowthProjection({
                   </span>
                   /mo
                 </span>
-                <div className="flex gap-0.5">
-                  {([3, 6] as const).map((w) => (
-                    <button
-                      key={w}
-                      aria-label={`Estimate from the last ${w} months`}
-                      aria-pressed={contribWindow === w}
-                      onClick={() => setContribWindow(w)}
-                      className={cn(
-                        "min-h-10 min-w-10 rounded px-1.5 text-xs transition-colors",
-                        contribWindow === w
-                          ? "bg-bento-muted font-medium text-bento-default"
-                          : "text-bento-subtle hover:text-bento-default"
-                      )}
-                    >
-                      {w}mo
-                    </button>
-                  ))}
-                </div>
+                <SegmentedControl
+                  label="Contribution estimate period"
+                  value={contribWindow}
+                  onChange={setContribWindow}
+                  options={([3, 6] as const).map((months) => ({
+                    value: months,
+                    label: `${months}mo`,
+                    ariaLabel: `Estimate from the last ${months} months`,
+                  }))}
+                />
                 <button
                   onClick={() =>
                     changeMonthly(String(Math.round(estimatedContrib)))
@@ -420,23 +412,13 @@ export function GrowthProjection({
                 />
               </div>
             </div>
-            <div className="flex flex-wrap gap-0.5">
-              {GOAL_PRESETS.map(({ label, value }) => (
-                <button
-                  key={value}
-                  aria-pressed={goal === value}
-                  onClick={() => changeGoal(String(value))}
-                  className={cn(
-                    "min-h-10 min-w-10 rounded px-1.5 text-xs transition-colors",
-                    goal === value
-                      ? "bg-bento-muted font-medium text-bento-default"
-                      : "text-bento-subtle hover:text-bento-default"
-                  )}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
+            <SegmentedControl<number>
+              label="Investment goal presets"
+              value={goal}
+              onChange={(value) => changeGoal(String(value))}
+              options={GOAL_PRESETS}
+              className="flex-wrap"
+            />
           </div>
 
           {goal !== null && (

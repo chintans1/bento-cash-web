@@ -332,7 +332,10 @@
   grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
 }
 @utility grid-cols-transaction-search {
-  grid-template-columns: minmax(0, 1fr) 11rem;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+@utility grid-cols-transaction-toolbar {
+  grid-template-columns: auto minmax(0, 1fr) 9rem;
 }
 @utility grid-cols-transactions-page {
   grid-template-columns: minmax(0, 1fr) 17rem;
@@ -352,15 +355,15 @@
   grid-template-columns: auto 1fr;
 }
 @utility grid-cols-transaction {
-  grid-template-columns: 40px minmax(0, 1fr) 40px 40px;
+  grid-template-columns: 2rem minmax(0, 1fr) 2rem 2rem;
 }
 @utility grid-cols-transaction-sm {
-  grid-template-columns: 40px minmax(0, 1fr) 9rem 3.5rem 6.5rem 40px 40px;
+  grid-template-columns: 2rem minmax(0, 1fr) 8rem 3.5rem 6.5rem 2rem 2rem;
 }
 @utility grid-cols-transaction-md {
   grid-template-columns:
-    40px minmax(0, 1fr) minmax(9rem, 22%)
-    4rem 6.5rem 40px 40px;
+    2rem minmax(0, 1fr) minmax(8rem, 20%)
+    4rem 6.5rem 2rem 2rem;
 }
 @utility max-w-viewport-inset {
   max-width: calc(100vw - 2rem);

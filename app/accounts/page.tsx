@@ -25,7 +25,7 @@ import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { useBalanceHistory } from "@/hooks/use-balance-history";
 import { NetWorthPerformanceCard } from "@/components/accounts/net-worth-performance-card";
-import { AccountSegmentedControl } from "@/components/accounts/account-segmented-control";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { AccountDetailSheet } from "@/components/accounts/account-detail-sheet";
 import { PlaidRefreshButton } from "@/components/accounts/plaid-refresh-button";
 
@@ -196,7 +196,7 @@ export default function AccountsPage() {
             </div>
             <Card className="gap-0 py-0">
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-bento-hairline px-(--card-spacing) py-panel-row">
-                <AccountSegmentedControl
+                <SegmentedControl
                   label="Group accounts by"
                   options={[
                     { value: "type", label: "By type" },

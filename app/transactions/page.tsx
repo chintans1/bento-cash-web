@@ -42,9 +42,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Check, Minus, Search, X } from "lucide-react";
+import { ArrowDownUp, Check, Minus, Search, X } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
 import { MonthSelector } from "@/components/dashboard/month-selector";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   comparePendingFirst,
@@ -90,7 +91,7 @@ function TransactionListLoading() {
     <div role="status" className="flex flex-col gap-2">
       <p className="mb-1 text-sm text-bento-subtle">Loading transactions…</p>
       {Array.from({ length: 12 }).map((_, i) => (
-        <Skeleton key={i} className="h-12 rounded-lg" />
+        <Skeleton key={i} className="h-9 rounded-lg" />
       ))}
     </div>
   );
@@ -502,88 +503,48 @@ function TransactionsPage() {
           aria-label="Transaction list"
           className="@container/ledger min-w-0 @transactions-rail/main:col-start-1 @transactions-rail/main:row-start-1"
         >
-          <div className="mb-page-gap grid grid-cols-4 items-center gap-1 rounded-full bg-bento-muted p-1 @2xl/ledger:flex @2xl/ledger:w-fit">
-            {(
-              [
-                ["all", "All", "All", transactions.length],
-                ["unreviewed", "Needs review", "Review", counts.unreviewed],
-                ["pending", "Pending", "Pending", counts.pending],
-                ["attention", "Attention", "Attention", counts.attention],
-              ] as const
-            ).map(([value, label, mobileLabel, count]) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={reviewFilter === value}
-                className={cn(
-                  "min-h-10 min-w-0 flex-1 rounded-full px-1 text-xs font-medium whitespace-nowrap transition-field @2xl/ledger:flex-none @2xl/ledger:px-3 @2xl/ledger:text-sm",
-                  reviewFilter === value
-                    ? "bg-card text-bento-default shadow-sm"
-                    : "text-bento-subtle hover:text-bento-default"
-                )}
-                onClick={() => setReviewFilter(value)}
-              >
-                <span className="@2xl/ledger:hidden">{mobileLabel}</span>
-                <span className="hidden @2xl/ledger:inline">{label}</span>{" "}
-                <span className="tabular-nums">{loading ? "…" : count}</span>
-              </button>
-            ))}
-          </div>
-
-          {selectedIds.size > 0 && (
-            <div className="mb-page-gap flex flex-wrap items-center gap-2 rounded-2xl bg-bento-default px-3 py-2 text-sm text-bento-base shadow-lg">
-              <span className="mr-auto px-1 font-medium tabular-nums">
-                {selectedIds.size} selected
-              </span>
-              <Button
-                variant="secondary"
-                className="h-10"
-                disabled={selectedSaving || !canReviewSelection}
-                aria-busy={selectedSaving}
-                onClick={() => {
-                  if (!canReviewSelection) return;
-                  void reviewMany([...selectedIds]).then((saved) => {
-                    if (saved)
-                      setSelection({ month: monthKey, ids: new Set() });
-                  });
-                }}
-              >
-                {selectedSaving ? "Reviewing…" : "Mark reviewed"}
-              </Button>
-              <Button
-                variant="secondary"
-                className="h-10"
-                disabled={!canGroupSelection || selectedSaving}
-                onClick={() =>
-                  setStructure({
-                    type: "group-create",
-                    transactions: selectedTransactions,
-                  })
-                }
-              >
-                Group transactions
-              </Button>
-              <Button
-                variant="ghost"
-                className="h-10 text-bento-base hover:text-bento-default"
-                onClick={() =>
-                  setSelection({ month: monthKey, ids: new Set() })
-                }
-              >
-                Clear
-              </Button>
-            </div>
-          )}
-
-          {/* Filters */}
-          <div className="mb-page-gap grid grid-cols-2 gap-2 @2xl/ledger:grid-cols-transaction-search">
-            <div className="relative col-span-2 min-w-0 @2xl/ledger:col-span-1">
+          <div className="mb-2 grid grid-cols-transaction-search gap-2 @2xl/ledger:grid-cols-transaction-toolbar">
+            <SegmentedControl
+              label="Transaction status"
+              value={reviewFilter}
+              onChange={setReviewFilter}
+              className="col-span-full flex-wrap @2xl/ledger:col-span-1"
+              options={(
+                [
+                  ["all", "All", transactions.length],
+                  ["unreviewed", "Needs review", counts.unreviewed],
+                  ["pending", "Pending", counts.pending],
+                  ["attention", "Attention", counts.attention],
+                ] as const
+              ).map(([value, label, count]) => ({
+                value,
+                ariaLabel: `${label} ${loading ? "" : count}`.trim(),
+                label: (
+                  <>
+                    {value === "unreviewed" ? (
+                      <>
+                        <span className="@md/ledger:hidden">Review</span>
+                        <span className="hidden @md/ledger:inline">
+                          {label}
+                        </span>
+                      </>
+                    ) : (
+                      label
+                    )}{" "}
+                    <span className="tabular-nums">
+                      {loading ? "…" : count}
+                    </span>
+                  </>
+                ),
+              }))}
+            />
+            <div className="relative min-w-0">
               <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-3.5 -translate-y-1/2 text-bento-subtle" />
               <Input
                 ref={searchRef}
-                className="h-10 rounded-3xl pr-12 pl-8 text-sm"
+                className="h-8 rounded-lg pr-8 pl-8 text-xs"
                 aria-label="Search transactions"
-                placeholder="Search transactions…"
+                placeholder="Search…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={(e) => {
@@ -597,14 +558,14 @@ function TransactionsPage() {
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className="absolute top-0 right-0 size-10 rounded-full"
+                  className="absolute top-0 right-0 size-8 rounded-lg"
                   aria-label="Clear search"
                   onClick={() => setQuery("")}
                 >
                   <X className="size-3.5" />
                 </Button>
               ) : (
-                <Kbd className="pointer-events-none absolute top-1/2 right-3 z-10 -translate-y-1/2">
+                <Kbd className="pointer-events-none absolute top-1/2 right-2 z-10 hidden -translate-y-1/2 @2xl/ledger:inline-flex">
                   /
                 </Kbd>
               )}
@@ -628,22 +589,29 @@ function TransactionsPage() {
               >
                 <SelectTrigger
                   aria-label="Sort transactions"
-                  className="h-10 w-full"
+                  size="sm"
+                  title="Sort transactions"
+                  className="size-8 justify-center rounded-lg p-0 @lg/ledger:w-full @lg/ledger:justify-between @lg/ledger:px-2.5 @lg/ledger:text-xs [&>svg:last-child]:hidden @lg/ledger:[&>svg:last-child]:block"
                 >
-                  <SelectValue>
-                    {(value: string) =>
-                      ({
-                        "date-desc": "Newest first",
-                        "date-asc": "Oldest first",
-                        "amount-desc": "Amount: high to low",
-                        "amount-asc": "Amount: low to high",
-                        "payee-asc": "Name: A to Z",
-                        "payee-desc": "Name: Z to A",
-                      })[value] ?? "Newest first"
-                    }
-                  </SelectValue>
+                  <span className="text-bento-subtle @lg/ledger:hidden">
+                    <ArrowDownUp aria-hidden="true" className="size-3.5" />
+                  </span>
+                  <span className="hidden @lg/ledger:block">
+                    <SelectValue>
+                      {(value: string) =>
+                        ({
+                          "date-desc": "Newest first",
+                          "date-asc": "Oldest first",
+                          "amount-desc": "Amount: high to low",
+                          "amount-asc": "Amount: low to high",
+                          "payee-asc": "Name: A to Z",
+                          "payee-desc": "Name: Z to A",
+                        })[value] ?? "Newest first"
+                      }
+                    </SelectValue>
+                  </span>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent alignItemWithTrigger={false} align="end">
                   <SelectItem value="date-desc">Newest first</SelectItem>
                   <SelectItem value="date-asc">Oldest first</SelectItem>
                   <SelectItem value="amount-desc">
@@ -659,10 +627,56 @@ function TransactionsPage() {
             </div>
           </div>
 
+          {selectedIds.size > 0 && (
+            <div className="mb-2 flex flex-wrap items-center gap-2 rounded-xl bg-bento-default px-3 py-2 text-sm text-bento-base shadow-lg">
+              <span className="mr-auto px-1 font-medium tabular-nums">
+                {selectedIds.size} selected
+              </span>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={selectedSaving || !canReviewSelection}
+                aria-busy={selectedSaving}
+                onClick={() => {
+                  if (!canReviewSelection) return;
+                  void reviewMany([...selectedIds]).then((saved) => {
+                    if (saved)
+                      setSelection({ month: monthKey, ids: new Set() });
+                  });
+                }}
+              >
+                {selectedSaving ? "Reviewing…" : "Mark reviewed"}
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={!canGroupSelection || selectedSaving}
+                onClick={() =>
+                  setStructure({
+                    type: "group-create",
+                    transactions: selectedTransactions,
+                  })
+                }
+              >
+                Group transactions
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-bento-base hover:text-bento-default"
+                onClick={() =>
+                  setSelection({ month: monthKey, ids: new Set() })
+                }
+              >
+                Clear
+              </Button>
+            </div>
+          )}
+
           {/* Table header */}
           <div
             className={cn(
-              "mb-1 grid items-center gap-x-2 px-3 text-xs font-semibold text-bento-subtle",
+              "grid items-center gap-x-1 px-2 text-xs font-semibold text-bento-subtle @2xl/ledger:gap-x-2",
               TRANSACTION_GRID_COLUMNS
             )}
           >
@@ -680,7 +694,7 @@ function TransactionsPage() {
               }
               disabled={selectable.length === 0 || loading}
               aria-pressed={allSelected}
-              className="flex min-h-10 items-center justify-center rounded-full disabled:opacity-40"
+              className="flex min-h-8 items-center justify-center rounded-lg disabled:opacity-40"
               onClick={() => {
                 setSelection({
                   month: monthKey,
@@ -705,22 +719,22 @@ function TransactionsPage() {
               </span>
             </button>
             <button
-              className="hidden min-h-10 pl-1.5 text-left hover:text-bento-default @2xl/ledger:block"
+              className="hidden min-h-8 pl-10 text-left hover:text-bento-default @2xl/ledger:block"
               onClick={() => toggleSort("payee")}
             >
               Description{" "}
               <SortIcon active={sortKey === "payee"} dir={sortDir} />
             </button>
-            <span className="pl-1.5 @2xl/ledger:hidden">Description</span>
+            <span className="pl-10 @2xl/ledger:hidden">Description</span>
             <span className="hidden pl-2 @2xl/ledger:block">Category</span>
             <button
-              className="hidden min-h-10 text-center hover:text-bento-default @2xl/ledger:block"
+              className="hidden min-h-8 text-center hover:text-bento-default @2xl/ledger:block"
               onClick={() => toggleSort("date")}
             >
               Date <SortIcon active={sortKey === "date"} dir={sortDir} />
             </button>
             <button
-              className="hidden min-h-10 text-right hover:text-bento-default @2xl/ledger:block"
+              className="hidden min-h-8 text-right hover:text-bento-default @2xl/ledger:block"
               onClick={() => toggleSort("amount")}
             >
               Amount <SortIcon active={sortKey === "amount"} dir={sortDir} />

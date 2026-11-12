@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AccountSegmentedControl } from "./account-segmented-control";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import {
   Select,
   SelectContent,
@@ -202,7 +202,7 @@ export function NetWorthPerformanceCard({
           <CardTitle className={compact ? "text-sm font-semibold" : "text-lg"}>
             {compact ? "Balance history" : "Net Worth Performance"}
           </CardTitle>
-          <AccountSegmentedControl
+          <SegmentedControl
             label="History period"
             options={RANGES}
             value={range}

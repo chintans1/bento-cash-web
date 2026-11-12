@@ -98,10 +98,10 @@ export function TagPicker({
           disabled={disabled}
           aria-disabled={saving || undefined}
           className={cn(
-            "inline-flex min-h-10 items-center justify-center rounded-full text-xs font-medium transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-60",
+            "inline-flex items-center justify-center rounded-full text-xs font-medium transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-60",
             cell
-              ? "pointer-press relative size-10 text-bento-subtle hover:text-bento-default aria-expanded:bg-bento-raised"
-              : "gap-1.5 bg-card px-3 text-bento-default"
+              ? "pointer-press relative size-8 text-bento-subtle hover:text-bento-default aria-expanded:bg-bento-raised"
+              : "min-h-10 gap-1.5 bg-card px-3 text-bento-default"
           )}
         >
           {cell ? (
@@ -110,7 +110,7 @@ export function TagPicker({
               {value.length > 0 && (
                 <span
                   aria-hidden="true"
-                  className="absolute top-0.5 right-0.5 min-w-4 rounded-full bg-bento-muted px-0.5 text-center text-(length:--text-micro) leading-4 tabular-nums"
+                  className="absolute top-0 right-0 min-w-3 rounded-full bg-bento-muted px-0.5 text-center text-(length:--text-micro) leading-3 tabular-nums"
                 >
                   {value.length}
                 </span>

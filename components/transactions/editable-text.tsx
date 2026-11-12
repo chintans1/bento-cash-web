@@ -11,7 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const INPUT_CLASS =
-  "h-10 w-full rounded-lg bg-bento-raised px-1.5 text-sm font-medium ring-2 ring-ring/40 outline-none";
+  "h-8 w-full min-w-0 rounded-lg bg-bento-raised px-1.5 text-sm font-medium ring-2 ring-ring/40 outline-none";
 
 /** Shared suggestions popup for inline and detail payee editing. */
 export function PayeeSuggestionsPopup() {
@@ -174,6 +174,7 @@ export function EditableText({
       }}
       type="button"
       aria-label={ariaLabel}
+      title={value || placeholder}
       aria-disabled={disabled || undefined}
       onClick={(e) => {
         e.stopPropagation();
@@ -181,7 +182,7 @@ export function EditableText({
         setDraft(value);
       }}
       className={cn(
-        "group/edit flex min-h-10 w-full items-center gap-1.5 rounded-lg px-1.5 text-left transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none aria-disabled:opacity-60",
+        "group/edit flex min-h-8 w-full items-center gap-1.5 rounded-lg px-1.5 text-left transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none aria-disabled:opacity-60",
         className
       )}
     >
