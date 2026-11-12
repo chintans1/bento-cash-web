@@ -1,5 +1,6 @@
 "use client";
 
+import { CompositionBar } from "@/components/ui/composition-bar";
 import { useState } from "react";
 import { type NormalizedAccount, computeNetWorth } from "@/lib/account-utils";
 import {
@@ -104,30 +105,12 @@ function CompositionBreakdown({
         </p>
       ) : (
         <>
-          <div
-            aria-hidden="true"
-            className="mt-3 mb-2 flex h-3 gap-px overflow-hidden rounded-full bg-bento-raised"
-            onPointerLeave={() => setHoveredId(null)}
-          >
-            {composition.map((row) => (
-              <div
-                key={row.id}
-                onPointerEnter={(event) => {
-                  if (event.pointerType !== "touch") setHoveredId(row.id);
-                }}
-                className={cn(
-                  "w-(--segment-width) bg-(--segment-color) transition-opacity motion-reduce:transition-none",
-                  activeId && activeId !== row.id && "opacity-35"
-                )}
-                style={
-                  {
-                    "--segment-width": `${row.percent}%`,
-                    "--segment-color": row.color,
-                  } as React.CSSProperties
-                }
-              />
-            ))}
-          </div>
+          <CompositionBar
+            segments={composition}
+            activeId={activeId}
+            onHover={setHoveredId}
+            className="mt-3 mb-2"
+          />
           <dl className="space-y-0.5">
             {composition.map((row) => (
               <div

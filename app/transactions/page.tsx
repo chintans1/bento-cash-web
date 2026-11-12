@@ -484,8 +484,6 @@ function TransactionsPage() {
           className="min-w-0 @transactions-rail/main:sticky @transactions-rail/main:top-page-gap @transactions-rail/main:col-start-2 @transactions-rail/main:row-start-1"
         >
           <MonthSummary
-            year={selectedYear}
-            month={selectedMonth}
             transactions={transactions}
             categoryMap={categoryMap}
             primaryCurrency={primaryCurrency}

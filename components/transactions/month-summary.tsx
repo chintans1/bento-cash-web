@@ -2,12 +2,11 @@ import { useMemo } from "react";
 import { ChevronDown } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { MONTH_NAMES } from "@/lib/date-utils";
+import { CompositionBar } from "@/components/ui/composition-bar";
 import { formatCurrency } from "@/lib/format";
 import {
   computeCategoryTotals,
   computeIncomeCategoryTotals,
-  computeMerchantTotals,
 } from "@/lib/lunchmoney/analytics";
 import { categoryColor } from "@/lib/lunchmoney/category-colors";
 import type { CategoryInfo } from "@/lib/lunchmoney/categories";
@@ -68,23 +67,14 @@ function CategoryBreakdown({
       </div>
       {total > 0 && (
         <>
-          <div
-            aria-hidden="true"
-            className="mt-2 flex h-2 overflow-hidden rounded-full bg-bento-muted"
-          >
-            {segments.map(({ id, amount, color }) => (
-              <span
-                key={id ?? "other"}
-                className="w-(--progress-width) shrink-0 bg-(--item-color) ring-1 ring-card ring-inset"
-                style={
-                  {
-                    "--item-color": color,
-                    "--progress-width": `${(amount / total) * 100}%`,
-                  } as React.CSSProperties
-                }
-              />
-            ))}
-          </div>
+          <CompositionBar
+            className="mt-3 mb-2"
+            segments={segments.map(({ id, amount, color }) => ({
+              id: id ?? "other",
+              percent: (amount / total) * 100,
+              color,
+            }))}
+          />
           <ul className="mt-1 divide-y divide-bento-hairline/50">
             {segments.map(({ id, name, amount, txCount, color }) => {
               const share = (amount / total) * 100;
@@ -97,12 +87,10 @@ function CategoryBreakdown({
                       style={{ "--item-color": color } as React.CSSProperties}
                     />
                     <span className="min-w-0 wrap-anywhere">
-                      {name}{" "}
-                      <span
-                        className="inline-block text-bento-subtle tabular-nums"
-                        aria-label={`${txCount} ${txCount === 1 ? "transaction" : "transactions"}`}
-                      >
-                        ×{txCount}
+                      {name}
+                      <span className="block text-bento-subtle tabular-nums">
+                        {txCount}{" "}
+                        {txCount === 1 ? "transaction" : "transactions"}
                       </span>
                     </span>
                   </span>
@@ -142,8 +130,6 @@ function CategoryBreakdown({
 }
 
 export function MonthSummary({
-  year,
-  month,
   transactions,
   categoryMap,
   primaryCurrency,
@@ -151,8 +137,6 @@ export function MonthSummary({
   error,
   onCategorySelect,
 }: {
-  year: number;
-  month: number;
   transactions: Transaction[];
   categoryMap: Map<number, CategoryInfo>;
   primaryCurrency: string;
@@ -160,7 +144,7 @@ export function MonthSummary({
   error: string | null;
   onCategorySelect: (id: number) => void;
 }) {
-  const { incomeCategories, spendingCategories, topMerchants, income, spend } =
+  const { incomeCategories, spendingCategories, income, spend } =
     useMemo(() => {
       const incomeCategories = computeIncomeCategoryTotals(
         transactions,
@@ -183,7 +167,6 @@ export function MonthSummary({
       return {
         incomeCategories,
         spendingCategories,
-        topMerchants: computeMerchantTotals(transactions, categoryMap, 5),
         income,
         spend,
       };
@@ -206,50 +189,15 @@ export function MonthSummary({
         primaryCurrency={primaryCurrency}
         onCategorySelect={onCategorySelect}
       />
-      {topMerchants.length > 0 && (
-        <section className="border-t border-bento-hairline pt-panel-gap">
-          <h3 className="text-xs font-medium">Top merchants</h3>
-          <p className="mt-0.5 text-xs text-bento-subtle">
-            Excludes recurring payments
-          </p>
-          <ul className="mt-2 divide-y divide-bento-hairline/50">
-            {topMerchants.map(({ payee, spend }) => (
-              <li
-                key={payee}
-                className="relative isolate flex min-h-8 items-center justify-between gap-2 overflow-hidden px-1.5 text-xs"
-              >
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-y-0 right-0 -z-10 w-(--progress-width) rounded-l-sm bg-bento-brand/15"
-                  style={
-                    {
-                      "--progress-width": `${(spend / topMerchants[0].spend) * 100}%`,
-                    } as React.CSSProperties
-                  }
-                />
-                <span title={payee} className="min-w-0 truncate">
-                  {payee}
-                </span>
-                <span className="shrink-0 font-mono font-medium tabular-nums">
-                  {formatCurrency(spend, primaryCurrency, true)}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
     </div>
   );
 
   return (
     <Card className="@transactions-rail/main:max-h-transaction-summary @transactions-rail/main:overflow-y-auto">
-      <CardHeader className="flex flex-wrap items-baseline justify-between">
+      <CardHeader>
         <CardTitle>
           <h2 id="transactions-month-summary">Month summary</h2>
         </CardTitle>
-        <p className="text-xs text-bento-subtle">
-          {MONTH_NAMES[month - 1]} {year}
-        </p>
       </CardHeader>
       <CardContent>
         {loading ? (
@@ -267,7 +215,7 @@ export function MonthSummary({
           </p>
         ) : (
           <>
-            <dl className="flex flex-wrap justify-between gap-2">
+            <dl>
               <div className="min-w-0">
                 <dt className="text-xs text-bento-subtle">Net savings</dt>
                 <dd
@@ -278,12 +226,6 @@ export function MonthSummary({
                   )}
                 >
                   {formatCurrency(net, primaryCurrency, true)}
-                </dd>
-              </div>
-              <div className="text-right">
-                <dt className="text-xs text-bento-subtle">Transactions</dt>
-                <dd className="mt-1 font-heading text-2xl leading-tight font-semibold tabular-nums">
-                  {transactions.length}
                 </dd>
               </div>
             </dl>

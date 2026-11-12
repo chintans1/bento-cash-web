@@ -188,6 +188,13 @@ export const TransactionRow = memo(function TransactionRow({
                   onCommit={(next) => onPayeeChange(tx.id, next)}
                 />
               )}
+              {recurringMatch === "confirmed" && (
+                <Repeat2
+                  role="img"
+                  aria-label="Recurring"
+                  className="-ml-1 size-3.5 shrink-0 text-bento-subtle"
+                />
+              )}
               {structurallyLocked && (
                 <LockKeyhole
                   role="img"
@@ -204,13 +211,6 @@ export const TransactionRow = memo(function TransactionRow({
               {tx.is_group_parent && <Badge variant="secondary">Group</Badge>}
               {tx.split_parent_id != null && (
                 <Badge variant="secondary">Split</Badge>
-              )}
-              {recurringMatch === "confirmed" && (
-                <Repeat2
-                  role="img"
-                  aria-label="Recurring"
-                  className="size-3.5 shrink-0 text-bento-subtle"
-                />
               )}
               <span className="ml-auto shrink-0 text-xs text-bento-subtle tabular-nums @2xl/ledger:hidden">
                 {date}
