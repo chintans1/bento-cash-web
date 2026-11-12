@@ -4,7 +4,6 @@ import { memo } from "react";
 import {
   AlertTriangle,
   Check,
-  ChevronRight,
   Circle,
   Clock3,
   LockKeyhole,
@@ -12,13 +11,14 @@ import {
 } from "lucide-react";
 import { CategoryPicker, type CategoryOption } from "./category-picker";
 import { EditableText } from "./editable-text";
+import { TagPicker } from "./tag-picker";
 import { CategoryIcon } from "@/lib/lunchmoney/category-icons";
 import { categoryColor } from "@/lib/lunchmoney/category-colors";
 import { formatCurrency, formatShortDate } from "@/lib/format";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import type { Transaction } from "@/lib/lunchmoney/client";
+import type { Tag, Transaction } from "@/lib/lunchmoney/client";
 import type { RecurringMatch } from "@/lib/lunchmoney/recurring-match";
 import {
   isReviewableTransaction,
@@ -27,15 +27,15 @@ import {
 import { canGroupTransaction } from "@/lib/lunchmoney/transaction-structure";
 
 export const TRANSACTION_GRID_COLUMNS =
-  "grid-cols-transaction @2xl/main:grid-cols-transaction-sm @3xl/main:grid-cols-transaction-md @5xl/main:grid-cols-transaction-lg";
+  "grid-cols-transaction @2xl/ledger:grid-cols-transaction-sm @3xl/ledger:grid-cols-transaction-md";
 
 export type TransactionRowProps = {
   transaction: Transaction;
   categoryName: string;
   accountName?: string;
-  primaryCurrency: string;
   recurringMatch: RecurringMatch;
   categoryOptions: CategoryOption[];
+  tags: Tag[];
   payeeSuggestions: string[];
   saving: boolean;
   error?: string;
@@ -43,18 +43,18 @@ export type TransactionRowProps = {
   onSelect: (id: number, selected: boolean) => void;
   onOpen: (id: number) => void;
   onPayeeChange: (id: number, payee: string) => void;
-  onCategoryChange: (id: number, categoryId: number | null) => void;
+  onCategoryChange: (id: number, categoryId: number | null) => void | false;
+  onTagsChange: (id: number, tags: number[]) => void;
   onReview: (id: number, reviewed: boolean) => void;
-  pickerFinalFocus: () => HTMLElement | boolean | null | void;
 };
 
 export const TransactionRow = memo(function TransactionRow({
   transaction: tx,
   categoryName,
   accountName,
-  primaryCurrency,
   recurringMatch,
   categoryOptions,
+  tags,
   payeeSuggestions,
   saving,
   error,
@@ -63,8 +63,8 @@ export const TransactionRow = memo(function TransactionRow({
   onOpen,
   onPayeeChange,
   onCategoryChange,
+  onTagsChange,
   onReview,
-  pickerFinalFocus,
 }: TransactionRowProps) {
   const payee = tx.payee ?? "";
   const amount = parseFloat(tx.amount);
@@ -101,7 +101,7 @@ export const TransactionRow = memo(function TransactionRow({
     >
       <div
         className={cn(
-          "grid items-center gap-2 px-3 py-2",
+          "grid items-center gap-x-2 px-3 py-panel-row",
           TRANSACTION_GRID_COLUMNS
         )}
       >
@@ -139,6 +139,7 @@ export const TransactionRow = memo(function TransactionRow({
         <div className="flex min-w-0 items-center gap-2">
           <button
             type="button"
+            data-tx-details
             aria-label={`Open details for ${payee || "transaction"}`}
             onClick={() => onOpen(tx.id)}
             className={cn(
@@ -194,22 +195,23 @@ export const TransactionRow = memo(function TransactionRow({
                 />
               )}
               {tx.is_group_parent && <Badge variant="secondary">Group</Badge>}
+              {tx.split_parent_id != null && (
+                <Badge variant="secondary">Split</Badge>
+              )}
             </div>
             <div className="flex min-w-0 items-center gap-2 px-1.5">
-              <button
-                type="button"
-                className="min-w-0 flex-1 truncate text-left text-xs text-bento-subtle hover:text-bento-default"
-                onClick={() => onOpen(tx.id)}
-              >
+              <span className="min-w-0 flex-1 truncate text-xs text-bento-subtle">
                 {tx.notes || accountName || "View details"}
-              </button>
+              </span>
               {recurringMatch === "confirmed" && (
                 <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-bento-subtle">
                   <Repeat2 aria-hidden="true" className="size-3.5" />
-                  Recurring
+                  <span className="sr-only @2xl/ledger:not-sr-only">
+                    Recurring
+                  </span>
                 </span>
               )}
-              <span className="shrink-0 font-mono text-(length:--text-micro) text-bento-subtle tabular-nums @2xl/main:hidden">
+              <span className="shrink-0 font-mono text-(length:--text-micro) text-bento-subtle tabular-nums @2xl/ledger:hidden">
                 {formatShortDate(tx.date)}
               </span>
             </div>
@@ -221,7 +223,7 @@ export const TransactionRow = memo(function TransactionRow({
           </div>
         </div>
 
-        <div className="hidden min-w-0 @2xl/main:block">
+        <div className="col-start-2 row-start-2 min-w-0 @xs/ledger:pl-11 @2xl/ledger:col-start-3 @2xl/ledger:row-start-1 @2xl/ledger:pl-0">
           {structurallyLocked ? (
             <span className="flex min-h-10 items-center truncate px-2 text-xs text-bento-default">
               {categoryName}
@@ -236,105 +238,79 @@ export const TransactionRow = memo(function TransactionRow({
                   : categoryOptions
               }
               saving={saving}
-              disabled={saving}
               onChange={(categoryId) => onCategoryChange(tx.id, categoryId)}
-              finalFocus={pickerFinalFocus}
             />
           )}
         </div>
 
-        <span className="hidden text-center text-xs text-bento-subtle tabular-nums @2xl/main:block">
+        <span className="hidden text-center text-xs text-bento-subtle tabular-nums @2xl/ledger:col-start-4 @2xl/ledger:row-start-1 @2xl/ledger:block">
           {formatShortDate(tx.date)}
         </span>
 
         <span
           className={cn(
-            "hidden text-right font-mono text-sm font-medium tabular-nums @2xl/main:block",
+            "col-span-2 col-start-3 row-start-2 justify-self-end text-right font-mono text-sm font-medium whitespace-nowrap tabular-nums @2xl/ledger:col-span-1 @2xl/ledger:col-start-5 @2xl/ledger:row-start-1",
             isCredit && !tx.is_pending && "text-bento-positive"
           )}
         >
           {isCredit ? "+" : "−"}
-          {formatCurrency(Math.abs(amount), primaryCurrency, true)}
+          {formatCurrency(Math.abs(amount), tx.currency, true)}
         </span>
-        {tx.is_pending ? (
-          <span aria-hidden="true" className="size-10" />
-        ) : structurallyLocked ? (
-          <span
-            className="flex size-10 items-center justify-center"
-            title={reviewed ? "Reviewed · read-only" : "Read-only"}
-          >
-            {reviewed ? (
-              <Check
-                aria-hidden="true"
-                className="size-4 text-bento-positive"
-              />
-            ) : (
-              <LockKeyhole
-                aria-hidden="true"
-                className="size-4 text-bento-subtle"
-              />
-            )}
-            <span className="sr-only">
-              {reviewed ? "Reviewed, read-only" : "Read-only"}
-            </span>
-          </span>
-        ) : (
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-lg"
-            disabled={!canReview || saving}
-            aria-label={reviewed ? "Mark unreviewed" : "Mark reviewed"}
-            onClick={() => onReview(tx.id, !reviewed)}
-            className={cn(
-              reviewed && "text-bento-positive hover:text-bento-positive",
-              unreviewed && "text-bento-subtle hover:text-bento-default"
-            )}
-          >
-            {reviewed ? (
-              <Check className="size-4" />
-            ) : (
-              <Circle className="size-4" />
-            )}
-          </Button>
-        )}
-        <ChevronRight
-          aria-hidden="true"
-          className="size-4 text-bento-subtle transition-colors group-hover/row:text-bento-default"
-        />
-      </div>
-
-      <div className="px-4 pb-2 @2xl/main:hidden">
-        <div className="flex items-center gap-2">
-          <div className="min-w-0 flex-1">
-            {structurallyLocked ? (
-              <span className="flex min-h-10 items-center px-2 text-xs text-bento-default">
-                {categoryName}
-              </span>
-            ) : (
-              <CategoryPicker
-                categoryId={tx.category_id}
-                categoryName={categoryName}
-                options={categoryOptions}
-                saving={saving}
-                disabled={saving}
-                onChange={(categoryId) => onCategoryChange(tx.id, categoryId)}
-                finalFocus={pickerFinalFocus}
-              />
-            )}
-          </div>
-          {tx.split_parent_id != null && (
-            <Badge variant="secondary">Split</Badge>
+        <div className="col-start-3 row-start-1 @2xl/ledger:col-start-6">
+          {(!structurallyLocked || tx.tag_ids.length > 0) && (
+            <TagPicker
+              appearance="cell"
+              tags={tags}
+              value={tx.tag_ids}
+              disabled={structurallyLocked}
+              saving={saving}
+              onChange={(ids) => onTagsChange(tx.id, ids)}
+            />
           )}
-          <span
-            className={cn(
-              "shrink-0 text-right font-mono text-sm font-medium tabular-nums",
-              isCredit && !tx.is_pending && "text-bento-positive"
-            )}
-          >
-            {isCredit ? "+" : "−"}
-            {formatCurrency(Math.abs(amount), primaryCurrency, true)}
-          </span>
+        </div>
+        <div className="col-start-4 row-start-1 @2xl/ledger:col-start-7">
+          {tx.is_pending ? (
+            <span aria-hidden="true" className="size-10" />
+          ) : structurallyLocked ? (
+            <span
+              className="flex size-10 items-center justify-center"
+              title={reviewed ? "Reviewed · read-only" : "Read-only"}
+            >
+              {reviewed ? (
+                <Check
+                  aria-hidden="true"
+                  className="size-4 text-bento-positive"
+                />
+              ) : (
+                <LockKeyhole
+                  aria-hidden="true"
+                  className="size-4 text-bento-subtle"
+                />
+              )}
+              <span className="sr-only">
+                {reviewed ? "Reviewed, read-only" : "Read-only"}
+              </span>
+            </span>
+          ) : (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-lg"
+              disabled={!canReview || saving}
+              aria-label={reviewed ? "Mark unreviewed" : "Mark reviewed"}
+              onClick={() => onReview(tx.id, !reviewed)}
+              className={cn(
+                reviewed && "text-bento-positive hover:text-bento-positive",
+                unreviewed && "text-bento-subtle hover:text-bento-default"
+              )}
+            >
+              {reviewed ? (
+                <Check className="size-4" />
+              ) : (
+                <Circle className="size-4" />
+              )}
+            </Button>
+          )}
         </div>
       </div>
     </div>

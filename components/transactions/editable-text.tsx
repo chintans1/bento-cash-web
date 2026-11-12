@@ -11,7 +11,7 @@ import {
 import { cn } from "@/lib/utils";
 
 const INPUT_CLASS =
-  "w-full rounded-lg bg-bento-raised px-1.5 py-0.5 text-sm font-medium ring-2 ring-ring/40 outline-none";
+  "h-10 w-full rounded-lg bg-bento-raised px-1.5 text-sm font-medium ring-2 ring-ring/40 outline-none";
 
 /** Shared suggestions popup for inline and detail payee editing. */
 export function PayeeSuggestionsPopup() {
@@ -66,6 +66,7 @@ export function EditableText({
 }) {
   const [draft, setDraft] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const restoreFocus = useRef(false);
   /**
    * The suggestion the user has arrowed to, if any. Enter belongs to Base UI
    * in that case — it commits the highlighted name — and to us otherwise, so
@@ -74,15 +75,14 @@ export function EditableText({
   const highlighted = useRef<string | undefined>(undefined);
   const editing = draft !== null;
 
-  function commit(next: string) {
+  function commit(next: string, focusTrigger = false) {
     const trimmed = next.trim();
-    setDraft(null);
-    setOpen(false);
-    highlighted.current = undefined;
+    cancel(focusTrigger);
     if (trimmed && trimmed !== value) onCommit(trimmed);
   }
 
-  function cancel() {
+  function cancel(focusTrigger: boolean) {
+    restoreFocus.current = focusTrigger;
     setDraft(null);
     setOpen(false);
     highlighted.current = undefined;
@@ -108,7 +108,7 @@ export function EditableText({
           setDraft(next);
           // Picking a suggestion is the whole edit — commit without making the
           // user press Enter as well.
-          if (details.reason === "item-press") commit(next);
+          if (details.reason === "item-press") commit(next, true);
         }}
         open={open}
         onOpenChange={setOpen}
@@ -121,16 +121,19 @@ export function EditableText({
           onBlur={() => commit(draft)}
           onKeyDown={(e) => {
             e.stopPropagation();
+            if (e.nativeEvent.isComposing) return;
             if (e.key === "Enter") {
               if (highlighted.current !== undefined) return;
               e.preventDefault();
-              commit(draft);
+              commit(draft, true);
             } else if (e.key === "Escape") {
               e.preventDefault();
               // Escape dismisses the suggestions first, so a stray keypress
               // doesn't throw away what's been typed.
-              if (open) setOpen(false);
-              else cancel();
+              if (open) {
+                setOpen(false);
+                highlighted.current = undefined;
+              } else cancel(true);
             }
           }}
         />
@@ -148,12 +151,13 @@ export function EditableText({
         onBlur={() => commit(draft)}
         onKeyDown={(e) => {
           e.stopPropagation();
+          if (e.nativeEvent.isComposing) return;
           if (e.key === "Enter") {
             e.preventDefault();
-            commit(draft);
+            commit(draft, true);
           } else if (e.key === "Escape") {
             e.preventDefault();
-            cancel();
+            cancel(true);
           }
         }}
       />
@@ -162,22 +166,32 @@ export function EditableText({
 
   return (
     <button
+      ref={(element) => {
+        if (element && restoreFocus.current) {
+          restoreFocus.current = false;
+          element.focus();
+        }
+      }}
       type="button"
       aria-label={ariaLabel}
-      disabled={disabled}
+      aria-disabled={disabled || undefined}
       onClick={(e) => {
         e.stopPropagation();
+        if (disabled) return;
         setDraft(value);
       }}
       className={cn(
-        "group/edit flex w-full items-center gap-1.5 rounded-lg px-1.5 py-0.5 text-left transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-60",
+        "group/edit flex min-h-10 w-full items-center gap-1.5 rounded-lg px-1.5 text-left transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none aria-disabled:opacity-60",
         className
       )}
     >
       <span className="truncate text-sm font-medium">
         {value || <span className="text-bento-subtle">{placeholder}</span>}
       </span>
-      <Pencil className="size-3 shrink-0 text-bento-subtle opacity-100 transition-opacity sm:opacity-0 sm:group-focus-within/edit:opacity-100 sm:group-hover/edit:opacity-100" />
+      <Pencil
+        aria-hidden="true"
+        className="size-3 shrink-0 text-bento-subtle opacity-65 transition-opacity group-focus-within/edit:opacity-100 group-hover/edit:opacity-100"
+      />
     </button>
   );
 }

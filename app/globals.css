@@ -316,6 +316,7 @@
   --spacing-panel-compact: 0.875rem;
   --spacing-panel-gap: 0.875rem;
   --spacing-panel-row: 0.625rem;
+  --container-transactions-rail: 60rem;
 }
 
 @utility card-inset {
@@ -333,6 +334,9 @@
 @utility grid-cols-transaction-search {
   grid-template-columns: minmax(0, 1fr) 11rem;
 }
+@utility grid-cols-transactions-page {
+  grid-template-columns: minmax(0, 1fr) 17rem;
+}
 @utility grid-cols-performance {
   grid-template-columns: minmax(0, 1fr) auto auto;
 }
@@ -348,16 +352,15 @@
   grid-template-columns: auto 1fr;
 }
 @utility grid-cols-transaction {
-  grid-template-columns: 40px minmax(0, 1fr) 40px 24px;
+  grid-template-columns: 40px minmax(0, 1fr) 40px 40px;
 }
 @utility grid-cols-transaction-sm {
-  grid-template-columns: 40px minmax(0, 1fr) 160px 72px 96px 40px 24px;
+  grid-template-columns: 40px minmax(0, 1fr) 9rem 3.5rem 6.5rem 40px 40px;
 }
 @utility grid-cols-transaction-md {
-  grid-template-columns: 40px minmax(0, 1fr) 220px 72px 96px 40px 24px;
-}
-@utility grid-cols-transaction-lg {
-  grid-template-columns: 40px minmax(0, 1fr) 260px 72px 96px 40px 24px;
+  grid-template-columns:
+    40px minmax(0, 1fr) minmax(9rem, 22%)
+    4rem 6.5rem 40px 40px;
 }
 @utility max-w-viewport-inset {
   max-width: calc(100vw - 2rem);

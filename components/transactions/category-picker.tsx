@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ListFilter } from "lucide-react";
 import {
   Combobox,
@@ -50,7 +50,7 @@ export function buildCategoryOptions(
  * stays out of the way when the user has arrowed to a specific row.
  */
 function commitTopMatchOnEnter(event: React.KeyboardEvent<HTMLInputElement>) {
-  if (event.key !== "Enter") return;
+  if (event.key !== "Enter" || event.nativeEvent.isComposing) return;
 
   const popup = event.currentTarget.closest('[data-slot="combobox-content"]');
   if (!popup) return;
@@ -145,23 +145,19 @@ export function CategoryPicker({
   saving,
   disabled,
   appearance = "cell",
-  finalFocus,
 }: {
   categoryId: number | null;
   categoryName: string;
   options: CategoryOption[];
-  onChange: (categoryId: number | null) => void;
+  /** Return false when the edit removes this row and the list will move focus. */
+  onChange: (categoryId: number | null) => void | false;
   saving?: boolean;
   disabled?: boolean;
   appearance?: "cell" | "field";
-  /**
-   * What receives focus when the picker closes. Return an element to focus it,
-   * `false` to leave focus alone, or nothing for the default (the trigger).
-   */
-  finalFocus?: () => HTMLElement | boolean | null | void;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const skipFinalFocus = useRef(false);
 
   const selected = useMemo(
     () => options.find((o) => o.id === (categoryId ?? -1)) ?? null,
@@ -185,24 +181,31 @@ export function CategoryPicker({
       value={selected}
       onValueChange={(option: CategoryOption | null) => {
         if (!option || option.id === (categoryId ?? -1)) return;
-        onChange(option.id === -1 ? null : option.id);
+        skipFinalFocus.current =
+          onChange(option.id === -1 ? null : option.id) === false;
       }}
       open={open}
-      onOpenChange={(nextOpen) => {
+      onOpenChange={(nextOpen, details) => {
+        if (nextOpen && saving) {
+          details.cancel();
+          return;
+        }
         setOpen(nextOpen);
-        if (!nextOpen) setQuery("");
+        if (nextOpen) skipFinalFocus.current = false;
+        else setQuery("");
       }}
     >
       <ComboboxTrigger
         aria-label={`Category: ${categoryName}. Change`}
-        disabled={disabled || saving}
+        disabled={disabled}
+        aria-disabled={saving || undefined}
         className={cn(
           "group/cat flex min-h-10 w-full items-center gap-1.5 text-left outline-none [&>svg]:ml-auto [&>svg]:shrink-0 [&>svg]:text-bento-subtle",
           appearance === "field"
             ? "h-10 rounded-xl border border-transparent bg-input/50 px-3 text-sm transition-field hover:bg-input focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
             : "rounded-lg py-1 pr-1.5 pl-2 text-xs transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40",
           appearance !== "field" &&
-            "[&>svg]:size-3 [&>svg]:transition-opacity sm:[&>svg]:opacity-0 sm:focus-within:[&>svg]:opacity-100 sm:hover:[&>svg]:opacity-100",
+            "[&>svg]:size-3 [&>svg]:opacity-65 [&>svg]:transition-opacity focus-within:[&>svg]:opacity-100 hover:[&>svg]:opacity-100",
           (saving || disabled) && "opacity-60"
         )}
       >
@@ -220,7 +223,7 @@ export function CategoryPicker({
         </span>
       </ComboboxTrigger>
 
-      <CategoryComboboxPopup finalFocus={finalFocus} />
+      <CategoryComboboxPopup finalFocus={() => !skipFinalFocus.current} />
     </Combobox>
   );
 }
@@ -275,7 +278,7 @@ export function CategoryFilterPicker({
     >
       <ComboboxTrigger
         aria-label={`Filter by category: ${selected.name}. Change`}
-        className="flex h-10 w-full items-center justify-between gap-1.5 rounded-3xl border border-transparent bg-input/50 px-3 text-sm whitespace-nowrap transition-field outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 sm:w-44"
+        className="flex h-10 w-full min-w-0 items-center justify-between gap-1.5 rounded-3xl border border-transparent bg-input/50 px-3 text-sm whitespace-nowrap transition-field outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 [&>svg]:shrink-0"
       >
         <span
           className={cn(

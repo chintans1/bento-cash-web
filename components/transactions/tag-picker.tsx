@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Plus, Search, X } from "lucide-react";
+import { Check, Plus, Search, Tag as TagIcon, X } from "lucide-react";
 import type { Tag } from "@/lib/lunchmoney/client";
 import {
   Popover,
@@ -14,74 +14,119 @@ export function TagPicker({
   tags,
   value,
   disabled,
+  saving,
+  appearance = "field",
   onChange,
 }: {
   tags: Tag[];
   value: number[];
   disabled?: boolean;
+  saving?: boolean;
+  appearance?: "field" | "cell";
   onChange: (ids: number[]) => void;
 }) {
   const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const cell = appearance === "cell";
+  const selectedIds = new Set(value);
   const selected = value
     .map((id) => tags.find((tag) => tag.id === id))
     .filter((tag): tag is Tag => tag !== undefined);
-  const available = [
-    ...selected,
-    ...tags.filter((tag) => !tag.archived && !value.includes(tag.id)),
-  ];
+  const available = open
+    ? cell
+      ? tags.filter((tag) => !tag.archived || selectedIds.has(tag.id))
+      : [
+          ...selected,
+          ...tags.filter((tag) => !tag.archived && !selectedIds.has(tag.id)),
+        ]
+    : [];
+  const names = selected.map((tag) => tag.name).join(", ");
+  const normalizedQuery = query.trim().toLowerCase();
   const matches = available.filter((tag) =>
-    tag.name.toLowerCase().includes(query.trim().toLowerCase())
+    tag.name.toLowerCase().includes(normalizedQuery)
   );
 
   return (
-    <div className="flex min-w-0 flex-wrap items-center gap-1.5 rounded-xl border border-bento-hairline bg-input/50 p-1.5">
-      {selected.map((tag) => (
-        <button
-          key={tag.id}
-          type="button"
-          disabled={disabled}
-          aria-label={`Remove tag ${tag.name}`}
-          title={`Remove ${tag.name}`}
-          className="inline-flex min-h-10 max-w-full items-center gap-1.5 rounded-full bg-bento-raised px-2.5 text-xs font-medium text-bento-default transition-colors hover:bg-bento-muted focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-60"
-          onClick={() => onChange(value.filter((id) => id !== tag.id))}
-        >
-          <span
-            aria-hidden="true"
-            className="size-2 shrink-0 rounded-full bg-(--item-background)"
-            style={
-              {
-                "--item-background": tag.background_color ?? undefined,
-              } as React.CSSProperties
-            }
-          />
-          <span className="truncate">{tag.name}</span>
-          <X
-            aria-hidden="true"
-            className="size-3.5 shrink-0 text-bento-subtle"
-          />
-        </button>
-      ))}
-      <Popover onOpenChange={(open) => !open && setQuery("")}>
+    <div
+      className={
+        cell
+          ? "min-w-0"
+          : "flex min-w-0 flex-wrap items-center gap-1.5 rounded-xl border border-bento-hairline bg-input/50 p-1.5"
+      }
+    >
+      {!cell &&
+        selected.map((tag) => (
+          <button
+            key={tag.id}
+            type="button"
+            disabled={disabled}
+            aria-label={`Remove tag ${tag.name}`}
+            title={`Remove ${tag.name}`}
+            className="inline-flex min-h-10 max-w-full items-center gap-1.5 rounded-full bg-bento-raised px-2.5 text-xs font-medium text-bento-default transition-colors hover:bg-bento-muted focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-60"
+            onClick={() => onChange(value.filter((id) => id !== tag.id))}
+          >
+            <span
+              aria-hidden="true"
+              className="size-2 shrink-0 rounded-full bg-(--item-background)"
+              style={
+                {
+                  "--item-background": tag.background_color ?? undefined,
+                } as React.CSSProperties
+              }
+            />
+            <span className="truncate">{tag.name}</span>
+            <X
+              aria-hidden="true"
+              className="size-3.5 shrink-0 text-bento-subtle"
+            />
+          </button>
+        ))}
+      <Popover
+        open={open}
+        onOpenChange={(next, details) => {
+          if (next && saving) {
+            details.cancel();
+            return;
+          }
+          setOpen(next);
+          if (!next) setQuery("");
+        }}
+      >
         <PopoverTrigger
-          aria-label={
-            selected.length
-              ? `Tags: ${selected.map((tag) => tag.name).join(", ")}. Edit tags`
-              : "Add tags"
-          }
-          title={
-            selected.length
-              ? `Tags: ${selected.map((tag) => tag.name).join(", ")}`
-              : "Add tags"
-          }
+          aria-label={names ? `Tags: ${names}. Edit tags` : "Add tags"}
+          title={names || "Add tags"}
           disabled={disabled}
-          className="inline-flex min-h-10 items-center gap-1.5 rounded-full bg-card px-3 text-xs font-medium text-bento-default transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-60"
+          aria-disabled={saving || undefined}
+          className={cn(
+            "inline-flex min-h-10 items-center justify-center rounded-full text-xs font-medium transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-60",
+            cell
+              ? "pointer-press relative size-10 text-bento-subtle hover:text-bento-default aria-expanded:bg-bento-raised"
+              : "gap-1.5 bg-card px-3 text-bento-default"
+          )}
         >
-          <Plus aria-hidden="true" className="size-3.5 shrink-0" />
-          <span>{selected.length ? "Add tag" : "Add tags"}</span>
+          {cell ? (
+            <>
+              <TagIcon aria-hidden="true" className="size-4" />
+              {value.length > 0 && (
+                <span
+                  aria-hidden="true"
+                  className="absolute top-0.5 right-0.5 min-w-4 rounded-full bg-bento-muted px-0.5 text-center text-(length:--text-micro) leading-4 tabular-nums"
+                >
+                  {value.length}
+                </span>
+              )}
+            </>
+          ) : (
+            <>
+              <Plus aria-hidden="true" className="size-3.5 shrink-0" />
+              <span>{selected.length ? "Add tag" : "Add tags"}</span>
+            </>
+          )}
         </PopoverTrigger>
         <PopoverContent
-          align="start"
-          className="max-h-80 gap-0 overflow-hidden p-1.5"
+          align={cell ? "end" : "start"}
+          aria-label="Edit tags"
+          className="max-h-(--available-height) max-w-(--available-width) gap-0 overflow-hidden p-1.5"
         >
           <div className="relative mb-1 border-b border-bento-hairline/60 pb-1.5">
             <Search
@@ -98,7 +143,7 @@ export function TagPicker({
               className="h-10 w-full rounded-xl bg-bento-raised pr-3 pl-9 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring/40"
             />
           </div>
-          <div className="min-h-0 overflow-y-auto">
+          <div className="max-h-64 min-h-0 overflow-y-auto overscroll-contain">
             {available.length === 0 ? (
               <p className="px-3 py-4 text-center text-sm text-bento-subtle">
                 No tags in Lunch Money.
@@ -109,21 +154,23 @@ export function TagPicker({
               </p>
             ) : (
               matches.map((tag) => {
-                const active = value.includes(tag.id);
+                const active = selectedIds.has(tag.id);
                 return (
                   <button
                     key={tag.id}
                     type="button"
                     aria-pressed={active}
+                    aria-disabled={saving || undefined}
                     disabled={disabled}
                     className="flex min-h-10 w-full items-center gap-2 rounded-2xl px-3 text-left text-sm transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-60"
-                    onClick={() =>
+                    onClick={() => {
+                      if (saving) return;
                       onChange(
                         active
                           ? value.filter((id) => id !== tag.id)
                           : [...value, tag.id]
-                      )
-                    }
+                      );
+                    }}
                   >
                     <span
                       aria-hidden="true"

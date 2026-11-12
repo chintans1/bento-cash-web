@@ -17,6 +17,7 @@ import {
   TRANSACTION_GRID_COLUMNS,
 } from "@/components/transactions/transaction-row";
 import { TransactionEditor } from "@/components/transactions/transaction-editor";
+import { MonthSummary } from "@/components/transactions/month-summary";
 import {
   GroupEditor,
   SplitEditor,
@@ -28,7 +29,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useAppData } from "@/hooks/use-app-data";
 import { useMonthTransactions } from "@/hooks/use-month-transactions";
 import { filterSpendTransactions } from "@/lib/lunchmoney/analytics";
-import { UNCATEGORIZED } from "@/lib/lunchmoney/categories";
+import { UNCATEGORIZED, UNCATEGORIZED_ID } from "@/lib/lunchmoney/categories";
 import { ConnectionPrompt } from "@/components/connection-prompt";
 import { useMonthNavigation } from "@/hooks/use-month-navigation";
 import { isCurrentOrFutureMonth } from "@/lib/date-utils";
@@ -61,9 +62,8 @@ import { recurringMatch } from "@/lib/lunchmoney/recurring-match";
 type SortKey = "date" | "amount" | "payee";
 type SortDir = "asc" | "desc";
 
-/** The "Uncategorized" option in the category filter. */
-const UNCATEGORIZED_FILTER = -1;
 const NO_SELECTION = new Set<number>();
+const TRANSACTIONS_PER_PAGE = 60;
 
 /**
  * Arrow next to the active sort column. Declared at module scope rather than
@@ -141,10 +141,10 @@ function TransactionsPage() {
 
   const [query, setQuery] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
-  /** Transaction id whose category picker should take focus once the list settles. */
+  /** Row control to focus after an edit or after showing more transactions. */
   const pendingFocusRef = useRef<{
-    id: number;
-    target: "category" | "review";
+    id: number | undefined;
+    target: "category" | "review" | "details";
   } | null>(null);
   const categoryParam = searchParams.get("category");
   const filterCatId = parseCategoryFilter(categoryParam);
@@ -152,6 +152,20 @@ function TransactionsPage() {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
   const monthKey = `${selectedYear}-${selectedMonth}`;
+  const listScope = JSON.stringify([
+    monthKey,
+    query,
+    filterCatId,
+    reviewFilter,
+    sortKey,
+    sortDir,
+  ]);
+  const [listPage, setListPage] = useState({
+    scope: listScope,
+    limit: TRANSACTIONS_PER_PAGE,
+  });
+  const visibleLimit =
+    listPage.scope === listScope ? listPage.limit : TRANSACTIONS_PER_PAGE;
   const [selection, setSelection] = useState<{
     month: string;
     ids: Set<number>;
@@ -242,7 +256,7 @@ function TransactionsPage() {
       }
       if (!matchesReviewFilter(tx, reviewFilter)) return false;
       if (filterCatId === null) return true;
-      return filterCatId === UNCATEGORIZED_FILTER
+      return filterCatId === UNCATEGORIZED_ID
         ? tx.category_id == null
         : tx.category_id === filterCatId;
     });
@@ -255,7 +269,7 @@ function TransactionsPage() {
         sortKey === "date"
           ? a.date.localeCompare(b.date)
           : sortKey === "amount"
-            ? parseFloat(a.amount) - parseFloat(b.amount)
+            ? a.to_base - b.to_base
             : (a.payee ?? "").localeCompare(b.payee ?? "");
       return sortDir === "asc" ? cmp : -cmp;
     });
@@ -306,27 +320,29 @@ function TransactionsPage() {
       const row = document.querySelector<HTMLElement>(
         `[data-tx-id="${pendingFocus.id}"]`
       );
-      const target =
-        pendingFocus.target === "review"
-          ? row?.querySelector<HTMLElement>(
-              "button[aria-label='Mark reviewed']"
-            )
-          : Array.from(
-              row?.querySelectorAll<HTMLElement>("[role='combobox']") ?? []
-            ).find((element) => element.getClientRects().length > 0);
-      target?.focus();
+      const selector = {
+        review: "button[aria-label='Mark reviewed']",
+        category: "[data-slot='combobox-trigger']",
+        details: "[data-tx-details]",
+      }[pendingFocus.target];
+      const target = row?.querySelector<HTMLElement>(selector);
+      (target ?? searchRef.current)?.focus();
       pendingFocusRef.current = null;
     });
     return () => cancelAnimationFrame(frame);
-  }, [filtered]);
+  }, [filtered, visibleLimit]);
 
-  const totalSpend = useMemo(
+  const hasFilters =
+    query !== "" || filterCatId !== null || reviewFilter !== "all";
+  const matchingSpend = useMemo(
     () =>
-      filterSpendTransactions(filtered, categoryMap).reduce(
-        (s, tx) => s + parseFloat(tx.amount),
-        0
-      ),
-    [filtered, categoryMap]
+      hasFilters
+        ? filterSpendTransactions(filtered, categoryMap).reduce(
+            (s, tx) => s + tx.to_base,
+            0
+          )
+        : 0,
+    [hasFilters, filtered, categoryMap]
   );
 
   function toggleSort(key: SortKey) {
@@ -337,39 +353,22 @@ function TransactionsPage() {
     }
   }
 
-  /**
-   * After a category edit removes a row from the uncategorized or review
-   * queue, the picker's own focus restore would target the removed trigger.
-   * Leave focus alone so the effect above can place it on the next row.
-   */
-  const keepFocusWhileAdvancing = useCallback(
-    () =>
-      filterCatId === UNCATEGORIZED_FILTER || reviewFilter === "unreviewed"
-        ? false
-        : undefined,
-    [filterCatId, reviewFilter]
-  );
-
   const handleCategoryChange = useCallback(
     (txId: number, newCatId: number | null) => {
       const current = filteredRef.current;
-      const transaction = current.find((tx) => tx.id === txId);
+      const index = current.findIndex((tx) => tx.id === txId);
+      const transaction = current[index];
       if (!transaction) return;
       const patch = inlineCategoryPatch(transaction, newCatId);
       const shouldReview = patch.status === "reviewed";
 
-      // A category edit can remove the row from either focused queue. Move
-      // focus to the next category picker only when that happens.
-      if (
-        (filterCatId === UNCATEGORIZED_FILTER && newCatId != null) ||
-        (reviewFilter === "unreviewed" && shouldReview)
-      ) {
-        const index = current.findIndex((tx) => tx.id === txId);
-        const remaining = current.filter((tx) => tx.id !== txId);
-        const next = remaining[index] ?? remaining.at(-1);
-        pendingFocusRef.current = next
-          ? { id: next.id, target: "category" }
-          : null;
+      const removesRow =
+        (filterCatId !== null &&
+          (newCatId ?? UNCATEGORIZED_ID) !== filterCatId) ||
+        (reviewFilter === "unreviewed" && shouldReview);
+      if (removesRow) {
+        const next = current[index + 1] ?? current[index - 1];
+        pendingFocusRef.current = { id: next?.id, target: "category" };
       }
 
       if (shouldReview) {
@@ -382,6 +381,7 @@ function TransactionsPage() {
         });
       }
       void update(txId, patch);
+      if (removesRow) return false;
     },
     [filterCatId, monthKey, reviewFilter, update]
   );
@@ -390,6 +390,18 @@ function TransactionsPage() {
     (id: number, payee: string) => void update(id, { payee }),
     [update]
   );
+
+  const handleTagsChange = useCallback(
+    (id: number, tagIds: number[]) => void update(id, { tag_ids: tagIds }),
+    [update]
+  );
+
+  function setCategoryFilter(id: number | null) {
+    const params = new URLSearchParams(searchParams.toString());
+    if (id === null) params.delete("category");
+    else params.set("category", id.toString());
+    router.replace(`/transactions?${params}`, { scroll: false });
+  }
 
   const handleOpen = useCallback(
     (id: number) => setEditing({ month: monthKey, id }),
@@ -413,13 +425,8 @@ function TransactionsPage() {
       if (reviewFilter === "unreviewed" && reviewed) {
         const current = filteredRef.current;
         const index = current.findIndex((transaction) => transaction.id === id);
-        const remaining = current.filter(
-          (transaction) => transaction.id !== id
-        );
-        const next = remaining[index] ?? remaining.at(-1);
-        pendingFocusRef.current = next
-          ? { id: next.id, target: "review" }
-          : null;
+        const next = current[index + 1] ?? current[index - 1];
+        pendingFocusRef.current = { id: next?.id, target: "review" };
       }
       if (reviewed) setSelected(id, false);
       void update(id, { status: reviewed ? "reviewed" : "unreviewed" });
@@ -455,7 +462,7 @@ function TransactionsPage() {
 
   return (
     <div>
-      <div className="mb-page-gap flex flex-col items-start justify-between gap-3 @2xl/main:flex-row @2xl/main:items-center">
+      <header className="mb-page-gap flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
         <h1 className="font-heading text-2xl font-bold text-balance">
           Transactions
         </h1>
@@ -468,317 +475,375 @@ function TransactionsPage() {
           className="mb-0"
           refreshing={refreshing || pending}
         />
-      </div>
+      </header>
 
-      <div className="mb-page-gap grid grid-cols-4 items-center gap-1 rounded-full bg-bento-muted p-1 @2xl/main:flex @2xl/main:w-fit">
-        {(
-          [
-            ["all", "All", "All", transactions.length],
-            ["unreviewed", "Needs review", "Review", counts.unreviewed],
-            ["pending", "Pending", "Pending", counts.pending],
-            ["attention", "Attention", "Attention", counts.attention],
-          ] as const
-        ).map(([value, label, mobileLabel, count]) => (
-          <button
-            key={value}
-            type="button"
-            aria-pressed={reviewFilter === value}
-            className={cn(
-              "min-h-10 min-w-0 flex-1 rounded-full px-1 text-xs font-medium whitespace-nowrap transition-field @2xl/main:flex-none @2xl/main:px-3 @2xl/main:text-sm",
-              reviewFilter === value
-                ? "bg-card text-bento-default shadow-sm"
-                : "text-bento-subtle hover:text-bento-default"
-            )}
-            onClick={() => setReviewFilter(value)}
-          >
-            <span className="@2xl/main:hidden">{mobileLabel}</span>
-            <span className="hidden @2xl/main:inline">{label}</span>{" "}
-            <span className="tabular-nums">{loading ? "…" : count}</span>
-          </button>
-        ))}
-      </div>
-
-      {selectedIds.size > 0 && (
-        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-2xl bg-bento-default px-3 py-2 text-sm text-bento-base shadow-lg">
-          <span className="mr-auto px-1 font-medium tabular-nums">
-            {selectedIds.size} selected
-          </span>
-          <Button
-            variant="secondary"
-            className="h-10"
-            disabled={selectedSaving || !canReviewSelection}
-            aria-busy={selectedSaving}
-            onClick={() => {
-              if (!canReviewSelection) return;
-              void reviewMany([...selectedIds]).then((saved) => {
-                if (saved) setSelection({ month: monthKey, ids: new Set() });
-              });
-            }}
-          >
-            {selectedSaving ? "Reviewing…" : "Mark reviewed"}
-          </Button>
-          <Button
-            variant="secondary"
-            className="h-10"
-            disabled={!canGroupSelection || selectedSaving}
-            onClick={() =>
-              setStructure({
-                type: "group-create",
-                transactions: selectedTransactions,
-              })
-            }
-          >
-            Group transactions
-          </Button>
-          <Button
-            variant="ghost"
-            className="h-10 text-bento-base hover:text-bento-default"
-            onClick={() => setSelection({ month: monthKey, ids: new Set() })}
-          >
-            Clear
-          </Button>
-        </div>
-      )}
-
-      {/* Filters */}
-      <div className="mb-4 grid gap-2 @2xl/main:grid-cols-transaction-search">
-        <div className="relative min-w-0">
-          <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-3.5 -translate-y-1/2 text-bento-subtle" />
-          <Input
-            ref={searchRef}
-            className="h-10 rounded-3xl pr-12 pl-8 text-sm"
-            aria-label="Search transactions"
-            placeholder="Search descriptions or notes…"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Escape") {
-                setQuery("");
-                e.currentTarget.blur();
-              }
+      <div className="grid items-start gap-page-gap @transactions-rail/main:grid-cols-transactions-page">
+        <aside
+          aria-labelledby="transactions-month-summary"
+          className="min-w-0 @transactions-rail/main:sticky @transactions-rail/main:top-page-gap @transactions-rail/main:col-start-2 @transactions-rail/main:row-start-1"
+        >
+          <MonthSummary
+            year={selectedYear}
+            month={selectedMonth}
+            transactions={transactions}
+            categoryMap={categoryMap}
+            primaryCurrency={primaryCurrency}
+            loading={loading}
+            error={error}
+            onCategorySelect={(id) => {
+              setQuery("");
+              setReviewFilter("all");
+              setCategoryFilter(id);
+              searchRef.current?.focus();
             }}
           />
-          {query ? (
-            <Button
-              variant="ghost"
-              size="icon-sm"
-              className="absolute top-0 right-0 size-10 rounded-full"
-              aria-label="Clear search"
-              onClick={() => setQuery("")}
-            >
-              <X className="size-3.5" />
-            </Button>
-          ) : (
-            <Kbd className="pointer-events-none absolute top-1/2 right-3 z-10 -translate-y-1/2">
-              /
-            </Kbd>
-          )}
-        </div>
-
-        <CategoryFilterPicker
-          categoryId={filterCatId}
-          options={categoryOptions}
-          onChange={(newId) => {
-            const params = new URLSearchParams(searchParams.toString());
-            if (newId === null) params.delete("category");
-            else params.set("category", newId.toString());
-            router.replace(`/transactions?${params.toString()}`, {
-              scroll: false,
-            });
-          }}
-        />
-      </div>
-
-      <div className="mb-2 @2xl/main:hidden">
-        <Select
-          value={`${sortKey}-${sortDir}`}
-          onValueChange={(value) => {
-            if (!value) return;
-            const [key, direction] = value.split("-");
-            setSortKey(key as SortKey);
-            setSortDir(direction as SortDir);
-          }}
+        </aside>
+        <section
+          aria-label="Transaction list"
+          className="@container/ledger min-w-0 @transactions-rail/main:col-start-1 @transactions-rail/main:row-start-1"
         >
-          <SelectTrigger aria-label="Sort transactions" className="h-10 w-full">
-            <SelectValue>
-              {(value: string) =>
-                ({
-                  "date-desc": "Newest first",
-                  "date-asc": "Oldest first",
-                  "amount-desc": "Amount: high to low",
-                  "amount-asc": "Amount: low to high",
-                  "payee-asc": "Payee: A to Z",
-                  "payee-desc": "Payee: Z to A",
-                })[value] ?? "Newest first"
-              }
-            </SelectValue>
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="date-desc">Newest first</SelectItem>
-            <SelectItem value="date-asc">Oldest first</SelectItem>
-            <SelectItem value="amount-desc">Amount: high to low</SelectItem>
-            <SelectItem value="amount-asc">Amount: low to high</SelectItem>
-            <SelectItem value="payee-asc">Payee: A to Z</SelectItem>
-            <SelectItem value="payee-desc">Payee: Z to A</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
-
-      {/* Table header */}
-      <div
-        className={cn(
-          "mb-1 grid items-center gap-2 px-3 text-xs font-semibold tracking-wide text-bento-subtle",
-          TRANSACTION_GRID_COLUMNS
-        )}
-      >
-        <button
-          type="button"
-          aria-label="Select all visible transactions"
-          disabled={selectable.length === 0 || loading}
-          aria-pressed={allSelected}
-          className="flex min-h-10 items-center justify-center rounded-full disabled:opacity-40"
-          onClick={() => {
-            const eligible = filtered.filter(
-              (transaction) =>
-                isReviewableTransaction(transaction) ||
-                canGroupTransaction(transaction)
-            );
-            setSelection({
-              month: monthKey,
-              ids: eligible.every((transaction) =>
-                selectedIds.has(transaction.id)
-              )
-                ? new Set()
-                : new Set(eligible.map((transaction) => transaction.id)),
-            });
-          }}
-        >
-          <span
-            className={cn(
-              "flex size-4 items-center justify-center rounded border",
-              allSelected &&
-                "border-bento-brand bg-bento-brand text-bento-brand-fg"
-            )}
-          >
-            {allSelected ? (
-              <Check className="size-3" />
-            ) : selectedIds.size > 0 ? (
-              <Minus className="size-3" />
-            ) : null}
-          </span>
-        </button>
-        <button
-          className="min-h-10 text-left hover:text-bento-default"
-          onClick={() => toggleSort("payee")}
-        >
-          Payee <SortIcon active={sortKey === "payee"} dir={sortDir} />
-        </button>
-        <span className="hidden pl-2 @2xl/main:block">Category</span>
-        <button
-          className="hidden min-h-10 text-center hover:text-bento-default @2xl/main:block"
-          onClick={() => toggleSort("date")}
-        >
-          Date <SortIcon active={sortKey === "date"} dir={sortDir} />
-        </button>
-        <button
-          className="hidden min-h-10 text-right hover:text-bento-default @2xl/main:block"
-          onClick={() => toggleSort("amount")}
-        >
-          Amount <SortIcon active={sortKey === "amount"} dir={sortDir} />
-        </button>
-        <span />
-        <span />
-      </div>
-
-      {loading ? (
-        <TransactionListLoading />
-      ) : error ? (
-        <p className="text-sm text-bento-danger">{error}</p>
-      ) : filtered.length === 0 ? (
-        <div className="rounded-2xl border border-bento-hairline bg-card px-6 py-12 text-center">
-          <p className="font-medium">
-            {transactions.length === 0
-              ? "No transactions this month"
-              : reviewFilter === "unreviewed" && counts.unreviewed === 0
-                ? "You’re all caught up"
-                : "No matching transactions"}
-          </p>
-          <p className="mt-2 text-sm text-bento-subtle">
-            {transactions.length === 0
-              ? "Choose another month to review your activity."
-              : reviewFilter === "unreviewed" && counts.unreviewed === 0
-                ? "Every eligible transaction this month has been reviewed."
-                : "Try a different search or clear your filters."}
-          </p>
-          {(query || filterCatId !== null || reviewFilter !== "all") && (
-            <Button
-              variant="outline"
-              className="mt-4 h-10"
-              onClick={() => {
-                setQuery("");
-                setReviewFilter("all");
-                const params = new URLSearchParams(searchParams.toString());
-                params.delete("category");
-                router.replace(`/transactions?${params}`, { scroll: false });
-              }}
-            >
-              Clear filters
-            </Button>
-          )}
-        </div>
-      ) : (
-        <>
-          <div
-            aria-busy={refreshing || pending}
-            inert={refreshing || pending}
-            className="relative divide-y divide-bento-hairline/50 overflow-hidden rounded-2xl glass"
-          >
-            {filtered.map((tx) => (
-              <TransactionRow
-                key={tx.id}
-                transaction={tx}
-                categoryName={
-                  (tx.category_id != null
-                    ? categoryMap.get(tx.category_id)
-                    : undefined
-                  )?.name ?? UNCATEGORIZED.name
-                }
-                accountName={
-                  tx.manual_account_id != null
-                    ? accountNames.get(`manual-${tx.manual_account_id}`)
-                    : tx.plaid_account_id != null
-                      ? accountNames.get(`plaid-${tx.plaid_account_id}`)
-                      : "Cash transaction"
-                }
-                primaryCurrency={primaryCurrency}
-                recurringMatch={recurringMatch(tx.recurring_id, recurringItems)}
-                categoryOptions={categoryOptions}
-                payeeSuggestions={payeeSuggestions}
-                saving={savingIds.has(tx.id)}
-                error={errors.get(tx.id)}
-                selected={selectedIds.has(tx.id)}
-                onSelect={setSelected}
-                onOpen={handleOpen}
-                onPayeeChange={handlePayeeChange}
-                onCategoryChange={handleCategoryChange}
-                onReview={handleReview}
-                pickerFinalFocus={keepFocusWhileAdvancing}
-              />
+          <div className="mb-page-gap grid grid-cols-4 items-center gap-1 rounded-full bg-bento-muted p-1 @2xl/ledger:flex @2xl/ledger:w-fit">
+            {(
+              [
+                ["all", "All", "All", transactions.length],
+                ["unreviewed", "Needs review", "Review", counts.unreviewed],
+                ["pending", "Pending", "Pending", counts.pending],
+                ["attention", "Attention", "Attention", counts.attention],
+              ] as const
+            ).map(([value, label, mobileLabel, count]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={reviewFilter === value}
+                className={cn(
+                  "min-h-10 min-w-0 flex-1 rounded-full px-1 text-xs font-medium whitespace-nowrap transition-field @2xl/ledger:flex-none @2xl/ledger:px-3 @2xl/ledger:text-sm",
+                  reviewFilter === value
+                    ? "bg-card text-bento-default shadow-sm"
+                    : "text-bento-subtle hover:text-bento-default"
+                )}
+                onClick={() => setReviewFilter(value)}
+              >
+                <span className="@2xl/ledger:hidden">{mobileLabel}</span>
+                <span className="hidden @2xl/ledger:inline">{label}</span>{" "}
+                <span className="tabular-nums">{loading ? "…" : count}</span>
+              </button>
             ))}
           </div>
 
-          {/* Footer summary */}
-          <div className="mt-3 flex items-center justify-between text-xs text-bento-subtle">
-            <span>{filtered.length} transactions</span>
-            <span className="font-mono tabular-nums">
-              Total spend:{" "}
-              <span className="font-semibold text-bento-default">
-                {formatCurrency(totalSpend, primaryCurrency)}
+          {selectedIds.size > 0 && (
+            <div className="mb-page-gap flex flex-wrap items-center gap-2 rounded-2xl bg-bento-default px-3 py-2 text-sm text-bento-base shadow-lg">
+              <span className="mr-auto px-1 font-medium tabular-nums">
+                {selectedIds.size} selected
               </span>
-            </span>
+              <Button
+                variant="secondary"
+                className="h-10"
+                disabled={selectedSaving || !canReviewSelection}
+                aria-busy={selectedSaving}
+                onClick={() => {
+                  if (!canReviewSelection) return;
+                  void reviewMany([...selectedIds]).then((saved) => {
+                    if (saved)
+                      setSelection({ month: monthKey, ids: new Set() });
+                  });
+                }}
+              >
+                {selectedSaving ? "Reviewing…" : "Mark reviewed"}
+              </Button>
+              <Button
+                variant="secondary"
+                className="h-10"
+                disabled={!canGroupSelection || selectedSaving}
+                onClick={() =>
+                  setStructure({
+                    type: "group-create",
+                    transactions: selectedTransactions,
+                  })
+                }
+              >
+                Group transactions
+              </Button>
+              <Button
+                variant="ghost"
+                className="h-10 text-bento-base hover:text-bento-default"
+                onClick={() =>
+                  setSelection({ month: monthKey, ids: new Set() })
+                }
+              >
+                Clear
+              </Button>
+            </div>
+          )}
+
+          {/* Filters */}
+          <div className="mb-page-gap grid grid-cols-2 gap-2 @2xl/ledger:grid-cols-transaction-search">
+            <div className="relative col-span-2 min-w-0 @2xl/ledger:col-span-1">
+              <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-3.5 -translate-y-1/2 text-bento-subtle" />
+              <Input
+                ref={searchRef}
+                className="h-10 rounded-3xl pr-12 pl-8 text-sm"
+                aria-label="Search transactions"
+                placeholder="Search transactions…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setQuery("");
+                    e.currentTarget.blur();
+                  }
+                }}
+              />
+              {query ? (
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="absolute top-0 right-0 size-10 rounded-full"
+                  aria-label="Clear search"
+                  onClick={() => setQuery("")}
+                >
+                  <X className="size-3.5" />
+                </Button>
+              ) : (
+                <Kbd className="pointer-events-none absolute top-1/2 right-3 z-10 -translate-y-1/2">
+                  /
+                </Kbd>
+              )}
+            </div>
+
+            <CategoryFilterPicker
+              categoryId={filterCatId}
+              options={categoryOptions}
+              onChange={setCategoryFilter}
+            />
+
+            <div className="min-w-0 @2xl/ledger:hidden">
+              <Select
+                value={`${sortKey}-${sortDir}`}
+                onValueChange={(value) => {
+                  if (!value) return;
+                  const [key, direction] = value.split("-");
+                  setSortKey(key as SortKey);
+                  setSortDir(direction as SortDir);
+                }}
+              >
+                <SelectTrigger
+                  aria-label="Sort transactions"
+                  className="h-10 w-full"
+                >
+                  <SelectValue>
+                    {(value: string) =>
+                      ({
+                        "date-desc": "Newest first",
+                        "date-asc": "Oldest first",
+                        "amount-desc": "Amount: high to low",
+                        "amount-asc": "Amount: low to high",
+                        "payee-asc": "Name: A to Z",
+                        "payee-desc": "Name: Z to A",
+                      })[value] ?? "Newest first"
+                    }
+                  </SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="date-desc">Newest first</SelectItem>
+                  <SelectItem value="date-asc">Oldest first</SelectItem>
+                  <SelectItem value="amount-desc">
+                    Amount: high to low
+                  </SelectItem>
+                  <SelectItem value="amount-asc">
+                    Amount: low to high
+                  </SelectItem>
+                  <SelectItem value="payee-asc">Name: A to Z</SelectItem>
+                  <SelectItem value="payee-desc">Name: Z to A</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </>
-      )}
+
+          {/* Table header */}
+          <div
+            className={cn(
+              "mb-1 grid items-center gap-x-2 px-3 text-xs font-semibold text-bento-subtle",
+              TRANSACTION_GRID_COLUMNS
+            )}
+          >
+            <button
+              type="button"
+              aria-label={
+                allSelected
+                  ? "Deselect all matching transactions"
+                  : "Select all matching transactions"
+              }
+              title={
+                allSelected
+                  ? "Deselect all matching transactions"
+                  : "Select all matching transactions"
+              }
+              disabled={selectable.length === 0 || loading}
+              aria-pressed={allSelected}
+              className="flex min-h-10 items-center justify-center rounded-full disabled:opacity-40"
+              onClick={() => {
+                setSelection({
+                  month: monthKey,
+                  ids: allSelected
+                    ? new Set()
+                    : new Set(selectable.map((transaction) => transaction.id)),
+                });
+              }}
+            >
+              <span
+                className={cn(
+                  "flex size-4 items-center justify-center rounded border",
+                  allSelected &&
+                    "border-bento-brand bg-bento-brand text-bento-brand-fg"
+                )}
+              >
+                {allSelected ? (
+                  <Check className="size-3" />
+                ) : selectedIds.size > 0 ? (
+                  <Minus className="size-3" />
+                ) : null}
+              </span>
+            </button>
+            <button
+              className="hidden min-h-10 pl-1.5 text-left hover:text-bento-default @2xl/ledger:block"
+              onClick={() => toggleSort("payee")}
+            >
+              Description{" "}
+              <SortIcon active={sortKey === "payee"} dir={sortDir} />
+            </button>
+            <span className="pl-1.5 @2xl/ledger:hidden">Description</span>
+            <span className="hidden pl-2 @2xl/ledger:block">Category</span>
+            <button
+              className="hidden min-h-10 text-center hover:text-bento-default @2xl/ledger:block"
+              onClick={() => toggleSort("date")}
+            >
+              Date <SortIcon active={sortKey === "date"} dir={sortDir} />
+            </button>
+            <button
+              className="hidden min-h-10 text-right hover:text-bento-default @2xl/ledger:block"
+              onClick={() => toggleSort("amount")}
+            >
+              Amount <SortIcon active={sortKey === "amount"} dir={sortDir} />
+            </button>
+            <span className="text-center">Tags</span>
+            <span className="sr-only">Review status</span>
+          </div>
+
+          {loading ? (
+            <TransactionListLoading />
+          ) : error ? (
+            <p className="text-sm text-bento-danger">{error}</p>
+          ) : filtered.length === 0 ? (
+            <div className="rounded-2xl border border-bento-hairline bg-card px-6 py-12 text-center">
+              <p className="font-medium">
+                {transactions.length === 0
+                  ? "No transactions this month"
+                  : reviewFilter === "unreviewed" && counts.unreviewed === 0
+                    ? "You’re all caught up"
+                    : "No matching transactions"}
+              </p>
+              <p className="mt-2 text-sm text-bento-subtle">
+                {transactions.length === 0
+                  ? "Choose another month to review your activity."
+                  : reviewFilter === "unreviewed" && counts.unreviewed === 0
+                    ? "Every eligible transaction this month has been reviewed."
+                    : "Try a different search or clear your filters."}
+              </p>
+              {hasFilters && (
+                <Button
+                  variant="outline"
+                  className="mt-4 h-10"
+                  onClick={() => {
+                    setQuery("");
+                    setReviewFilter("all");
+                    setCategoryFilter(null);
+                  }}
+                >
+                  Clear filters
+                </Button>
+              )}
+            </div>
+          ) : (
+            <>
+              <div
+                aria-busy={refreshing || pending}
+                inert={refreshing || pending}
+                className="relative divide-y divide-bento-hairline/50 overflow-hidden rounded-2xl glass"
+              >
+                {filtered.slice(0, visibleLimit).map((tx) => (
+                  <TransactionRow
+                    key={tx.id}
+                    transaction={tx}
+                    categoryName={
+                      (tx.category_id != null
+                        ? categoryMap.get(tx.category_id)
+                        : undefined
+                      )?.name ?? UNCATEGORIZED.name
+                    }
+                    accountName={
+                      tx.manual_account_id != null
+                        ? accountNames.get(`manual-${tx.manual_account_id}`)
+                        : tx.plaid_account_id != null
+                          ? accountNames.get(`plaid-${tx.plaid_account_id}`)
+                          : "Cash transaction"
+                    }
+                    recurringMatch={recurringMatch(
+                      tx.recurring_id,
+                      recurringItems
+                    )}
+                    categoryOptions={categoryOptions}
+                    tags={tags}
+                    payeeSuggestions={payeeSuggestions}
+                    saving={savingIds.has(tx.id)}
+                    error={errors.get(tx.id)}
+                    selected={selectedIds.has(tx.id)}
+                    onSelect={setSelected}
+                    onOpen={handleOpen}
+                    onPayeeChange={handlePayeeChange}
+                    onCategoryChange={handleCategoryChange}
+                    onTagsChange={handleTagsChange}
+                    onReview={handleReview}
+                  />
+                ))}
+              </div>
+
+              <div className="mt-page-gap flex flex-wrap items-center justify-between gap-2 text-xs text-bento-subtle tabular-nums">
+                <span>
+                  {filtered.length > visibleLimit && `${visibleLimit} of `}
+                  {filtered.length}{" "}
+                  {filtered.length === 1 ? "transaction" : "transactions"}
+                </span>
+                {hasFilters && (
+                  <span>
+                    Matching spend{" "}
+                    <span className="font-semibold text-bento-default">
+                      {formatCurrency(matchingSpend, primaryCurrency, true)}
+                    </span>
+                  </span>
+                )}
+                {filtered.length > visibleLimit && (
+                  <Button
+                    variant="outline"
+                    className="h-10"
+                    onClick={() => {
+                      pendingFocusRef.current = {
+                        id: filtered[visibleLimit].id,
+                        target: "details",
+                      };
+                      setListPage({
+                        scope: listScope,
+                        limit: visibleLimit + TRANSACTIONS_PER_PAGE,
+                      });
+                    }}
+                  >
+                    Show more
+                  </Button>
+                )}
+              </div>
+            </>
+          )}
+        </section>
+      </div>
 
       {editingTransaction && (
         <TransactionEditor
