@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { PageTitle } from "@/components/ui/page-title";
 import {
   PageSidebar,
   PageSidebarLayout,
@@ -158,9 +159,7 @@ export default function AccountsPage() {
   return (
     <div>
       <header className="mb-page-gap">
-        <h1 className="font-heading text-3xl font-semibold tracking-tight">
-          Accounts
-        </h1>
+        <PageTitle>Accounts</PageTitle>
       </header>
       {loading ? (
         <PageSidebarLayout aria-label="Loading accounts" role="status">

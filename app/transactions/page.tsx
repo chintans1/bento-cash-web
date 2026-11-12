@@ -35,6 +35,7 @@ import { useMonthNavigation } from "@/hooks/use-month-navigation";
 import { isCurrentOrFutureMonth } from "@/lib/date-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PageTitle } from "@/components/ui/page-title";
 import {
   PageSidebar,
   PageSidebarLayout,
@@ -468,9 +469,7 @@ function TransactionsPage() {
   return (
     <div>
       <header className="mb-page-gap flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
-        <h1 className="font-heading text-2xl font-bold text-balance">
-          Transactions
-        </h1>
+        <PageTitle>Transactions</PageTitle>
         <MonthSelector
           year={selectedYear}
           month={selectedMonth}
@@ -938,9 +937,7 @@ export default function TransactionsPageWrapper() {
     <Suspense
       fallback={
         <div>
-          <h1 className="mb-page-gap font-heading text-2xl font-bold">
-            Transactions
-          </h1>
+          <PageTitle className="mb-page-gap">Transactions</PageTitle>
           <TransactionListLoading />
         </div>
       }
