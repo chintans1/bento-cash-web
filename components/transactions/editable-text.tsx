@@ -2,7 +2,6 @@
 
 import { useRef, useState } from "react";
 import { Autocomplete } from "@base-ui/react/autocomplete";
-import { Pencil } from "lucide-react";
 import {
   ComboboxContent,
   ComboboxEmpty,
@@ -182,17 +181,13 @@ export function EditableText({
         setDraft(value);
       }}
       className={cn(
-        "group/edit flex min-h-8 w-full items-center gap-1.5 rounded-lg px-1.5 text-left transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none aria-disabled:opacity-60",
+        "flex min-h-8 w-full items-center rounded-lg px-1.5 text-left transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none aria-disabled:opacity-60",
         className
       )}
     >
       <span className="truncate text-sm font-medium">
         {value || <span className="text-bento-subtle">{placeholder}</span>}
       </span>
-      <Pencil
-        aria-hidden="true"
-        className="size-3 shrink-0 text-bento-subtle opacity-65 transition-opacity group-focus-within/edit:opacity-100 group-hover/edit:opacity-100"
-      />
     </button>
   );
 }
