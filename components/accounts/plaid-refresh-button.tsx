@@ -162,6 +162,7 @@ export function PlaidRefreshButton({
 
   const timeLeft = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
   const queued = queuedAt !== null && coolingDown && !error;
+  const unavailable = checking || pending || coolingDown;
   const label = pending
     ? "Requesting refresh"
     : error
@@ -170,29 +171,21 @@ export function PlaidRefreshButton({
         ? "Refresh queued"
         : coolingDown
           ? "Available in"
-          : "Refresh Plaid accounts";
+          : "Checking refresh status";
   const Icon = queued ? Check : RefreshCw;
 
   return (
     <>
-      <Tooltip>
-        <TooltipTrigger
-          render={
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="relative gap-2 overflow-hidden rounded-xl text-xs disabled:opacity-100 aria-disabled:cursor-default"
-              disabled={checking || pending || coolingDown}
-              focusableWhenDisabled
-              onClick={refresh}
-            />
-          }
+      {unavailable ? (
+        <span
+          className="relative inline-flex h-8 shrink-0 items-center gap-2 px-2 text-xs whitespace-nowrap text-bento-subtle"
+          title={error ?? undefined}
         >
           <Icon
             aria-hidden="true"
             className={cn(
-              pending && "motion-safe:animate-spin",
+              "size-4 shrink-0",
+              (checking || pending) && "motion-safe:animate-spin",
               queued &&
                 "text-bento-positive motion-safe:animate-in motion-safe:duration-200 motion-safe:zoom-in-75"
             )}
@@ -217,7 +210,7 @@ export function PlaidRefreshButton({
           {coolingDown && (
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-(--cooldown-progress) bg-primary/50 motion-safe:transition-transform motion-safe:duration-1000 motion-safe:ease-linear"
+              className="pointer-events-none absolute inset-x-2 bottom-0 h-0.5 origin-left scale-x-(--cooldown-progress) rounded-full bg-primary/50 motion-safe:transition-transform motion-safe:duration-1000 motion-safe:ease-linear"
               style={
                 {
                   "--cooldown-progress":
@@ -227,19 +220,38 @@ export function PlaidRefreshButton({
               }
             />
           )}
-        </TooltipTrigger>
-        <TooltipContent>
-          <span>
-            {error && <span className="mb-1 block">{error}</span>}
-            Once every 5 minutes
-          </span>
-        </TooltipContent>
-      </Tooltip>
+        </span>
+      ) : (
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="gap-2 rounded-xl text-xs"
+                onClick={refresh}
+              />
+            }
+          >
+            <RefreshCw aria-hidden="true" />
+            {error ? "Retry Plaid refresh" : "Refresh Plaid accounts"}
+          </TooltipTrigger>
+          <TooltipContent>
+            <span>
+              {error && <span className="mb-1 block">{error}</span>}
+              Once every 5 minutes
+            </span>
+          </TooltipContent>
+        </Tooltip>
+      )}
       <span role="status" className="sr-only">
         {error ??
-          (queued
-            ? "Refresh queued. Lunch Money syncs in the background."
-            : "")}
+          (pending
+            ? "Requesting refresh."
+            : queued
+              ? "Refresh queued. Lunch Money syncs in the background."
+              : "")}
       </span>
     </>
   );
