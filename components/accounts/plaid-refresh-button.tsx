@@ -220,10 +220,9 @@ export function PlaidRefreshButton({
               className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-(--cooldown-progress) bg-primary/50 motion-safe:transition-transform motion-safe:duration-1000 motion-safe:ease-linear"
               style={
                 {
-                  "--cooldown-progress": Math.min(
-                    1,
-                    (seconds * 1000) / PLAID_REFRESH_COOLDOWN_MS
-                  ),
+                  "--cooldown-progress":
+                    1 -
+                    Math.min(1, (seconds * 1000) / PLAID_REFRESH_COOLDOWN_MS),
                 } as CSSProperties
               }
             />
