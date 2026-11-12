@@ -67,6 +67,7 @@ export const TransactionRow = memo(function TransactionRow({
   onReview,
 }: TransactionRowProps) {
   const payee = tx.payee ?? "";
+  const date = formatShortDate(tx.date);
   const amount = parseFloat(tx.amount);
   const isCredit = amount < 0;
   const color = categoryColor(categoryName);
@@ -176,7 +177,8 @@ export const TransactionRow = memo(function TransactionRow({
               ) : (
                 <EditableText
                   value={payee}
-                  className="w-auto max-w-full min-w-0"
+                  className="w-auto max-w-full min-w-0 @2xl/ledger:min-h-7"
+                  inputClassName="@2xl/ledger:h-7"
                   placeholder="Add a description…"
                   suggestions={payeeSuggestions}
                   ariaLabel={
@@ -210,15 +212,18 @@ export const TransactionRow = memo(function TransactionRow({
                   className="size-3.5 shrink-0 text-bento-subtle"
                 />
               )}
-              {(tx.notes || accountName) && (
-                <span
-                  title={tx.notes || accountName}
-                  className="hidden min-w-0 flex-1 truncate text-xs text-bento-subtle @2xl/ledger:block"
-                >
-                  {tx.notes || accountName}
-                </span>
-              )}
+              <span className="ml-auto shrink-0 text-xs text-bento-subtle tabular-nums @2xl/ledger:hidden">
+                {date}
+              </span>
             </div>
+            {accountName && (
+              <span
+                title={accountName}
+                className="hidden truncate px-1.5 text-xs leading-4 text-bento-subtle @2xl/ledger:block"
+              >
+                {accountName}
+              </span>
+            )}
             {error && (
               <p role="alert" className="px-1.5 text-xs text-bento-negative">
                 {error}
@@ -227,8 +232,16 @@ export const TransactionRow = memo(function TransactionRow({
           </div>
         </div>
 
-        <div className="col-span-3 col-start-2 row-start-2 flex min-w-0 items-center gap-2 pl-8 @2xl/ledger:contents">
-          <div className="min-w-0 flex-1 @2xl/ledger:col-start-3 @2xl/ledger:row-start-1">
+        <div className="col-span-3 col-start-2 row-start-2 flex min-w-0 items-center gap-2 @2xl/ledger:contents">
+          {accountName && (
+            <span
+              title={accountName}
+              className="min-w-0 flex-3 truncate pl-1.5 text-xs text-bento-subtle @2xl/ledger:hidden"
+            >
+              {accountName}
+            </span>
+          )}
+          <div className="min-w-0 flex-2 @2xl/ledger:col-start-3 @2xl/ledger:row-start-1">
             {structurallyLocked ? (
               <span className="block truncate px-2 text-xs text-bento-default">
                 {categoryName}
@@ -248,8 +261,8 @@ export const TransactionRow = memo(function TransactionRow({
             )}
           </div>
 
-          <span className="shrink-0 text-center text-xs text-bento-subtle tabular-nums @2xl/ledger:col-start-4 @2xl/ledger:row-start-1">
-            {formatShortDate(tx.date)}
+          <span className="hidden text-center text-xs text-bento-subtle tabular-nums @2xl/ledger:col-start-4 @2xl/ledger:row-start-1 @2xl/ledger:block">
+            {date}
           </span>
 
           <span
