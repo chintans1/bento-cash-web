@@ -38,6 +38,7 @@ import { Input } from "@/components/ui/input";
 import { PageTitle } from "@/components/ui/page-title";
 import {
   PageSidebar,
+  PageSidebarHeading,
   PageSidebarLayout,
 } from "@/components/ui/page-sidebar-layout";
 import {
@@ -486,6 +487,9 @@ function TransactionsPage() {
           aria-labelledby="transactions-month-summary"
           className="@page-sidebar/main:sticky @page-sidebar/main:top-page-gap"
         >
+          <PageSidebarHeading id="transactions-month-summary">
+            Month summary
+          </PageSidebarHeading>
           <MonthSummary
             transactions={transactions}
             categoryMap={categoryMap}

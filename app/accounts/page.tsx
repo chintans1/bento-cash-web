@@ -25,6 +25,7 @@ import { Card } from "@/components/ui/card";
 import { PageTitle } from "@/components/ui/page-title";
 import {
   PageSidebar,
+  PageSidebarHeading,
   PageSidebarLayout,
 } from "@/components/ui/page-sidebar-layout";
 import { cn } from "@/lib/utils";
@@ -345,9 +346,7 @@ export default function AccountsPage() {
             )}
           </section>
           <PageSidebar aria-label="Account summary">
-            <h2 className="mb-panel-row flex min-h-6 items-center text-sm font-semibold">
-              Summary
-            </h2>
+            <PageSidebarHeading>Summary</PageSidebarHeading>
             <div className="space-y-page-gap">
               <AccountSummary
                 accounts={accounts}

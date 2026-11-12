@@ -27,3 +27,12 @@ export function PageSidebar({ className, ...props }: ComponentProps<"aside">) {
     />
   );
 }
+
+export function PageSidebarHeading(props: ComponentProps<"h2">) {
+  return (
+    <h2
+      {...props}
+      className="mb-panel-row flex min-h-6 items-center text-sm font-semibold"
+    />
+  );
+}
