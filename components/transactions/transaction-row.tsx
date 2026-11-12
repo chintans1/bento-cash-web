@@ -102,7 +102,7 @@ export const TransactionRow = memo(function TransactionRow({
     >
       <div
         className={cn(
-          "grid items-center gap-x-1 px-2 py-0.5 @2xl/ledger:gap-x-2",
+          "grid items-center gap-x-1 px-2 py-1 @2xl/ledger:gap-x-2",
           TRANSACTION_GRID_COLUMNS
         )}
       >
