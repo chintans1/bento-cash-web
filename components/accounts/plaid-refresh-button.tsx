@@ -1,8 +1,13 @@
 "use client";
 
 import { Check, RefreshCw } from "lucide-react";
-import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useAppData } from "@/hooks/use-app-data";
 import { cn } from "@/lib/utils";
 import {
@@ -29,8 +34,6 @@ export function PlaidRefreshButton({
   budgetId: string;
 }) {
   const { refreshAccounts } = useAppData();
-  const labelId = useId();
-  const helpId = useId();
   const storageKey = `bento:plaid-refresh:${budgetId}`;
   const statusUrl = `${PLAID_REFRESH_PATH}?connectionId=${encodeURIComponent(connectionId)}`;
   const inFlight = useRef(false);
@@ -161,69 +164,78 @@ export function PlaidRefreshButton({
   const queued = queuedAt !== null && coolingDown && !error;
   const label = pending
     ? "Requesting refresh"
-    : queued
-      ? "Refresh queued"
-      : "Refresh Plaid accounts";
+    : error
+      ? "Refresh issue"
+      : queued
+        ? "Refresh queued"
+        : coolingDown
+          ? "Available in"
+          : "Refresh Plaid accounts";
   const Icon = queued ? Check : RefreshCw;
 
   return (
     <>
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        className="relative h-auto min-h-11 w-44 max-w-full justify-start gap-2 overflow-hidden rounded-xl py-1.5 text-left whitespace-normal disabled:opacity-100 aria-disabled:cursor-default"
-        aria-labelledby={labelId}
-        aria-describedby={helpId}
-        disabled={checking || pending || coolingDown}
-        focusableWhenDisabled
-        onClick={refresh}
-      >
-        <Icon
-          aria-hidden="true"
-          className={cn(
-            pending && "motion-safe:animate-spin",
-            queued &&
-              "text-bento-positive motion-safe:animate-in motion-safe:duration-200 motion-safe:zoom-in-75"
-          )}
-        />
-        <span className="min-w-0">
+      <Tooltip>
+        <TooltipTrigger
+          render={
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="relative gap-2 overflow-hidden rounded-xl text-xs disabled:opacity-100 aria-disabled:cursor-default"
+              disabled={checking || pending || coolingDown}
+              focusableWhenDisabled
+              onClick={refresh}
+            />
+          }
+        >
+          <Icon
+            aria-hidden="true"
+            className={cn(
+              pending && "motion-safe:animate-spin",
+              queued &&
+                "text-bento-positive motion-safe:animate-in motion-safe:duration-200 motion-safe:zoom-in-75"
+            )}
+          />
           <span
-            id={labelId}
             key={label}
-            className="block text-xs leading-4 motion-safe:animate-in motion-safe:duration-150 motion-safe:fade-in-0"
+            className="motion-safe:animate-in motion-safe:duration-150 motion-safe:fade-in-0"
           >
             {label}
-          </span>
-          <span
-            id={helpId}
-            className="block text-xs leading-4 font-normal text-bento-subtle"
-          >
-            {coolingDown ? (
-              <>
-                Available in <span className="tabular-nums">{timeLeft}</span>
-              </>
-            ) : (
-              "Once every 5 minutes"
+            {coolingDown && (
+              <span className="ml-1 font-normal text-bento-subtle tabular-nums">
+                {label !== "Available in" && (
+                  <>
+                    <span aria-hidden="true">· </span>
+                    <span className="sr-only">. Available in </span>
+                  </>
+                )}
+                {timeLeft}
+              </span>
             )}
-            {error && <span className="block text-bento-danger">{error}</span>}
           </span>
-        </span>
-        {coolingDown && (
-          <span
-            aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-(--cooldown-progress) bg-primary/50 motion-safe:transition-transform motion-safe:duration-1000 motion-safe:ease-linear"
-            style={
-              {
-                "--cooldown-progress": Math.min(
-                  1,
-                  (seconds * 1000) / PLAID_REFRESH_COOLDOWN_MS
-                ),
-              } as CSSProperties
-            }
-          />
-        )}
-      </Button>
+          {coolingDown && (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-(--cooldown-progress) bg-primary/50 motion-safe:transition-transform motion-safe:duration-1000 motion-safe:ease-linear"
+              style={
+                {
+                  "--cooldown-progress": Math.min(
+                    1,
+                    (seconds * 1000) / PLAID_REFRESH_COOLDOWN_MS
+                  ),
+                } as CSSProperties
+              }
+            />
+          )}
+        </TooltipTrigger>
+        <TooltipContent>
+          <span>
+            {error && <span className="mb-1 block">{error}</span>}
+            Once every 5 minutes
+          </span>
+        </TooltipContent>
+      </Tooltip>
       <span role="status" className="sr-only">
         {error ??
           (queued
