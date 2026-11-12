@@ -9,6 +9,7 @@ import {
   House,
   HandCoins,
   PiggyBank,
+  RefreshCw,
 } from "lucide-react";
 import type { NormalizedAccount } from "@/lib/account-utils";
 import { formatCurrency } from "@/lib/format";
@@ -22,6 +23,7 @@ const GROUP_ICONS = {
   credit: CreditCard,
   loans: Landmark,
   "other-liabilities": HandCoins,
+  syncing: RefreshCw,
 };
 
 export function AccountSection({
@@ -37,7 +39,7 @@ export function AccountSection({
   title: string;
   groupId: string;
   accounts: NormalizedAccount[];
-  total: number;
+  total?: number;
   primaryCurrency: string;
   isLiability?: boolean;
   byInstitution?: boolean;
@@ -63,14 +65,16 @@ export function AccountSection({
             {accounts.length}
           </span>
         </h2>
-        <p className="shrink-0 pr-6 text-right text-sm font-medium tabular-nums">
-          {formatCurrency(total, primaryCurrency, true)}
-          {isLiability && (
-            <span className="ml-1 text-xs font-normal text-bento-subtle">
-              owed
-            </span>
-          )}
-        </p>
+        {total !== undefined && (
+          <p className="shrink-0 pr-6 text-right text-sm font-medium tabular-nums">
+            {formatCurrency(total, primaryCurrency, true)}
+            {isLiability && (
+              <span className="ml-1 text-xs font-normal text-bento-subtle">
+                owed
+              </span>
+            )}
+          </p>
+        )}
       </div>
       <ul>
         {accounts.map((account) => (

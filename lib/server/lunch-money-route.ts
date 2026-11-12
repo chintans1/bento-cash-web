@@ -3,7 +3,7 @@ import "server-only";
 import { z } from "zod";
 import { LunchMoneyError } from "@lunch-money/lunch-money-js-v2";
 import { createOAuthClient } from "@/lib/lunchmoney/client";
-import type { LMClient } from "@/lib/lunchmoney/client";
+import type { ServerLMClient } from "@/lib/lunchmoney/client";
 import {
   refreshOAuthConnection,
   resolveLunchMoneyClient,
@@ -21,10 +21,14 @@ export const positiveId = z.number().int().positive();
 
 export class InvalidLunchMoneyRequest extends Error {}
 
-function json(body: object, status = 200): Response {
+export function lunchMoneyJson(
+  body: object,
+  status = 200,
+  headers?: Record<string, string>
+): Response {
   return Response.json(body, {
     status,
-    headers: { "cache-control": "private, no-store" },
+    headers: { ...headers, "cache-control": "private, no-store" },
   });
 }
 
@@ -32,8 +36,9 @@ function json(body: object, status = 200): Response {
 export async function lunchMoneyRoute<T extends { connectionId: string }>(
   request: Request,
   schema: z.ZodType<T>,
-  run: (client: LMClient, input: T) => Promise<unknown>
+  run: (client: ServerLMClient, input: T, userId: string) => Promise<unknown>
 ): Promise<Response> {
+  const json = lunchMoneyJson;
   if (request.method !== "GET" && !hasSameOrigin(request)) {
     return json({ error: "Invalid origin" }, 403);
   }
@@ -63,8 +68,13 @@ export async function lunchMoneyRoute<T extends { connectionId: string }>(
     );
   }
 
+  async function respond(client: ServerLMClient, input: T, userId: string) {
+    const result = await run(client, input, userId);
+    return result instanceof Response ? result : json({ data: result });
+  }
+
   try {
-    return json({ data: await run(resolved.client, parsed.data) });
+    return await respond(resolved.client, parsed.data, user.id);
   } catch (error) {
     if (
       resolved.authMethod === "oauth" &&
@@ -81,7 +91,7 @@ export async function lunchMoneyRoute<T extends { connectionId: string }>(
           credential.accessToken,
           lunchMoneyOAuthIssuer()
         );
-        return json({ data: await run(client, parsed.data) });
+        return await respond(client, parsed.data, user.id);
       } catch {
         return json(
           { error: "Reconnect this Lunch Money budget to continue." },

@@ -18,8 +18,9 @@ import {
 } from "@/lib/account-utils";
 import { formatCurrency } from "@/lib/format";
 import type { BalanceHistoryAccount } from "@/lib/lunchmoney/client";
-import { cn } from "@/lib/utils";
+import { getAccountStatus } from "@/lib/account-status";
 import { AccountActivity } from "./account-activity";
+import { AccountStatusBadge } from "./account-status-badge";
 import { detailDate, DetailFields, Metadata } from "./account-detail-fields";
 
 const chartConfig = { balance: { label: "Balance", color: "var(--series-1)" } };
@@ -301,6 +302,7 @@ export function AccountDetailSheet({
   historyError: string | null;
   primaryCurrency: string;
 }) {
+  const status = getAccountStatus(account.status);
   const mask =
     account.details?.source === "plaid" ? account.details.account.mask : null;
   const subtitle = [
@@ -351,22 +353,12 @@ export function AccountDetailSheet({
               <section aria-label="Current balance">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h3 className="text-xs font-medium text-bento-subtle">
-                    {account.balanceValid
-                      ? "Current balance"
-                      : nativeBalance
-                        ? "Last reported balance"
-                        : "Current balance"}
+                    {nativeBalance &&
+                    (!account.balanceValid || status.tone === "attention")
+                      ? "Last reported balance"
+                      : "Current balance"}
                   </h3>
-                  <span
-                    className={cn(
-                      "rounded-md px-2 py-0.5 text-xs",
-                      account.status === "revoked"
-                        ? "bg-warning/10 text-warning-foreground"
-                        : "bg-bento-raised text-bento-subtle"
-                    )}
-                  >
-                    {formatSubtype(account.status)}
-                  </span>
+                  <AccountStatusBadge status={account.status} />
                 </div>
                 <p className="mt-1 text-2xl font-semibold tracking-tight tabular-nums">
                   {nativeBalance ?? "Balance unavailable"}
@@ -391,6 +383,11 @@ export function AccountDetailSheet({
                     </span>
                   )}
                 </div>
+                {status.guidance && (
+                  <p className="mt-2 text-xs text-bento-subtle">
+                    {status.guidance}
+                  </p>
+                )}
               </section>
               {account.isLiability && <LiabilityDetails account={account} />}
               <AccountBalanceHistory

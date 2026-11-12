@@ -9,6 +9,8 @@ import {
 } from "@/lib/account-utils";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { getAccountStatus } from "@/lib/account-status";
+import { AccountStatusBadge } from "./account-status-badge";
 
 export function AccountRow({
   account,
@@ -24,6 +26,7 @@ export function AccountRow({
   const showNative =
     account.currency.toLowerCase() !== primaryCurrency.toLowerCase();
   const isInactive = account.status !== "active";
+  const status = getAccountStatus(account.status);
   const usage = isInactive ? null : creditUsage(account);
   const detail = [
     !byInstitution && (account.institution || "Other"),
@@ -45,7 +48,7 @@ export function AccountRow({
             onClick={(event) => onSelect(account, event.currentTarget)}
             className={cn(
               "block text-left text-sm font-medium wrap-break-word outline-none after:absolute after:inset-0 focus-visible:after:rounded-md focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset",
-              isInactive && "text-bento-subtle"
+              isInactive && !status.tone && "text-bento-subtle"
             )}
           >
             {account.name}
@@ -54,21 +57,15 @@ export function AccountRow({
             {detail}
           </p>
           {isInactive && (
-            <span
-              className={cn(
-                "mt-1 inline-block rounded-md px-1.5 py-0.5 text-xs",
-                account.status === "revoked"
-                  ? "bg-warning/10 text-warning-foreground"
-                  : "bg-bento-raised text-bento-subtle"
-              )}
-            >
-              {formatSubtype(account.status)}
-            </span>
+            <AccountStatusBadge status={account.status} className="mt-1" />
+          )}
+          {status.tone === "attention" && (
+            <p className="mt-1 text-xs text-bento-subtle">{status.guidance}</p>
           )}
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1">
+        <div className="flex max-w-3/5 shrink-0 flex-col items-end gap-1 text-right">
           {account.balanceValid ? (
-            <>
+            <div className="flex flex-wrap items-baseline justify-end gap-x-2 gap-y-0.5 whitespace-nowrap">
               <span className="text-sm font-medium tabular-nums">
                 {formatCurrency(account.toBase, primaryCurrency, true)}
               </span>
@@ -77,7 +74,7 @@ export function AccountRow({
                   {formatCurrency(account.balance, account.currency, true)}
                 </span>
               )}
-            </>
+            </div>
           ) : (
             <span className="text-sm text-bento-subtle">
               Balance unavailable

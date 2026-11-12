@@ -47,7 +47,7 @@ interface AppDataContextValue extends AppData {
   loading: boolean;
   error: string | null;
   patchAccount: (id: string, type: AccountType, subtype: string) => void;
-  refreshAccounts: () => Promise<void>;
+  refreshAccounts: (options?: { fresh?: boolean }) => Promise<void>;
   refreshRecurringItems: () => Promise<void>;
 }
 
@@ -175,22 +175,26 @@ export function AppDataProvider({ children }: { children: React.ReactNode }) {
     );
   }
 
-  async function refreshAccounts() {
-    if (session === null) return;
-    const requestedSession = session;
-    const { manual, plaid } = await getAccounts();
-    setLoaded((prev) =>
-      prev?.session !== requestedSession
-        ? prev
-        : {
-            ...prev,
-            data: {
-              ...prev.data,
-              accounts: normalizeAccounts(manual, plaid),
-            },
-          }
-    );
-  }
+  const refreshAccounts = useCallback(
+    async (options?: { fresh?: boolean }) => {
+      if (session === null) return;
+      const requestedSession = session;
+      if (options?.fresh) invalidate(KEY.accounts);
+      const { manual, plaid } = await getAccounts();
+      setLoaded((prev) =>
+        prev?.session !== requestedSession
+          ? prev
+          : {
+              ...prev,
+              data: {
+                ...prev.data,
+                accounts: normalizeAccounts(manual, plaid),
+              },
+            }
+      );
+    },
+    [session]
+  );
 
   const refreshRecurringItems = useCallback(async () => {
     if (session === null) return;

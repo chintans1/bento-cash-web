@@ -132,6 +132,12 @@ export interface LMClient {
   ungroupTransaction(id: number): Promise<void>;
 }
 
+export interface ServerLMClient extends LMClient {
+  triggerPlaidFetch(): Promise<
+    { queued: true } | { queued: false; retryAt: number | null }
+  >;
+}
+
 const TRANSACTION_PAGE_SIZE = 250;
 const MAX_TRANSACTION_PAGES = 40;
 
@@ -140,7 +146,7 @@ const MAX_TRANSACTION_PAGES = 40;
 function createTokenClient(
   token: string,
   options: { baseUrl?: string; allowLegacyV1: boolean }
-): LMClient {
+): ServerLMClient {
   const sdk = new LunchMoneyClient({ apiKey: token, baseUrl: options.baseUrl });
 
   const updateTransaction = async (
@@ -308,6 +314,27 @@ function createTokenClient(
       };
     },
 
+    async triggerPlaidFetch() {
+      const { response } = await sdk.rawClient.POST("/plaid_accounts/fetch");
+      if (response.status === 202) return { queued: true };
+      if (response.status === 425 || response.status === 429) {
+        const header = response.headers.get("retry-after");
+        const retryAt = header
+          ? /^\d+$/.test(header)
+            ? Date.now() + Number(header) * 1000
+            : Date.parse(header)
+          : NaN;
+        return {
+          queued: false,
+          retryAt: Number.isSafeInteger(retryAt) ? retryAt : null,
+        };
+      }
+      throw new LunchMoneyError(
+        "Lunch Money could not queue a Plaid refresh.",
+        response.status
+      );
+    },
+
     async getAccountActivity({ source, accountId, offset }) {
       const result = await sdk.transactions.getAll({
         ...(source === "manual"
@@ -417,11 +444,14 @@ function createTokenClient(
   };
 }
 
-export function createApiKeyClient(token: string): LMClient {
+export function createApiKeyClient(token: string): ServerLMClient {
   return createTokenClient(token, { allowLegacyV1: true });
 }
 
-export function createOAuthClient(token: string, issuer: string): LMClient {
+export function createOAuthClient(
+  token: string,
+  issuer: string
+): ServerLMClient {
   return createTokenClient(token, {
     baseUrl: `${issuer}/v2`,
     allowLegacyV1: false,

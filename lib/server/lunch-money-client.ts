@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 import {
   createApiKeyClient,
   createOAuthClient,
-  type LMClient,
+  type ServerLMClient,
 } from "@/lib/lunchmoney/client";
 import {
   claimOAuthRefresh,
@@ -29,12 +29,12 @@ export class LunchMoneyReauthorizationRequired extends Error {
 type ConnectionClientResult =
   | {
       status: "ready";
-      client: LMClient;
+      client: ServerLMClient;
       authMethod: "api_key";
     }
   | {
       status: "ready";
-      client: LMClient;
+      client: ServerLMClient;
       authMethod: "oauth";
       ciphertext: string;
     }
