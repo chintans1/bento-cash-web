@@ -275,7 +275,7 @@ export const TransactionRow = memo(function TransactionRow({
             {formatCurrency(Math.abs(amount), tx.currency, true)}
           </span>
         </div>
-        <div className="col-start-3 row-start-1 flex min-w-0 justify-center @2xl/ledger:col-start-6 @2xl/ledger:[&>*]:max-w-full">
+        <div className="col-start-3 row-start-1 @2xl/ledger:col-start-6">
           {(!structurallyLocked || tx.tag_ids.length > 0) && (
             <TagPicker
               appearance="cell"
