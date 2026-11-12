@@ -10,6 +10,22 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 
+function TagDot({ tag, className }: { tag: Tag; className?: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={cn(
+        "size-2 shrink-0 rounded-full",
+        tag.background_color ? "bg-(--item-background)" : "bg-bento-hairline",
+        className
+      )}
+      style={
+        { "--item-background": tag.background_color } as React.CSSProperties
+      }
+    />
+  );
+}
+
 export function TagPicker({
   tags,
   value,
@@ -33,12 +49,10 @@ export function TagPicker({
     .map((id) => tags.find((tag) => tag.id === id))
     .filter((tag): tag is Tag => tag !== undefined);
   const available = open
-    ? cell
-      ? tags.filter((tag) => !tag.archived || selectedIds.has(tag.id))
-      : [
-          ...selected,
-          ...tags.filter((tag) => !tag.archived && !selectedIds.has(tag.id)),
-        ]
+    ? [
+        ...selected,
+        ...tags.filter((tag) => !tag.archived && !selectedIds.has(tag.id)),
+      ]
     : [];
   const names = selected.map((tag) => tag.name).join(", ");
   const normalizedQuery = query.trim().toLowerCase();
@@ -65,15 +79,7 @@ export function TagPicker({
             className="inline-flex min-h-10 max-w-full items-center gap-1.5 rounded-full bg-bento-raised px-2.5 text-xs font-medium text-bento-default transition-colors hover:bg-bento-muted focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-60"
             onClick={() => onChange(value.filter((id) => id !== tag.id))}
           >
-            <span
-              aria-hidden="true"
-              className="size-2 shrink-0 rounded-full bg-(--item-background)"
-              style={
-                {
-                  "--item-background": tag.background_color ?? undefined,
-                } as React.CSSProperties
-              }
-            />
+            <TagDot tag={tag} />
             <span className="truncate">{tag.name}</span>
             <X
               aria-hidden="true"
@@ -100,19 +106,37 @@ export function TagPicker({
           className={cn(
             "inline-flex items-center justify-center rounded-full text-xs font-medium transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-60",
             cell
-              ? "pointer-press relative size-8 text-bento-subtle hover:text-bento-default aria-expanded:bg-bento-raised"
-              : "min-h-10 gap-1.5 bg-card px-3 text-bento-default"
+              ? "pointer-press relative h-8 max-w-full min-w-8 text-bento-subtle hover:text-bento-default aria-expanded:bg-bento-raised"
+              : "min-h-10 gap-1.5 bg-card px-3 text-bento-default",
+            cell && selected[0] && "@2xl/ledger:w-full"
           )}
         >
           {cell ? (
             <>
-              <TagIcon aria-hidden="true" className="size-4" />
+              <TagIcon
+                aria-hidden="true"
+                className={cn("size-4", selected[0] && "@2xl/ledger:hidden")}
+              />
               {value.length > 0 && (
                 <span
                   aria-hidden="true"
-                  className="absolute top-0 right-0 min-w-3 rounded-full bg-bento-muted px-0.5 text-center text-(length:--text-micro) leading-3 tabular-nums"
+                  className={cn(
+                    "absolute top-0 right-0 min-w-3 rounded-full bg-bento-muted px-0.5 text-center text-(length:--text-micro) leading-3 tabular-nums",
+                    selected[0] && "@2xl/ledger:hidden"
+                  )}
                 >
                   {value.length}
+                </span>
+              )}
+              {selected[0] && (
+                <span className="hidden max-w-full min-w-0 items-center gap-1 rounded-full bg-bento-raised px-1.5 py-0.5 @2xl/ledger:flex">
+                  <TagDot tag={selected[0]} className="size-1.5" />
+                  <span className="truncate">{selected[0].name}</span>
+                  {value.length > 1 && (
+                    <span className="shrink-0 tabular-nums">
+                      +{value.length - 1}
+                    </span>
+                  )}
                 </span>
               )}
             </>
@@ -172,16 +196,7 @@ export function TagPicker({
                       );
                     }}
                   >
-                    <span
-                      aria-hidden="true"
-                      className="size-2.5 shrink-0 rounded-full bg-(--item-background)"
-                      style={
-                        {
-                          "--item-background":
-                            tag.background_color ?? undefined,
-                        } as React.CSSProperties
-                      }
-                    />
+                    <TagDot tag={tag} className="size-2.5" />
                     <span className="min-w-0 flex-1 truncate">{tag.name}</span>
                     <Check
                       aria-hidden="true"

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -6,12 +6,28 @@ import { MONTH_NAMES } from "@/lib/date-utils";
 import { formatCurrency } from "@/lib/format";
 import {
   computeCategoryTotals,
+  computeMerchantTotals,
   filterIncomeTxs,
 } from "@/lib/lunchmoney/analytics";
 import { categoryColor } from "@/lib/lunchmoney/category-colors";
 import type { CategoryInfo } from "@/lib/lunchmoney/categories";
 import type { Transaction } from "@/lib/lunchmoney/client";
 import { cn } from "@/lib/utils";
+
+function SummaryStat({
+  label,
+  children,
+}: {
+  label: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex items-baseline justify-between gap-2 text-xs">
+      <dt className="text-bento-subtle">{label}</dt>
+      <dd className="text-right font-mono tabular-nums">{children}</dd>
+    </div>
+  );
+}
 
 export function MonthSummary({
   year,
@@ -32,19 +48,39 @@ export function MonthSummary({
   error: string | null;
   onCategorySelect: (id: number) => void;
 }) {
-  const { income, spend, topCategories } = useMemo(() => {
+  const {
+    income,
+    incomeCount,
+    largestDeposit,
+    spend,
+    spendCount,
+    topCategories,
+    topMerchants,
+  } = useMemo(() => {
     const categories = computeCategoryTotals(
       transactions,
       categoryMap,
       Infinity
     );
+    let income = 0;
+    let largestDeposit = 0;
+    const deposits = filterIncomeTxs(transactions, categoryMap);
+    for (const transaction of deposits) {
+      const amount = -transaction.to_base;
+      income += amount;
+      largestDeposit = Math.max(largestDeposit, amount);
+    }
     return {
-      income: filterIncomeTxs(transactions, categoryMap).reduce(
-        (sum, transaction) => sum - transaction.to_base,
+      income,
+      incomeCount: deposits.length,
+      largestDeposit,
+      spend: categories.reduce((sum, category) => sum + category.spend, 0),
+      spendCount: categories.reduce(
+        (sum, category) => sum + category.txCount,
         0
       ),
-      spend: categories.reduce((sum, category) => sum + category.spend, 0),
       topCategories: categories.slice(0, 3),
+      topMerchants: computeMerchantTotals(transactions, categoryMap, 3),
     };
   }, [transactions, categoryMap]);
   const net = income - spend;
@@ -82,6 +118,63 @@ export function MonthSummary({
         </li>
       ))}
     </ul>
+  );
+
+  const breakdown = (
+    <div className="space-y-panel-gap">
+      <section className="space-y-2">
+        <h3 className="text-xs font-medium">Income statistics</h3>
+        <dl className="space-y-1.5">
+          <SummaryStat label="Income transactions">{incomeCount}</SummaryStat>
+          <SummaryStat label="Largest inflow">
+            {incomeCount ? currency(largestDeposit) : "—"}
+          </SummaryStat>
+        </dl>
+      </section>
+      <section className="space-y-2 border-t border-bento-hairline pt-panel-gap">
+        <h3 className="text-xs font-medium">Spending statistics</h3>
+        <dl className="space-y-1.5">
+          <SummaryStat label="Spending transactions">{spendCount}</SummaryStat>
+          <SummaryStat label="Average transaction">
+            {spendCount ? currency(spend / spendCount) : "—"}
+          </SummaryStat>
+        </dl>
+      </section>
+      {topMerchants.length > 0 && (
+        <section className="border-t border-bento-hairline pt-panel-gap">
+          <h3 className="text-xs font-medium">Top merchants</h3>
+          <p className="mt-1 text-xs text-bento-subtle">
+            Excludes recurring payments
+          </p>
+          <ul className="mt-2 space-y-2">
+            {topMerchants.map(({ payee, spend, txCount }) => (
+              <li
+                key={payee}
+                className="flex items-baseline justify-between gap-2 text-xs"
+              >
+                <span className="min-w-0">
+                  <span title={payee} className="block truncate">
+                    {payee}
+                  </span>
+                  <span className="text-bento-subtle tabular-nums">
+                    {txCount} {txCount === 1 ? "transaction" : "transactions"}
+                  </span>
+                </span>
+                <span className="shrink-0 font-mono tabular-nums">
+                  {currency(spend)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {topCategories.length > 0 && (
+        <section className="border-t border-bento-hairline pt-panel-gap">
+          <h3 className="text-xs font-medium">Top spending categories</h3>
+          {categoryList}
+        </section>
+      )}
+    </div>
   );
 
   return (
@@ -139,23 +232,20 @@ export function MonthSummary({
                 </div>
               </div>
             </dl>
-            {topCategories.length > 0 && (
+            {incomeCount + spendCount > 0 && (
               <>
                 <div className="mt-panel-gap hidden border-t border-bento-hairline pt-panel-gap @transactions-rail/main:block">
-                  <h3 className="text-xs font-medium text-bento-subtle">
-                    Top spending categories
-                  </h3>
-                  {categoryList}
+                  {breakdown}
                 </div>
                 <details className="group/categories mt-panel-gap border-t border-bento-hairline @transactions-rail/main:hidden">
                   <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between gap-2 rounded-lg text-xs font-medium text-bento-subtle focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none [&::-webkit-details-marker]:hidden">
-                    Top spending categories
+                    Income and spending breakdown
                     <ChevronDown
                       aria-hidden="true"
                       className="size-4 transition-transform group-open/categories:rotate-180"
                     />
                   </summary>
-                  {categoryList}
+                  {breakdown}
                 </details>
               </>
             )}

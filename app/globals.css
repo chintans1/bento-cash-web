@@ -340,6 +340,9 @@
 @utility grid-cols-transactions-page {
   grid-template-columns: minmax(0, 1fr) 17rem;
 }
+@utility max-h-transaction-summary {
+  max-height: calc(100dvh - 2 * var(--spacing-page-gap));
+}
 @utility grid-cols-performance {
   grid-template-columns: minmax(0, 1fr) auto auto;
 }
@@ -358,12 +361,12 @@
   grid-template-columns: 2rem minmax(0, 1fr) 2rem 2rem;
 }
 @utility grid-cols-transaction-sm {
-  grid-template-columns: 2rem minmax(0, 1fr) 8rem 3.5rem 6.5rem 2rem 2rem;
+  grid-template-columns: 2rem minmax(0, 1fr) 8rem 3.5rem 6.5rem 5rem 2rem;
 }
 @utility grid-cols-transaction-md {
   grid-template-columns:
     2rem minmax(0, 1fr) minmax(8rem, 20%)
-    4rem 6.5rem 2rem 2rem;
+    4rem 6.5rem 6rem 2rem;
 }
 @utility max-w-viewport-inset {
   max-width: calc(100vw - 2rem);
