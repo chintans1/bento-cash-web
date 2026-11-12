@@ -144,27 +144,56 @@ export function filterSpendTransactions(
   });
 }
 
-/** Groups filtered spend transactions by category, sorted by spend descending; up to limit entries. Uncategorized transactions use UNCATEGORIZED_ID. */
+function groupAmountsByCategory(
+  transactions: Transaction[],
+  catMap: Map<number, CategoryInfo>,
+  limit: number
+) {
+  const map = new Map<
+    number,
+    { id: number; name: string; amount: number; txCount: number }
+  >();
+  for (const tx of transactions) {
+    const catId = tx.category_id ?? UNCATEGORIZED_ID;
+    const total = map.get(catId) ?? {
+      id: catId,
+      name: catMap.get(catId)?.name ?? UNCATEGORIZED.name,
+      amount: 0,
+      txCount: 0,
+    };
+    total.amount += Math.abs(tx.to_base);
+    total.txCount++;
+    map.set(catId, total);
+  }
+  return Array.from(map.values())
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, limit);
+}
+
+/** Groups filtered spend by category, ranked by amount. */
 export function computeCategoryTotals(
   transactions: Transaction[],
   catMap: Map<number, CategoryInfo>,
   limit = 10
 ): CategoryTotal[] {
-  const map = new Map<number, CategoryTotal>();
-  for (const tx of filterSpendTransactions(transactions, catMap)) {
-    const catId = tx.category_id ?? UNCATEGORIZED_ID;
-    const cat = catMap.get(catId);
-    const name = cat?.name ?? UNCATEGORIZED.name;
-    const prev = map.get(catId) ?? { id: catId, name, spend: 0, txCount: 0 };
-    map.set(catId, {
-      ...prev,
-      spend: prev.spend + tx.to_base,
-      txCount: prev.txCount + 1,
-    });
-  }
-  return Array.from(map.values())
-    .sort((a, b) => b.spend - a.spend)
-    .slice(0, limit);
+  return groupAmountsByCategory(
+    filterSpendTransactions(transactions, catMap),
+    catMap,
+    limit
+  ).map(({ amount, ...category }) => ({ ...category, spend: amount }));
+}
+
+/** Groups eligible income by category and reports inflows as positive amounts. */
+export function computeIncomeCategoryTotals(
+  transactions: Transaction[],
+  catMap: Map<number, CategoryInfo>,
+  limit = 10
+) {
+  return groupAmountsByCategory(
+    filterIncomeTxs(transactions, catMap),
+    catMap,
+    limit
+  );
 }
 
 /** Returns top non-recurring merchants (by payee) sorted by spend descending. */

@@ -12,6 +12,7 @@ import {
   getPeakDayTxs,
   computeQuickStats,
   computeCategoryTotals,
+  computeIncomeCategoryTotals,
   computeMerchantTotals,
   computeMonthTotals,
   computeDailySpend,
@@ -364,6 +365,28 @@ describe("computeCategoryTotals", () => {
     const totals = computeCategoryTotals([tx], catMap);
     expect(totals[0].id).toBe(-1);
     expect(totals[0].name).toBe("Uncategorized");
+  });
+});
+
+describe("computeIncomeCategoryTotals", () => {
+  it("ranks income categories by converted inflows and skips pending and excluded activity", () => {
+    const categories = new Map([
+      [1, { name: "Paycheck", is_income: true, exclude_from_totals: false }],
+      [2, { name: "Transfers", is_income: false, exclude_from_totals: true }],
+    ]);
+    const transactions = [
+      makeTx({ amount: "-100", to_base: -80, category_id: 1 }),
+      makeTx({ amount: "-30", category_id: 1 }),
+      makeTx({ amount: "-15" }),
+      makeTx({ amount: "40", category_id: 1 }),
+      makeTx({ amount: "-200", category_id: 2 }),
+      makeTx({ amount: "-300", category_id: 1, is_pending: true }),
+    ];
+
+    expect(computeIncomeCategoryTotals(transactions, categories)).toEqual([
+      { id: 1, name: "Paycheck", amount: 110, txCount: 2 },
+      { id: -1, name: "Uncategorized", amount: 15, txCount: 1 },
+    ]);
   });
 });
 

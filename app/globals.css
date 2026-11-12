@@ -340,6 +340,9 @@
 @utility grid-cols-transactions-page {
   grid-template-columns: minmax(0, 1fr) 17rem;
 }
+@utility grid-cols-summary-category {
+  grid-template-columns: minmax(0, 1fr) auto 2rem;
+}
 @utility max-h-transaction-summary {
   max-height: calc(100dvh - 2 * var(--spacing-page-gap));
 }
