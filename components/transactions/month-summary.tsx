@@ -242,7 +242,7 @@ export function MonthSummary({
   );
 
   return (
-    <Card>
+    <Card className="@transactions-rail/main:max-h-transaction-summary @transactions-rail/main:overflow-y-auto">
       <CardHeader className="flex flex-wrap items-baseline justify-between">
         <CardTitle>
           <h2 id="transactions-month-summary">Month summary</h2>

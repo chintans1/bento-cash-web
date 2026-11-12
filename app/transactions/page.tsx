@@ -481,7 +481,7 @@ function TransactionsPage() {
       <div className="grid items-start gap-page-gap @transactions-rail/main:grid-cols-transactions-page">
         <aside
           aria-labelledby="transactions-month-summary"
-          className="min-w-0 @transactions-rail/main:sticky @transactions-rail/main:top-page-gap @transactions-rail/main:col-start-2 @transactions-rail/main:row-start-1 @transactions-rail/main:max-h-transaction-summary @transactions-rail/main:overflow-y-auto"
+          className="min-w-0 @transactions-rail/main:sticky @transactions-rail/main:top-page-gap @transactions-rail/main:col-start-2 @transactions-rail/main:row-start-1"
         >
           <MonthSummary
             year={selectedYear}
