@@ -82,7 +82,8 @@ export interface LMClient {
   ): Promise<TransactionsResponse>;
   getCategories(): Promise<CategoriesResponse>;
   getAccountActivity(
-    query: AccountActivityQuery
+    query: AccountActivityQuery,
+    signal?: AbortSignal
   ): Promise<TransactionsResponse>;
   getTags(): Promise<Tag[]>;
   getManualAccounts(): Promise<ManualAccount[]>;
@@ -462,7 +463,8 @@ async function remoteRequest<T>(
   connectionId: string,
   path: string,
   method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE" = "GET",
-  body?: Record<string, unknown>
+  body?: Record<string, unknown>,
+  signal?: AbortSignal
 ): Promise<T> {
   const url = `/api/lunch-money/${path}${
     method === "GET"
@@ -472,6 +474,7 @@ async function remoteRequest<T>(
   const response = await fetch(url, {
     method,
     cache: "no-store",
+    ...(signal && { signal }),
     ...(body && {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ connectionId, ...body }),
@@ -498,10 +501,13 @@ export function createRemoteClient(connectionId: string): LMClient {
     getMe: () => remoteRequest(connectionId, "me"),
     getTransactionsForMonth: (year, month) =>
       remoteRequest(connectionId, `transactions?year=${year}&month=${month}`),
-    getAccountActivity: ({ source, accountId, offset }) =>
+    getAccountActivity: ({ source, accountId, offset }, signal) =>
       remoteRequest(
         connectionId,
-        `accounts/activity?source=${source}&accountId=${accountId}&offset=${offset}`
+        `accounts/activity?source=${source}&accountId=${accountId}&offset=${offset}`,
+        "GET",
+        undefined,
+        signal
       ),
     getCategories: () => remoteRequest(connectionId, "categories"),
     getTags: () => remoteRequest(connectionId, "tags"),
@@ -599,8 +605,10 @@ export const getTransactionsForMonth = (
 export const getCategories = (): Promise<CategoriesResponse> =>
   cached(KEY.categories, () => activeClient().getCategories());
 
-export const getAccountActivity = (query: AccountActivityQuery) =>
-  activeClient().getAccountActivity(query);
+export const getAccountActivity = (
+  query: AccountActivityQuery,
+  signal?: AbortSignal
+) => activeClient().getAccountActivity(query, signal);
 
 export const getTags = (): Promise<Tag[]> =>
   cached(KEY.tags, () => activeClient().getTags());

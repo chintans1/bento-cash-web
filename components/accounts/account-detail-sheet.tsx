@@ -1,6 +1,7 @@
 "use client";
 
 import { Tabs } from "@base-ui/react/tabs";
+import { useState } from "react";
 import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts";
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart";
 import {
@@ -302,6 +303,7 @@ export function AccountDetailSheet({
   historyError: string | null;
   primaryCurrency: string;
 }) {
+  const [visitedTransactions, setVisitedTransactions] = useState(false);
   const status = getAccountStatus(account.status);
   const mask =
     account.details?.source === "plaid" ? account.details.account.mask : null;
@@ -319,7 +321,13 @@ export function AccountDetailSheet({
     account.currency.toLowerCase() !== primaryCurrency.toLowerCase();
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
+    <Sheet
+      open={open}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen) setVisitedTransactions(false);
+        onOpenChange(nextOpen);
+      }}
+    >
       <SheetContent
         finalFocus={finalFocus}
         className="min-w-0 data-[side=right]:w-full data-[side=right]:sm:max-w-lg"
@@ -333,8 +341,10 @@ export function AccountDetailSheet({
           </SheetDescription>
         </div>
         <Tabs.Root
-          key={account.id}
           defaultValue="overview"
+          onValueChange={(value) => {
+            if (value === "transactions") setVisitedTransactions(true);
+          }}
           className="flex min-h-0 flex-1 flex-col"
         >
           <Tabs.List
@@ -399,7 +409,11 @@ export function AccountDetailSheet({
               <AccountInformation account={account} />
             </div>
           </Tabs.Panel>
-          <Tabs.Panel value="transactions" keepMounted className={panelClass}>
+          <Tabs.Panel
+            value="transactions"
+            keepMounted={visitedTransactions}
+            className={panelClass}
+          >
             <AccountActivity account={account} />
           </Tabs.Panel>
         </Tabs.Root>

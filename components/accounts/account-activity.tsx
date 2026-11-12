@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAppData } from "@/hooks/use-app-data";
@@ -150,6 +150,17 @@ function ActivityRow({
 
 export function AccountActivity({ account }: { account: NormalizedAccount }) {
   const { categoryMap, tags, recurringItems, primaryCurrency } = useAppData();
+  const tagNamesById = useMemo(
+    () => new Map(tags.map((tag) => [tag.id, tag.name])),
+    [tags]
+  );
+  const recurringNamesById = useMemo(
+    () =>
+      new Map(
+        recurringItems.map((item) => [item.id, item.transaction_criteria.payee])
+      ),
+    [recurringItems]
+  );
   const { source, rawId } = account;
   const [request, setRequest] = useState({ offset: 0 });
   const [result, setResult] = useState<{
@@ -159,18 +170,22 @@ export function AccountActivity({ account }: { account: NormalizedAccount }) {
     error: boolean;
   } | null>(null);
   const loading = result?.request !== request;
+  const nextOffset = result?.error ? request.offset : result?.nextOffset;
 
   useEffect(() => {
-    let cancelled = false;
+    const controller = new AbortController();
 
     async function load() {
       try {
-        const page = await getAccountActivity({
-          source,
-          accountId: rawId,
-          offset: request.offset,
-        });
-        if (cancelled) return;
+        const page = await getAccountActivity(
+          {
+            source,
+            accountId: rawId,
+            offset: request.offset,
+          },
+          controller.signal
+        );
+        if (controller.signal.aborted) return;
         setResult((previous) => {
           const rows = new Map(
             (request.offset === 0 ? [] : (previous?.rows ?? [])).map((tx) => [
@@ -192,7 +207,7 @@ export function AccountActivity({ account }: { account: NormalizedAccount }) {
           };
         });
       } catch {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setResult((previous) => ({
             request,
             rows: previous?.rows ?? [],
@@ -204,9 +219,7 @@ export function AccountActivity({ account }: { account: NormalizedAccount }) {
     }
 
     void load();
-    return () => {
-      cancelled = true;
-    };
+    return () => controller.abort();
   }, [rawId, request, source]);
 
   return (
@@ -239,11 +252,12 @@ export function AccountActivity({ account }: { account: NormalizedAccount }) {
                   : categoryMap.get(tx.category_id)?.name
               }
               tagNames={tx.tag_ids.map(
-                (id) => tags.find((tag) => tag.id === id)?.name ?? `#${id}`
+                (id) => tagNamesById.get(id) ?? `#${id}`
               )}
               recurringName={
-                recurringItems.find((item) => item.id === tx.recurring_id)
-                  ?.transaction_criteria.payee ?? undefined
+                tx.recurring_id == null
+                  ? undefined
+                  : (recurringNamesById.get(tx.recurring_id) ?? undefined)
               }
               primaryCurrency={primaryCurrency}
             />
@@ -255,21 +269,17 @@ export function AccountActivity({ account }: { account: NormalizedAccount }) {
           Could not load transactions.
         </p>
       )}
-      {result && (result.error || result.nextOffset !== null) && (
+      {nextOffset != null && (
         <Button
           variant="outline"
           size="sm"
           className="mt-3"
           disabled={loading}
-          onClick={() =>
-            setRequest({
-              offset: result.error ? request.offset : result.nextOffset!,
-            })
-          }
+          onClick={() => setRequest({ offset: nextOffset })}
         >
           {loading
             ? "Loading…"
-            : result.error
+            : result?.error
               ? "Try again"
               : "Load older transactions"}
         </Button>

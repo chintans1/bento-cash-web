@@ -48,8 +48,8 @@ export function cached<T>(key: string, load: () => Promise<T>): Promise<T> {
   }
 
   const value = load().catch((err) => {
-    // A failed request must not be served to the next caller.
-    entries.delete(key);
+    // A request from before invalidation or a budget switch can fail late.
+    if (entries.get(key)?.value === value) entries.delete(key);
     throw err;
   });
   entries.set(key, { at: Date.now(), value });

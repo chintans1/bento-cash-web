@@ -107,6 +107,20 @@ describe("authenticated Lunch Money routes", () => {
     expect(client.getAccountActivity).not.toHaveBeenCalled();
   });
 
+  it("does not expose upstream account activity errors", async () => {
+    client.getAccountActivity.mockRejectedValueOnce(
+      new Error("Provider debug payload")
+    );
+    const response = await getAccountActivity(
+      request(`accounts/activity?${query}&source=manual&accountId=7&offset=0`)
+    );
+    expect(response.status).toBe(502);
+    expect(response.headers.get("cache-control")).toBe("private, no-store");
+    expect(await response.json()).toEqual({
+      error: "Could not load account transactions.",
+    });
+  });
+
   it("rejects cross-origin writes before checking the session", async () => {
     mocks.hasSameOrigin.mockReturnValue(false);
     const response = await createManualAccount(

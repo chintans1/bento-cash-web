@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 
 export function detailDate(value: string | null | undefined, withTime = false) {
   if (!value) return null;
@@ -37,16 +37,22 @@ export function DetailFields({
 }
 
 export function Metadata({ label, data }: { label: string; data: unknown }) {
+  const [open, setOpen] = useState(false);
   if (!data || typeof data !== "object" || !Object.keys(data).length)
     return null;
   return (
-    <details className="mt-2 text-xs">
+    <details
+      className="mt-2 text-xs"
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
       <summary className="cursor-pointer rounded-sm text-bento-subtle hover:text-bento-default focus-visible:outline-ring">
         {label}
       </summary>
-      <pre className="mt-2 max-h-60 overflow-auto rounded-lg bg-bento-raised p-3 wrap-break-word whitespace-pre-wrap">
-        {JSON.stringify(data, null, 2)}
-      </pre>
+      {open && (
+        <pre className="mt-2 max-h-60 overflow-auto rounded-lg bg-bento-raised p-3 wrap-break-word whitespace-pre-wrap">
+          {JSON.stringify(data, null, 2)}
+        </pre>
+      )}
     </details>
   );
 }

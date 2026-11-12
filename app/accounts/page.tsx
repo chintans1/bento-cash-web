@@ -384,6 +384,7 @@ export default function AccountsPage() {
       )}
       {selectedAccount && (
         <AccountDetailSheet
+          key={selectedAccount.id}
           account={selectedAccount}
           open={detailsOpen}
           onOpenChange={setDetailsOpen}

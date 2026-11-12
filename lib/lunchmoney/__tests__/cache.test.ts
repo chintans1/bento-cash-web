@@ -87,6 +87,21 @@ describe("invalidate", () => {
 });
 
 describe("clearCache", () => {
+  it("keeps a new budget's entry if a request from the previous budget fails late", async () => {
+    const previous = Promise.withResolvers<string>();
+    const pending = cached("accounts", () => previous.promise);
+    clearCache();
+    const load = vi.fn().mockResolvedValue("current budget");
+    await cached("accounts", load);
+
+    const rejected = expect(pending).rejects.toThrow("previous budget failed");
+    previous.reject(new Error("previous budget failed"));
+    await rejected;
+
+    await expect(cached("accounts", load)).resolves.toBe("current budget");
+    expect(load).toHaveBeenCalledTimes(1);
+  });
+
   it("drops everything, so one account's data can't outlive its session", async () => {
     const load = vi.fn().mockResolvedValue("value");
 

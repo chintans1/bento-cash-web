@@ -61,8 +61,10 @@ function accountInstitution(account: NormalizedAccount): string {
   return account.institution?.trim() || "Other";
 }
 
-function accountRowOrder(account: NormalizedAccount): number {
-  const group = getAccountGroup(account);
+function accountRowOrder(
+  account: NormalizedAccount,
+  group: AccountGroupId
+): number {
   if (group === "checking" || group === "savings" || group === "other-cash")
     return 0;
   if (group === "credit") return 1;
@@ -88,39 +90,50 @@ export function groupAccounts(
   accounts: NormalizedAccount[],
   by: AccountGrouping
 ) {
-  const groups = new Map<string, NormalizedAccount[]>();
+  type Row = { account: NormalizedAccount; institution: string; order: number };
+  const groups = new Map<string, Row[]>();
   for (const account of accounts) {
-    const key =
-      by === "type" ? getAccountGroup(account) : accountInstitution(account);
-    groups.set(key, [...(groups.get(key) ?? []), account]);
+    const group = getAccountGroup(account);
+    const institution = accountInstitution(account);
+    const key = by === "type" ? group : institution;
+    const row = {
+      account,
+      institution,
+      order: accountRowOrder(account, group),
+    };
+    const rows = groups.get(key);
+    if (rows) rows.push(row);
+    else groups.set(key, [row]);
   }
 
-  return Array.from(groups, ([id, items]) => {
-    const definition = ACCOUNT_GROUPS.find((group) => group.id === id);
+  function summarize(id: string, label: string, rows: Row[]) {
+    const items = rows
+      .sort(
+        (a, b) =>
+          (by === "type" ? a.institution.localeCompare(b.institution) : 0) ||
+          a.order - b.order ||
+          a.account.name.localeCompare(b.account.name)
+      )
+      .map(({ account }) => account);
     return {
       id,
-      label: by === "type" ? definition!.label : id,
-      accounts: items.sort((a, b) => {
-        const institutionOrder =
-          by === "type"
-            ? accountInstitution(a).localeCompare(accountInstitution(b))
-            : 0;
-        return (
-          institutionOrder ||
-          accountRowOrder(a) - accountRowOrder(b) ||
-          a.name.localeCompare(b.name)
-        );
-      }),
+      label,
+      accounts: items,
       total:
         by === "institution" ? accountNetBalance(items) : sumBalances(items),
       isLiability:
         by === "type" && items.every((account) => account.isLiability),
     };
-  }).sort((a, b) =>
-    by === "type"
-      ? ACCOUNT_GROUPS.findIndex((group) => group.id === a.id) -
-        ACCOUNT_GROUPS.findIndex((group) => group.id === b.id)
-      : a.label.localeCompare(b.label)
+  }
+
+  if (by === "type") {
+    return ACCOUNT_GROUPS.flatMap(({ id, label }) => {
+      const rows = groups.get(id);
+      return rows ? [summarize(id, label, rows)] : [];
+    });
+  }
+  return Array.from(groups, ([id, rows]) => summarize(id, id, rows)).sort(
+    (a, b) => a.label.localeCompare(b.label)
   );
 }
 
@@ -129,17 +142,20 @@ function balanceComposition(
   accounts: NormalizedAccount[],
   isLiability: boolean
 ) {
-  const eligible = accounts.filter(
-    (account) =>
-      account.status !== "closed" &&
-      account.balanceValid &&
-      account.isLiability === isLiability
-  );
+  const totals = new Map<AccountGroupId, number>();
+  for (const account of accounts) {
+    if (
+      account.status === "closed" ||
+      !account.balanceValid ||
+      account.isLiability !== isLiability
+    )
+      continue;
+    const group = getAccountGroup(account);
+    totals.set(group, (totals.get(group) ?? 0) + account.toBase);
+  }
   const rows = ACCOUNT_GROUPS.map((group) => ({
     ...group,
-    amount: sumBalances(
-      eligible.filter((account) => getAccountGroup(account) === group.id)
-    ),
+    amount: totals.get(group.id) ?? 0,
   })).filter((group) => group.amount > 0);
   const total = rows.reduce((sum, row) => sum + row.amount, 0);
   return rows.map((row) => ({ ...row, percent: (row.amount / total) * 100 }));
