@@ -177,9 +177,13 @@ export function PlaidRefreshButton({
   return (
     <>
       {unavailable ? (
-        <span
-          className="relative inline-flex h-8 shrink-0 items-center gap-2 px-2 text-xs whitespace-nowrap text-bento-subtle"
-          title={error ?? undefined}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          static
+          disabled
+          className="relative gap-2 overflow-hidden rounded-xl text-xs disabled:border-bento-hairline disabled:bg-bento-raised/50 disabled:text-bento-subtle disabled:opacity-100 dark:disabled:bg-bento-raised/50"
         >
           <Icon
             aria-hidden="true"
@@ -210,7 +214,7 @@ export function PlaidRefreshButton({
           {coolingDown && (
             <span
               aria-hidden="true"
-              className="pointer-events-none absolute inset-x-2 bottom-0 h-0.5 origin-left scale-x-(--cooldown-progress) rounded-full bg-primary/50 motion-safe:transition-transform motion-safe:duration-1000 motion-safe:ease-linear"
+              className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-(--cooldown-progress) bg-primary/50 motion-safe:transition-transform motion-safe:duration-1000 motion-safe:ease-linear"
               style={
                 {
                   "--cooldown-progress":
@@ -220,7 +224,7 @@ export function PlaidRefreshButton({
               }
             />
           )}
-        </span>
+        </Button>
       ) : (
         <Tooltip>
           <TooltipTrigger
