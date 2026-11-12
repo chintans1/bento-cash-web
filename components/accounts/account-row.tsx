@@ -36,8 +36,8 @@ export function AccountRow({
     .join(" · ");
 
   return (
-    <li className="group/account relative border-b border-bento-hairline/60 py-panel-row pr-6 last:border-0 hover:bg-bento-raised/40">
-      <div className="flex items-start gap-3">
+    <li className="group/account relative cursor-pointer px-(--card-spacing) py-panel-row before:pointer-events-none before:absolute before:inset-x-(--card-spacing) before:bottom-0 before:h-px before:bg-bento-hairline/60 last:before:hidden hover:bg-bento-raised/40">
+      <div className="flex items-start gap-3 pr-6">
         <div className="min-w-0 flex-1">
           <button
             type="button"
@@ -91,7 +91,7 @@ export function AccountRow({
         </div>
       </div>
       {account.type === "credit" && usage && (
-        <div className="mt-3 flex items-center gap-3">
+        <div className="mt-3 flex items-center gap-3 pr-6">
           <div
             role="meter"
             aria-label={`${account.name} credit used`}
@@ -123,7 +123,7 @@ export function AccountRow({
       )}
       <ChevronRight
         aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 right-0 size-4 -translate-y-1/2 text-bento-subtle group-hover/account:text-bento-default"
+        className="pointer-events-none absolute top-1/2 right-(--card-spacing) size-4 -translate-y-1/2 text-bento-subtle group-hover/account:text-bento-default"
       />
     </li>
   );

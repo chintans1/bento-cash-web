@@ -72,7 +72,7 @@ export function AccountSection({
           )}
         </p>
       </div>
-      <ul className="px-(--card-spacing)">
+      <ul>
         {accounts.map((account) => (
           <AccountRow
             key={account.id}
