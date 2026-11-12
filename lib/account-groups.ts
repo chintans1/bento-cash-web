@@ -57,7 +57,11 @@ export function accountNetBalance(accounts: NormalizedAccount[]): number {
   );
 }
 
-function institutionAccountOrder(account: NormalizedAccount): number {
+function accountInstitution(account: NormalizedAccount): string {
+  return account.institution?.trim() || "Other";
+}
+
+function accountRowOrder(account: NormalizedAccount): number {
   const group = getAccountGroup(account);
   if (group === "checking" || group === "savings" || group === "other-cash")
     return 0;
@@ -87,9 +91,7 @@ export function groupAccounts(
   const groups = new Map<string, NormalizedAccount[]>();
   for (const account of accounts) {
     const key =
-      by === "type"
-        ? getAccountGroup(account)
-        : account.institution?.trim() || "Other";
+      by === "type" ? getAccountGroup(account) : accountInstitution(account);
     groups.set(key, [...(groups.get(key) ?? []), account]);
   }
 
@@ -99,11 +101,15 @@ export function groupAccounts(
       id,
       label: by === "type" ? definition!.label : id,
       accounts: items.sort((a, b) => {
-        const order =
-          by === "institution"
-            ? institutionAccountOrder(a) - institutionAccountOrder(b)
+        const institutionOrder =
+          by === "type"
+            ? accountInstitution(a).localeCompare(accountInstitution(b))
             : 0;
-        return order || a.name.localeCompare(b.name);
+        return (
+          institutionOrder ||
+          accountRowOrder(a) - accountRowOrder(b) ||
+          a.name.localeCompare(b.name)
+        );
       }),
       total:
         by === "institution" ? accountNetBalance(items) : sumBalances(items),

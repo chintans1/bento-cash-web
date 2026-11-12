@@ -176,6 +176,45 @@ describe("account grouping", () => {
     ).toBe("loans");
   });
 
+  it("keeps institutions together and puts brokerage before stock plans in the by-type view", () => {
+    const groups = groupAccounts(
+      [
+        account({
+          institution: "Fidelity",
+          name: "Fidelity HubSpot ESPP",
+          type: "investment",
+          subtype: "stock plan",
+        }),
+        account({
+          institution: "Vanguard",
+          name: "Brokerage",
+          type: "investment",
+          subtype: "brokerage",
+        }),
+        account({
+          institution: "Fidelity",
+          name: "Fidelity Personal Investing",
+          type: "investment",
+          subtype: "brokerage",
+        }),
+        account({
+          institution: "Fidelity",
+          name: "Fidelity Bloom Save",
+          type: "investment",
+          subtype: "brokerage",
+        }),
+      ],
+      "type"
+    );
+    expect(groups.map(({ id }) => id)).toEqual(["taxable-brokerage"]);
+    expect(groups[0].accounts.map(({ name }) => name)).toEqual([
+      "Fidelity Bloom Save",
+      "Fidelity Personal Investing",
+      "Fidelity HubSpot ESPP",
+      "Brokerage",
+    ]);
+  });
+
   it("sorts institutions and gives missing institutions a fallback", () => {
     expect(
       groupAccounts(
