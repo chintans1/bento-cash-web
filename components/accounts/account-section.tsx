@@ -32,6 +32,7 @@ export function AccountSection({
   primaryCurrency,
   isLiability = false,
   byInstitution = false,
+  onSelect,
 }: {
   title: string;
   groupId: string;
@@ -40,6 +41,7 @@ export function AccountSection({
   primaryCurrency: string;
   isLiability?: boolean;
   byInstitution?: boolean;
+  onSelect: (account: NormalizedAccount, trigger: HTMLButtonElement) => void;
 }) {
   const groupIcon = GROUP_ICONS[groupId as keyof typeof GROUP_ICONS];
   const Icon = byInstitution ? Building2 : (groupIcon ?? ChartNoAxesCombined);
@@ -61,7 +63,7 @@ export function AccountSection({
             {accounts.length}
           </span>
         </h2>
-        <p className="shrink-0 text-right text-sm font-medium tabular-nums">
+        <p className="shrink-0 pr-6 text-right text-sm font-medium tabular-nums">
           {formatCurrency(total, primaryCurrency, true)}
           {isLiability && (
             <span className="ml-1 text-xs font-normal text-bento-subtle">
@@ -77,6 +79,7 @@ export function AccountSection({
             account={account}
             primaryCurrency={primaryCurrency}
             byInstitution={byInstitution}
+            onSelect={onSelect}
           />
         ))}
       </ul>

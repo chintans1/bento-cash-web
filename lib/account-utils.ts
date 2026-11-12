@@ -46,6 +46,9 @@ export type NormalizedAccount = {
   source: "plaid" | "manual";
   status: string;
   allowTransactionModifications: boolean;
+  details?:
+    | { source: "manual"; account: ManualAccount }
+    | { source: "plaid"; account: PlaidAccount };
 };
 
 export function normalizeManual(a: ManualAccount): NormalizedAccount {
@@ -66,6 +69,7 @@ export function normalizeManual(a: ManualAccount): NormalizedAccount {
     source: "manual",
     status: a.status,
     allowTransactionModifications: true,
+    details: { source: "manual", account: a },
   };
 }
 
@@ -94,6 +98,7 @@ export function normalizePlaid(a: PlaidAccount): NormalizedAccount {
     source: "plaid",
     status: a.status,
     allowTransactionModifications: a.allow_transaction_modifications,
+    details: { source: "plaid", account: a },
   };
 }
 

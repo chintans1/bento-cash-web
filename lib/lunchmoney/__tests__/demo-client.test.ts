@@ -9,6 +9,44 @@ import {
 import { computeNetWorthHistory } from "../net-worth-history";
 
 describe("demo transaction data", () => {
+  it("pages transactions by account without mixing manual and Plaid activity", async () => {
+    const client = createDemoClient();
+    const query = { source: "plaid" as const, accountId: 1101 };
+    const first = await client.getAccountActivity({ ...query, offset: 0 });
+    const second = await client.getAccountActivity({
+      ...query,
+      offset: first.transactions.length,
+    });
+    const all = [...first.transactions, ...second.transactions];
+
+    expect(first.has_more).toBe(true);
+    expect(second.transactions.length).toBeGreaterThan(0);
+    expect(new Set(all.map((tx) => tx.id)).size).toBe(all.length);
+    expect(
+      all.every(
+        (tx) => tx.plaid_account_id === 1101 && tx.manual_account_id == null
+      )
+    ).toBe(true);
+    expect(all.map((tx) => tx.date)).toEqual(
+      all
+        .map((tx) => tx.date)
+        .sort()
+        .reverse()
+    );
+
+    const manual = await client.getAccountActivity({
+      source: "manual",
+      accountId: 1001,
+      offset: 0,
+    });
+    expect(manual.transactions.length).toBeGreaterThan(0);
+    expect(
+      manual.transactions.every(
+        (tx) => tx.manual_account_id === 1001 && tx.plaid_account_id == null
+      )
+    ).toBe(true);
+  });
+
   it("keeps the Plaid card limit in its own currency and handles credit usage edges", async () => {
     const { manual, plaid } = await createDemoClient().getAccounts();
     const accounts = normalizeAccounts(manual, plaid);

@@ -33,6 +33,7 @@ import {
   POST as createManualAccount,
 } from "@/app/api/lunch-money/accounts/manual/route";
 import { GET as getPlaidAccounts } from "@/app/api/lunch-money/accounts/plaid/route";
+import { GET as getAccountActivity } from "@/app/api/lunch-money/accounts/activity/route";
 import { PATCH as updateManualAccount } from "@/app/api/lunch-money/accounts/manual/[id]/route";
 import { GET as getRecurringItems } from "@/app/api/lunch-money/recurring-items/route";
 import {
@@ -48,6 +49,7 @@ const client = {
   getTags: vi.fn(),
   getManualAccounts: vi.fn(),
   getPlaidAccounts: vi.fn(),
+  getAccountActivity: vi.fn(),
   getRecurringItems: vi.fn(),
   getBalanceHistory: vi.fn(),
   getBudgetSummary: vi.fn(),
@@ -88,6 +90,23 @@ beforeEach(() => {
 });
 
 describe("authenticated Lunch Money routes", () => {
+  it("rejects unscoped account activity filters", async () => {
+    const response = await getAccountActivity(
+      request(`accounts/activity?${query}&source=plaid&accountId=0&offset=0`)
+    );
+    expect(response.status).toBe(400);
+    expect(client.getAccountActivity).not.toHaveBeenCalled();
+  });
+
+  it("checks connection ownership before fetching account activity", async () => {
+    mocks.resolveLunchMoneyClient.mockReturnValue({ status: "not_found" });
+    const response = await getAccountActivity(
+      request(`accounts/activity?${query}&source=manual&accountId=7&offset=20`)
+    );
+    expect(response.status).toBe(404);
+    expect(client.getAccountActivity).not.toHaveBeenCalled();
+  });
+
   it("rejects cross-origin writes before checking the session", async () => {
     mocks.hasSameOrigin.mockReturnValue(false);
     const response = await createManualAccount(
@@ -237,6 +256,15 @@ describe("authenticated Lunch Money routes", () => {
       undefined,
       "getPlaidAccounts",
       [],
+    ],
+    [
+      "account activity",
+      getAccountActivity,
+      `accounts/activity?${query}&source=plaid&accountId=7&offset=20`,
+      "GET",
+      undefined,
+      "getAccountActivity",
+      [{ source: "plaid", accountId: 7, offset: 20 }],
     ],
     [
       "recurring",

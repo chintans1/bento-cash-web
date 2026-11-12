@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronRight } from "lucide-react";
 import {
   type NormalizedAccount,
   creditUsage,
@@ -13,10 +14,12 @@ export function AccountRow({
   account,
   primaryCurrency,
   byInstitution = false,
+  onSelect,
 }: {
   account: NormalizedAccount;
   primaryCurrency: string;
   byInstitution?: boolean;
+  onSelect: (account: NormalizedAccount, trigger: HTMLButtonElement) => void;
 }) {
   const showNative =
     account.currency.toLowerCase() !== primaryCurrency.toLowerCase();
@@ -33,18 +36,20 @@ export function AccountRow({
     .join(" · ");
 
   return (
-    <li className="border-b border-bento-hairline/60 py-panel-row last:border-0">
+    <li className="group/account relative border-b border-bento-hairline/60 py-panel-row pr-6 last:border-0 hover:bg-bento-raised/40">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <p
-            title={account.name}
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            onClick={(event) => onSelect(account, event.currentTarget)}
             className={cn(
-              "text-sm font-medium wrap-break-word",
+              "block text-left text-sm font-medium wrap-break-word outline-none after:absolute after:inset-0 focus-visible:after:rounded-md focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset",
               isInactive && "text-bento-subtle"
             )}
           >
             {account.name}
-          </p>
+          </button>
           <p className="mt-1 text-xs leading-relaxed text-bento-subtle">
             {detail}
           </p>
@@ -116,6 +121,10 @@ export function AccountRow({
           </span>
         </div>
       )}
+      <ChevronRight
+        aria-hidden="true"
+        className="pointer-events-none absolute top-1/2 right-0 size-4 -translate-y-1/2 text-bento-subtle group-hover/account:text-bento-default"
+      />
     </li>
   );
 }

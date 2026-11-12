@@ -17,6 +17,7 @@ import type {
   SplitParts,
   GroupInput,
 } from "./client";
+import { ACCOUNT_ACTIVITY_PAGE_SIZE } from "./client";
 import {
   splitCategoryError,
   splitError,
@@ -754,89 +755,122 @@ export function createDemoClient(): LMClient {
     };
   }
 
+  function transactionsForMonth(
+    year: number,
+    month: number,
+    includeGrouped = false
+  ) {
+    const maxDay = new Date(year, month, 0).getDate();
+    const generated = TX_TEMPLATES.flatMap((tmpl, i) => {
+      const amount = randAmount(tmpl.min, tmpl.max, year, month, i);
+      // Skip $0 transactions (used for sporadic items like travel)
+      if (parseFloat(amount) === 0) return [];
+      const day = Math.min(tmpl.day, maxDay);
+      const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+      const usesPlaid = tmpl.category_id !== 9 && parseFloat(amount) > 0;
+      return [
+        demoTransaction({
+          id: year * 100_000 + month * 1_000 + i,
+          date,
+          payee: tmpl.payee,
+          amount,
+          category_id: tmpl.category_id,
+          notes: tmpl.notes,
+          recurring_id: tmpl.recurring_id,
+          manual_account_id: usesPlaid ? null : 1001,
+          plaid_account_id: usesPlaid ? 1101 : null,
+          source: usesPlaid ? "plaid" : "manual",
+          tag_ids: DEMO_TAG_IDS_BY_PAYEE.get(tmpl.payee) ?? [],
+          status:
+            i === 9
+              ? "delete_pending"
+              : i % 5 === 0 || i === 2
+                ? "unreviewed"
+                : "reviewed",
+          is_pending: i === 4,
+        }),
+      ];
+    });
+    generated.forEach((transaction) =>
+      knownTransactions.set(transaction.id, transaction)
+    );
+
+    const generatedIds = new Set(
+      generated.map((transaction) => transaction.id)
+    );
+    const movedIn = [...transactionOverrides.keys()].flatMap((id) => {
+      const original = knownTransactions.get(id);
+      return original && !generatedIds.has(id) ? [original] : [];
+    });
+    const transactions = [
+      ...generated,
+      ...movedIn,
+      ...[...structured.values()].filter((tx) => !generatedIds.has(tx.id)),
+    ]
+      .map((transaction) => {
+        const current = structured.get(transaction.id) ?? transaction;
+        const patch = transactionOverrides.get(transaction.id);
+        return patch
+          ? {
+              ...current,
+              ...patch,
+              ...(patch.amount !== undefined && {
+                to_base: Number(patch.amount),
+              }),
+            }
+          : current;
+      })
+      .filter(
+        (transaction) =>
+          !deletedIds.has(transaction.id) &&
+          !transaction.is_split_parent &&
+          (includeGrouped || transaction.group_parent_id == null)
+      )
+      .filter((transaction) =>
+        transaction.date.startsWith(
+          `${year}-${String(month).padStart(2, "0")}-`
+        )
+      );
+    transactions.sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+    return {
+      transactions,
+      has_more: false,
+    };
+  }
+
   return {
     getMe: () => Promise.resolve(DEMO_USER),
 
-    getTransactionsForMonth(year, month) {
-      const maxDay = new Date(year, month, 0).getDate();
-      const generated = TX_TEMPLATES.flatMap((tmpl, i) => {
-        const amount = randAmount(tmpl.min, tmpl.max, year, month, i);
-        // Skip $0 transactions (used for sporadic items like travel)
-        if (parseFloat(amount) === 0) return [];
-        const day = Math.min(tmpl.day, maxDay);
-        const date = `${year}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-        const usesPlaid = tmpl.category_id !== 9 && parseFloat(amount) > 0;
-        return [
-          demoTransaction({
-            id: year * 100_000 + month * 1_000 + i,
-            date,
-            payee: tmpl.payee,
-            amount,
-            category_id: tmpl.category_id,
-            notes: tmpl.notes,
-            recurring_id: tmpl.recurring_id,
-            manual_account_id: usesPlaid ? null : 1001,
-            plaid_account_id: usesPlaid ? 1101 : null,
-            source: usesPlaid ? "plaid" : "manual",
-            tag_ids: DEMO_TAG_IDS_BY_PAYEE.get(tmpl.payee) ?? [],
-            status:
-              i === 9
-                ? "delete_pending"
-                : i % 5 === 0 || i === 2
-                  ? "unreviewed"
-                  : "reviewed",
-            is_pending: i === 4,
-          }),
-        ];
-      });
-      generated.forEach((transaction) =>
-        knownTransactions.set(transaction.id, transaction)
-      );
+    getTransactionsForMonth: (year, month) =>
+      Promise.resolve<TransactionsResponse>(transactionsForMonth(year, month)),
 
-      const generatedIds = new Set(
-        generated.map((transaction) => transaction.id)
-      );
-      const movedIn = [...transactionOverrides.keys()].flatMap((id) => {
-        const original = knownTransactions.get(id);
-        return original && !generatedIds.has(id) ? [original] : [];
-      });
-      const transactions = [
-        ...generated,
-        ...movedIn,
-        ...[...structured.values()].filter((tx) => !generatedIds.has(tx.id)),
-      ]
-        .map((transaction) => {
-          const current = structured.get(transaction.id) ?? transaction;
-          const patch = transactionOverrides.get(transaction.id);
-          return patch
-            ? {
-                ...current,
-                ...patch,
-                ...(patch.amount !== undefined && {
-                  to_base: Number(patch.amount),
-                }),
-              }
-            : current;
-        })
+    async getAccountActivity({ source, accountId, offset }) {
+      const now = new Date();
+      const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+      const accountField =
+        source === "manual" ? "manual_account_id" : "plaid_account_id";
+      const matches = Array.from({ length: 12 }, (_, back) => {
+        const date = new Date(now.getFullYear(), now.getMonth() - back, 1);
+        return transactionsForMonth(
+          date.getFullYear(),
+          date.getMonth() + 1,
+          true
+        ).transactions;
+      })
+        .flat()
         .filter(
           (transaction) =>
-            !deletedIds.has(transaction.id) &&
-            !transaction.is_split_parent &&
-            transaction.group_parent_id == null
+            transaction[accountField] === accountId && transaction.date <= today
         )
-        .filter((transaction) =>
-          transaction.date.startsWith(
-            `${year}-${String(month).padStart(2, "0")}-`
-          )
-        );
-      transactions.sort(
-        (a, b) =>
-          new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-      );
-      return Promise.resolve<TransactionsResponse>({
-        transactions,
-        has_more: false,
-      });
+        .sort((a, b) => b.date.localeCompare(a.date) || b.id - a.id);
+      const end = offset + ACCOUNT_ACTIVITY_PAGE_SIZE;
+      return {
+        transactions: matches.slice(offset, end),
+        has_more: end < matches.length,
+      };
     },
 
     getCategories: () =>

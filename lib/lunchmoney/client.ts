@@ -49,6 +49,12 @@ export type TransactionsResponse = {
   transactions: Transaction[];
   has_more: boolean;
 };
+export type AccountActivityQuery = {
+  source: "manual" | "plaid";
+  accountId: number;
+  offset: number;
+};
+export const ACCOUNT_ACTIVITY_PAGE_SIZE = 20;
 export type TransactionPatch = Pick<
   UpdateTransaction,
   | "date"
@@ -75,6 +81,9 @@ export interface LMClient {
     month: number
   ): Promise<TransactionsResponse>;
   getCategories(): Promise<CategoriesResponse>;
+  getAccountActivity(
+    query: AccountActivityQuery
+  ): Promise<TransactionsResponse>;
   getTags(): Promise<Tag[]>;
   getManualAccounts(): Promise<ManualAccount[]>;
   getPlaidAccounts(): Promise<PlaidAccount[]>;
@@ -299,6 +308,21 @@ function createTokenClient(
       };
     },
 
+    async getAccountActivity({ source, accountId, offset }) {
+      const result = await sdk.transactions.getAll({
+        ...(source === "manual"
+          ? { manual_account_id: accountId }
+          : { plaid_account_id: accountId }),
+        include_pending: true,
+        include_group_children: true,
+        include_metadata: true,
+        include_files: true,
+        limit: ACCOUNT_ACTIVITY_PAGE_SIZE,
+        offset,
+      });
+      return { transactions: result.transactions, has_more: result.hasMore };
+    },
+
     async getCategories() {
       const categories = await sdk.categories.getAll();
       return { categories };
@@ -444,6 +468,11 @@ export function createRemoteClient(connectionId: string): LMClient {
     getMe: () => remoteRequest(connectionId, "me"),
     getTransactionsForMonth: (year, month) =>
       remoteRequest(connectionId, `transactions?year=${year}&month=${month}`),
+    getAccountActivity: ({ source, accountId, offset }) =>
+      remoteRequest(
+        connectionId,
+        `accounts/activity?source=${source}&accountId=${accountId}&offset=${offset}`
+      ),
     getCategories: () => remoteRequest(connectionId, "categories"),
     getTags: () => remoteRequest(connectionId, "tags"),
     getManualAccounts,
@@ -539,6 +568,9 @@ export const getTransactionsForMonth = (
 
 export const getCategories = (): Promise<CategoriesResponse> =>
   cached(KEY.categories, () => activeClient().getCategories());
+
+export const getAccountActivity = (query: AccountActivityQuery) =>
+  activeClient().getAccountActivity(query);
 
 export const getTags = (): Promise<Tag[]> =>
   cached(KEY.tags, () => activeClient().getTags());

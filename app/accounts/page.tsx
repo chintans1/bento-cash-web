@@ -1,7 +1,8 @@
 "use client";
 
 import { ChevronDown, Search, X } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
+import type { NormalizedAccount } from "@/lib/account-utils";
 import { useAuth } from "@/hooks/use-auth";
 import { useAppData } from "@/hooks/use-app-data";
 import { useInvestableMonths } from "@/hooks/use-investable-months";
@@ -23,6 +24,7 @@ import { cn } from "@/lib/utils";
 import { useBalanceHistory } from "@/hooks/use-balance-history";
 import { NetWorthPerformanceCard } from "@/components/accounts/net-worth-performance-card";
 import { AccountSegmentedControl } from "@/components/accounts/account-segmented-control";
+import { AccountDetailSheet } from "@/components/accounts/account-detail-sheet";
 
 const SPEND_LOOKBACK_MONTHS = 3;
 
@@ -36,6 +38,19 @@ export default function AccountsPage() {
   const [showInactive, setShowInactive] = useState(false);
   const [grouping, setGrouping] = useState<AccountGrouping>("type");
   const [query, setQuery] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const detailsTrigger = useRef<HTMLButtonElement | null>(null);
+  const selectedAccount = accounts.find((account) => account.id === selectedId);
+
+  function selectAccount(
+    account: NormalizedAccount,
+    trigger: HTMLButtonElement
+  ) {
+    detailsTrigger.current = trigger;
+    setSelectedId(account.id);
+    setDetailsOpen(true);
+  }
   const active = useMemo(
     () => accounts.filter((account) => account.status === "active"),
     [accounts]
@@ -155,6 +170,7 @@ export default function AccountsPage() {
                   primaryCurrency={primaryCurrency}
                   isLiability={group.isLiability}
                   byInstitution={grouping === "institution"}
+                  onSelect={selectAccount}
                 />
               ))}
               {groups.length === 0 && (
@@ -212,6 +228,7 @@ export default function AccountsPage() {
                         primaryCurrency={primaryCurrency}
                         isLiability={group.isLiability}
                         byInstitution={grouping === "institution"}
+                        onSelect={selectAccount}
                       />
                     ))}
                     {inactiveGroups.length === 0 && (
@@ -248,6 +265,17 @@ export default function AccountsPage() {
             </div>
           </aside>
         </div>
+      )}
+      {selectedAccount && (
+        <AccountDetailSheet
+          account={selectedAccount}
+          open={detailsOpen}
+          onOpenChange={setDetailsOpen}
+          finalFocus={() => detailsTrigger.current}
+          history={netWorthHistory.history}
+          historyError={netWorthHistory.error}
+          primaryCurrency={primaryCurrency}
+        />
       )}
     </div>
   );
