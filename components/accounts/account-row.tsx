@@ -28,6 +28,9 @@ export function AccountRow({
   const isInactive = account.status !== "active";
   const status = getAccountStatus(account.status);
   const usage = isInactive ? null : creditUsage(account);
+  const updated = account.lastUpdated
+    ? `Updated ${formatUpdated(account.lastUpdated)}`
+    : "Update unavailable";
   const detail = [
     !byInstitution && (account.institution || "Other"),
     account.subtype
@@ -40,88 +43,60 @@ export function AccountRow({
 
   return (
     <li className="group/account relative cursor-pointer px-(--card-spacing) py-panel-row before:pointer-events-none before:absolute before:inset-x-(--card-spacing) before:bottom-0 before:h-px before:bg-bento-hairline/60 last:before:hidden hover:bg-bento-raised/40">
-      <div className="flex items-start gap-3 pr-6">
-        <div className="min-w-0 flex-1">
+      <div className="flex items-center gap-4">
+        <div className="min-w-0 flex-1 space-y-0.5">
           <button
             type="button"
             aria-haspopup="dialog"
             onClick={(event) => onSelect(account, event.currentTarget)}
             className={cn(
-              "block text-left text-sm font-medium wrap-break-word outline-none after:absolute after:inset-0 focus-visible:after:rounded-md focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset",
+              "block max-w-full text-left text-sm leading-5 font-medium outline-none after:absolute after:inset-0 focus-visible:after:rounded-md focus-visible:after:ring-2 focus-visible:after:ring-ring focus-visible:after:ring-inset",
               isInactive && !status.tone && "text-bento-subtle"
             )}
           >
-            {account.name}
+            <span className="block truncate">{account.name}</span>
           </button>
-          <p className="mt-1 text-xs leading-relaxed text-bento-subtle">
-            {detail}
-          </p>
-          {isInactive && (
-            <AccountStatusBadge status={account.status} className="mt-1" />
-          )}
-          {status.tone === "attention" && (
-            <p className="mt-1 text-xs text-bento-subtle">{status.guidance}</p>
-          )}
+          <div className="flex h-5 items-center gap-1.5">
+            {isInactive && (
+              <AccountStatusBadge
+                status={account.status}
+                className="max-w-full shrink-0 whitespace-nowrap"
+              />
+            )}
+            <p className="truncate text-xs text-bento-subtle">{detail}</p>
+          </div>
         </div>
-        <div className="flex max-w-3/5 shrink-0 flex-col items-end gap-1 text-right">
+        <div className="max-w-3/5 min-w-0 space-y-0.5 text-right">
           {account.balanceValid ? (
-            <div className="flex flex-wrap items-baseline justify-end gap-x-2 gap-y-0.5 whitespace-nowrap">
-              <span className="text-sm font-medium tabular-nums">
-                {formatCurrency(account.toBase, primaryCurrency, true)}
+            <div className="flex items-baseline justify-end gap-2">
+              <span className="truncate text-sm leading-5 font-medium tabular-nums">
+                {showNative
+                  ? formatCurrency(account.balance, account.currency, true)
+                  : formatCurrency(account.toBase, primaryCurrency, true)}
               </span>
               {showNative && (
-                <span className="text-xs text-bento-subtle tabular-nums">
-                  {formatCurrency(account.balance, account.currency, true)}
+                <span className="truncate text-xs text-bento-subtle tabular-nums">
+                  {formatCurrency(account.toBase, primaryCurrency, true)}
                 </span>
               )}
             </div>
           ) : (
-            <span className="text-sm text-bento-subtle">
+            <p className="truncate text-sm leading-5 text-bento-subtle">
               Balance unavailable
-            </span>
+            </p>
           )}
-          <span className="text-xs text-bento-subtle">
-            {account.lastUpdated
-              ? `Updated ${formatUpdated(account.lastUpdated)}`
-              : "Update unavailable"}
-          </span>
+          <p className="truncate text-xs leading-5 text-bento-subtle tabular-nums">
+            {account.type === "credit" &&
+              usage &&
+              `${Math.round(usage.percentUsed)}% used · `}
+            {updated}
+          </p>
         </div>
+        <ChevronRight
+          aria-hidden="true"
+          className="pointer-events-none size-4 shrink-0 text-bento-subtle group-hover/account:text-bento-default"
+        />
       </div>
-      {account.type === "credit" && usage && (
-        <div className="mt-3 flex items-center gap-3 pr-6">
-          <div
-            role="meter"
-            aria-label={`${account.name} credit used`}
-            aria-valuetext={`${Math.round(usage.percentUsed)}% of ${formatCurrency(account.creditLimit!, account.currency, true)} credit limit used`}
-            aria-valuenow={Math.round(usage.percentUsed)}
-            aria-valuemin={0}
-            aria-valuemax={Math.max(100, Math.round(usage.percentUsed))}
-            className="h-1 max-w-24 min-w-12 flex-1 overflow-hidden rounded-full bg-bento-raised"
-          >
-            <div
-              className={cn(
-                "h-full w-(--progress-width) rounded-full",
-                usage.percentUsed >= 100
-                  ? "bg-bento-negative"
-                  : "bg-bento-subtle/60"
-              )}
-              style={
-                {
-                  "--progress-width": `${Math.min(usage.percentUsed, 100)}%`,
-                } as React.CSSProperties
-              }
-            />
-          </div>
-          <span className="text-xs text-bento-subtle tabular-nums">
-            {Math.round(usage.percentUsed)}% used ·{" "}
-            {formatCurrency(usage.available, account.currency, true)} available
-          </span>
-        </div>
-      )}
-      <ChevronRight
-        aria-hidden="true"
-        className="pointer-events-none absolute top-1/2 right-(--card-spacing) size-4 -translate-y-1/2 text-bento-subtle group-hover/account:text-bento-default"
-      />
     </li>
   );
 }

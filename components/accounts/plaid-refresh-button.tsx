@@ -1,9 +1,10 @@
 "use client";
 
-import { RefreshCw } from "lucide-react";
-import { useEffect, useId, useRef, useState } from "react";
+import { Check, RefreshCw } from "lucide-react";
+import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { Button } from "@/components/ui/button";
 import { useAppData } from "@/hooks/use-app-data";
+import { cn } from "@/lib/utils";
 import {
   PLAID_REFRESH_COOLDOWN_MS,
   PLAID_REFRESH_PATH,
@@ -28,6 +29,7 @@ export function PlaidRefreshButton({
   budgetId: string;
 }) {
   const { refreshAccounts } = useAppData();
+  const labelId = useId();
   const helpId = useId();
   const storageKey = `bento:plaid-refresh:${budgetId}`;
   const statusUrl = `${PLAID_REFRESH_PATH}?connectionId=${encodeURIComponent(connectionId)}`;
@@ -156,43 +158,78 @@ export function PlaidRefreshButton({
   }
 
   const timeLeft = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+  const queued = queuedAt !== null && coolingDown && !error;
+  const label = pending
+    ? "Requesting refresh"
+    : queued
+      ? "Refresh queued"
+      : "Refresh Plaid accounts";
+  const Icon = queued ? Check : RefreshCw;
 
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+    <>
       <Button
         type="button"
         variant="outline"
         size="sm"
+        className="relative h-auto min-h-11 w-44 max-w-full justify-start gap-2 overflow-hidden rounded-xl py-1.5 text-left whitespace-normal disabled:opacity-100 aria-disabled:cursor-default"
+        aria-labelledby={labelId}
         aria-describedby={helpId}
-        disabled={checking || pending || seconds > 0}
+        disabled={checking || pending || coolingDown}
+        focusableWhenDisabled
         onClick={refresh}
       >
-        <RefreshCw
+        <Icon
           aria-hidden="true"
-          className={pending ? "motion-safe:animate-spin" : undefined}
+          className={cn(
+            pending && "motion-safe:animate-spin",
+            queued &&
+              "text-bento-positive motion-safe:animate-in motion-safe:duration-200 motion-safe:zoom-in-75"
+          )}
         />
-        {pending ? "Requesting…" : "Refresh Plaid accounts"}
-      </Button>
-      <p id={helpId} className="text-xs text-bento-subtle">
-        {seconds > 0 ? (
-          <>
-            Available in <span className="tabular-nums">{timeLeft}</span> · Once
-            every 5 minutes
-          </>
-        ) : (
-          "Once every 5 minutes"
+        <span className="min-w-0">
+          <span
+            id={labelId}
+            key={label}
+            className="block text-xs leading-4 motion-safe:animate-in motion-safe:duration-150 motion-safe:fade-in-0"
+          >
+            {label}
+          </span>
+          <span
+            id={helpId}
+            className="block text-xs leading-4 font-normal text-bento-subtle"
+          >
+            {coolingDown ? (
+              <>
+                Available in <span className="tabular-nums">{timeLeft}</span>
+              </>
+            ) : (
+              "Once every 5 minutes"
+            )}
+            {error && <span className="block text-bento-danger">{error}</span>}
+          </span>
+        </span>
+        {coolingDown && (
+          <span
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-(--cooldown-progress) bg-primary/50 motion-safe:transition-transform motion-safe:duration-1000 motion-safe:ease-linear"
+            style={
+              {
+                "--cooldown-progress": Math.min(
+                  1,
+                  (seconds * 1000) / PLAID_REFRESH_COOLDOWN_MS
+                ),
+              } as CSSProperties
+            }
+          />
         )}
-      </p>
-      {error && (
-        <p role="alert" className="basis-full text-xs text-bento-danger">
-          {error}
-        </p>
-      )}
-      {!error && queuedAt !== null && seconds > 0 && (
-        <p role="status" className="basis-full text-xs text-bento-subtle">
-          Refresh queued. Lunch Money syncs in the background.
-        </p>
-      )}
-    </div>
+      </Button>
+      <span role="status" className="sr-only">
+        {error ??
+          (queued
+            ? "Refresh queued. Lunch Money syncs in the background."
+            : "")}
+      </span>
+    </>
   );
 }

@@ -29,8 +29,8 @@ export function AccountStatusBadge({
         className
       )}
     >
-      {Icon && <Icon aria-hidden="true" className="size-3" />}
-      {label}
+      {Icon && <Icon aria-hidden="true" className="size-3 shrink-0" />}
+      <span className="truncate">{label}</span>
     </span>
   );
 }

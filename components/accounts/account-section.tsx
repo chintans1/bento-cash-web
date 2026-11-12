@@ -66,7 +66,7 @@ export function AccountSection({
           </span>
         </h2>
         {total !== undefined && (
-          <p className="shrink-0 pr-6 text-right text-sm font-medium tabular-nums">
+          <p className="shrink-0 pr-8 text-right text-sm font-medium tabular-nums">
             {formatCurrency(total, primaryCurrency, true)}
             {isLiability && (
               <span className="ml-1 text-xs font-normal text-bento-subtle">
