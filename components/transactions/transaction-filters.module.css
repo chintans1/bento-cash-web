@@ -1,0 +1,101 @@
+.popup,
+.control {
+  --filter-ease: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.control {
+  transition:
+    background-color 120ms var(--filter-ease),
+    color 120ms var(--filter-ease),
+    box-shadow 120ms var(--filter-ease),
+    scale 120ms var(--filter-ease);
+}
+
+.popup {
+  --filter-offset: -4px;
+  transition:
+    opacity 150ms var(--filter-ease),
+    translate 150ms var(--filter-ease),
+    scale 150ms var(--filter-ease);
+}
+
+.popup[data-side="top"] {
+  --filter-offset: 4px;
+}
+
+.popup::before {
+  content: none;
+}
+
+.popup[data-starting-style],
+.popup[data-ending-style] {
+  opacity: 0;
+  translate: 0 var(--filter-offset);
+  scale: 0.985;
+}
+
+.popup[data-ending-style] {
+  transition-duration: 110ms;
+}
+
+.choices[data-direction="forward"] {
+  animation: reveal-options 140ms var(--filter-ease) both;
+}
+
+.choices[data-direction="back"] {
+  animation: reveal-filter-types 140ms var(--filter-ease) both;
+}
+
+@keyframes reveal-options {
+  from {
+    opacity: 0.55;
+    translate: 5px 0;
+  }
+}
+
+@keyframes reveal-filter-types {
+  from {
+    opacity: 0.55;
+    translate: -5px 0;
+  }
+}
+
+.option {
+  background-color: transparent;
+  transition: background-color 85ms var(--filter-ease);
+}
+
+.option[data-highlighted] {
+  background-color: color-mix(in oklab, var(--foreground) 9%, transparent);
+}
+
+.option:active {
+  background-color: color-mix(in oklab, var(--foreground) 14%, transparent);
+}
+
+.navigationIcon {
+  transition: translate 120ms var(--filter-ease);
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .option:hover .navigationIcon {
+    translate: 2px 0;
+  }
+
+  .option:hover .backIcon {
+    translate: -2px 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popup[data-starting-style],
+  .popup[data-ending-style],
+  .option:hover .navigationIcon {
+    translate: none;
+    scale: none;
+  }
+
+  .choices[data-direction] {
+    animation: none;
+  }
+}

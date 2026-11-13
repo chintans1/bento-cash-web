@@ -23,6 +23,7 @@ import { compactFieldStyles, fieldStyles } from "@/components/ui/field-styles";
 import { rankCategoryMatches } from "@/lib/lunchmoney/category-search";
 import { cn } from "@/lib/utils";
 import type { CategoryOption } from "./category-picker";
+import styles from "./transaction-filters.module.css";
 
 export type AccountFilterOption = {
   id: string;
@@ -61,9 +62,13 @@ export function TransactionFilters({
 }) {
   const [open, setOpen] = useState(false);
   const [section, setSection] = useState<FilterType | null>(null);
+  const [direction, setDirection] = useState<"forward" | "back">();
   const [query, setQuery] = useState("");
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const [chipAnchor, setChipAnchor] = useState<HTMLButtonElement | null>(null);
+  const [anchorChip, setAnchorChip] = useState<{
+    type: FilterType;
+    element: HTMLButtonElement;
+  }>();
   const items = useMemo<MenuItem[]>(() => {
     const search = query.trim().toLowerCase();
     if (!section && !search) return sections;
@@ -142,8 +147,9 @@ export function TransactionFilters({
           if (details.isCanceled) return;
           setOpen(next);
           if (next) {
-            setChipAnchor(null);
+            setAnchorChip(undefined);
             setSection(null);
+            setDirection(undefined);
             setQuery("");
           }
         }}
@@ -158,6 +164,7 @@ export function TransactionFilters({
           if (item.kind === "section" || item.kind === "back") {
             details.cancel();
             setSection(item.kind === "section" ? item.section : null);
+            setDirection(item.kind === "section" ? "forward" : "back");
             setQuery("");
           } else if (item.kind === "category") {
             onCategoryChange(item.id);
@@ -171,7 +178,8 @@ export function TransactionFilters({
           className={cn(
             fieldStyles,
             compactFieldStyles,
-            "order-3 flex shrink-0 items-center gap-1.5 px-2.5 text-xs font-medium md:text-xs [&>svg:last-child]:hidden"
+            styles.control,
+            "pointer-press order-3 flex shrink-0 items-center gap-1.5 px-2.5 text-xs font-medium hover:bg-bento-raised data-popup-open:bg-bento-raised md:text-xs [&>svg:last-child]:hidden"
           )}
         >
           <ListFilter
@@ -181,10 +189,10 @@ export function TransactionFilters({
           Filter
         </ComboboxTrigger>
         <ComboboxContent
-          anchor={chipAnchor ?? undefined}
-          align={chipAnchor ? "start" : "end"}
-          className="w-72 min-w-0"
-          finalFocus={() => chipAnchor ?? true}
+          anchor={anchorChip?.element}
+          align={anchorChip ? "start" : "end"}
+          className={cn(styles.popup, "w-72 min-w-0")}
+          finalFocus={() => anchorChip?.element ?? true}
         >
           <div className="border-b border-bento-hairline/60 p-1.5">
             <ComboboxInput
@@ -194,7 +202,7 @@ export function TransactionFilters({
             />
           </div>
           <ComboboxEmpty>No matching filters.</ComboboxEmpty>
-          <ComboboxList>
+          <ComboboxList className={styles.choices} data-direction={direction}>
             {(item: MenuItem) => {
               const type = item.kind === "section" ? item.section : item.kind;
               const Icon =
@@ -214,6 +222,7 @@ export function TransactionFilters({
                   : "";
               return (
                 <ComboboxItem
+                  className={cn(styles.option, "cursor-pointer")}
                   key={
                     item.kind === "back"
                       ? item.kind
@@ -225,7 +234,13 @@ export function TransactionFilters({
                 >
                   <Icon
                     aria-hidden="true"
-                    className="size-3.5 shrink-0 text-bento-subtle"
+                    className={cn(
+                      "size-3.5 shrink-0 text-bento-subtle",
+                      item.kind === "back" && [
+                        styles.navigationIcon,
+                        styles.backIcon,
+                      ]
+                    )}
                   />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate">{item.name}</span>
@@ -238,7 +253,10 @@ export function TransactionFilters({
                   {item.kind === "section" && (
                     <ChevronRight
                       aria-hidden="true"
-                      className="absolute right-2 size-3.5 text-bento-subtle"
+                      className={cn(
+                        styles.navigationIcon,
+                        "absolute right-2 size-3.5 text-bento-subtle"
+                      )}
                     />
                   )}
                   {active && (
@@ -270,10 +288,15 @@ export function TransactionFilters({
               <button
                 type="button"
                 aria-label={`Change ${type} filter: ${name}`}
-                className="flex min-w-0 items-center gap-1.5 rounded-l-compact-control px-2.5 hover:bg-bento-raised"
+                aria-expanded={open && anchorChip?.type === type}
+                className={cn(
+                  styles.control,
+                  "pointer-press flex min-w-0 items-center gap-1.5 rounded-l-compact-control px-2.5 hover:bg-bento-raised aria-expanded:bg-bento-raised"
+                )}
                 onClick={(event) => {
-                  setChipAnchor(event.currentTarget);
+                  setAnchorChip({ type, element: event.currentTarget });
                   setSection(type);
+                  setDirection(undefined);
                   setQuery("");
                   setOpen(true);
                 }}
@@ -284,7 +307,10 @@ export function TransactionFilters({
               <button
                 type="button"
                 aria-label={`Remove ${type} filter: ${name}`}
-                className="grid w-7 shrink-0 place-items-center rounded-r-compact-control border-l border-bento-hairline text-bento-subtle hover:bg-bento-raised hover:text-bento-default"
+                className={cn(
+                  styles.control,
+                  "pointer-press grid w-7 shrink-0 place-items-center rounded-r-compact-control border-l border-bento-hairline text-bento-subtle hover:bg-bento-raised hover:text-bento-default"
+                )}
                 onClick={() => {
                   triggerRef.current?.focus();
                   clear();
