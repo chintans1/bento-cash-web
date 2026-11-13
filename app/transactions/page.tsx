@@ -800,7 +800,7 @@ function TransactionsPage() {
             <div
               role="group"
               aria-label="Selected transaction actions"
-              className="sticky bottom-2 z-10 mt-3 flex flex-wrap items-center gap-2 rounded-2xl bg-bento-surface px-3 py-2 text-sm shadow-lg ring-1 ring-bento-hairline"
+              className="sticky bottom-3 z-10 mt-3 flex flex-wrap items-center gap-2 rounded-2xl bg-bento-default px-3 py-2 text-sm text-bento-base shadow-xl ring-1 ring-bento-base/25"
             >
               <span
                 role="status"
@@ -809,6 +809,7 @@ function TransactionsPage() {
                 {selectedTransactions.length} selected
               </span>
               <Button
+                variant="secondary"
                 size="sm"
                 disabled={selectedSaving || bulkEditable.length === 0}
                 onClick={() => setBulkEditMonth(monthKey)}
@@ -816,8 +817,9 @@ function TransactionsPage() {
                 Bulk edit
               </Button>
               <Button
-                variant="secondary"
+                variant="ghost"
                 size="sm"
+                className="text-bento-base hover:bg-bento-base/15 hover:text-bento-base dark:hover:bg-bento-base/15"
                 disabled={!canGroupSelection || selectedSaving}
                 onClick={() =>
                   setStructure({
@@ -831,6 +833,7 @@ function TransactionsPage() {
               <Button
                 variant="ghost"
                 size="sm"
+                className="text-bento-base hover:bg-bento-base/15 hover:text-bento-base dark:hover:bg-bento-base/15"
                 disabled={selectedSaving}
                 onClick={() =>
                   setSelection({ month: monthKey, ids: new Set() })

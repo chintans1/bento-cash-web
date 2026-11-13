@@ -1,6 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
+import { Check, ListFilter, Tag as TagIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import type { Tag, Transaction } from "@/lib/lunchmoney/client";
@@ -10,6 +11,34 @@ import {
 } from "@/lib/lunchmoney/transaction-state";
 import { CategoryPicker, type CategoryOption } from "./category-picker";
 import { TagPicker } from "./tag-picker";
+
+function EditOption({
+  checked,
+  disabled,
+  onChange,
+  children,
+}: {
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (checked: boolean) => void;
+  children: ReactNode;
+}) {
+  return (
+    <label className="flex min-h-10 cursor-pointer items-center gap-3 rounded-xl px-3 text-sm font-medium hover:bg-bento-raised has-disabled:cursor-default has-disabled:opacity-60">
+      <input
+        type="checkbox"
+        className="peer sr-only"
+        checked={checked}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.checked)}
+      />
+      <span className="grid size-5 shrink-0 place-items-center rounded-md border border-bento-hairline bg-card text-transparent peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-card">
+        <Check className="size-3.5" aria-hidden="true" />
+      </span>
+      {children}
+    </label>
+  );
+}
 
 export function BulkEditDialog({
   transactions,
@@ -71,25 +100,24 @@ export function BulkEditDialog({
         {transactions.length} selected
       </DialogDescription>
       <form
-        className="mt-5 space-y-4"
+        className="mt-5 space-y-3"
         onSubmit={(event) => {
           event.preventDefault();
           void save();
         }}
       >
-        <div className="space-y-2">
-          <label className="flex min-h-8 items-center gap-2 text-sm font-medium">
-            <input
-              type="checkbox"
-              className="size-4 accent-primary"
-              checked={categoryId !== undefined}
-              disabled={saving || linkedCount === transactions.length}
-              onChange={(event) =>
-                setCategoryId(event.target.checked ? null : undefined)
-              }
-            />
+        <div className="space-y-2 rounded-2xl border border-bento-hairline p-1.5">
+          <EditOption
+            checked={categoryId !== undefined}
+            disabled={saving || linkedCount === transactions.length}
+            onChange={(checked) => setCategoryId(checked ? null : undefined)}
+          >
             Set category
-          </label>
+            <ListFilter
+              className="ml-auto size-4 text-bento-subtle"
+              aria-hidden="true"
+            />
+          </EditOption>
           {categoryId !== undefined && (
             <CategoryPicker
               categoryId={categoryId}
@@ -105,13 +133,16 @@ export function BulkEditDialog({
             />
           )}
           {linkedCount > 0 && (
-            <p className="text-xs text-bento-subtle">
+            <p className="px-3 pb-1 text-xs text-bento-subtle">
               Recurring transactions keep their existing category.
             </p>
           )}
         </div>
-        <div>
-          <p className="mb-2 text-sm font-medium">Tags to add</p>
+        <div className="space-y-2 rounded-2xl border border-bento-hairline p-2">
+          <p className="flex min-h-7 items-center justify-between gap-3 px-2 text-sm font-medium">
+            Tags to add{" "}
+            <TagIcon className="size-4 text-bento-subtle" aria-hidden="true" />
+          </p>
           <TagPicker
             tags={tags}
             value={tagIds}
@@ -119,22 +150,21 @@ export function BulkEditDialog({
             onChange={setTagIds}
           />
         </div>
-        <label className="flex min-h-8 items-center gap-2 text-sm font-medium">
-          <input
-            type="checkbox"
-            className="size-4 accent-primary"
+        <div className="rounded-2xl border border-bento-hairline p-1.5">
+          <EditOption
             checked={markReviewed}
             disabled={saving}
-            onChange={(event) => setMarkReviewed(event.target.checked)}
-          />
-          Mark as reviewed
-        </label>
+            onChange={setMarkReviewed}
+          >
+            Mark as reviewed
+          </EditOption>
+        </div>
         {error && (
           <p role="alert" className="text-sm text-bento-negative">
             {error}
           </p>
         )}
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 border-t border-bento-hairline pt-4">
           <Button
             type="button"
             variant="ghost"
