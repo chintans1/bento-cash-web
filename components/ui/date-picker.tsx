@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { format, parseISO } from "date-fns";
 import { CalendarDays } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { fieldStyles } from "@/components/ui/field-styles";
+import { cn } from "@/lib/utils";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -34,16 +35,14 @@ export function DatePicker({
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger
-        render={
-          <Button
-            variant="outline"
-            className="w-full justify-start rounded-xl"
-          />
-        }
+        className={cn(fieldStyles, "flex w-full items-center gap-2 text-left")}
         aria-label={`${label}: ${displayDate}`}
         disabled={disabled}
       >
-        <CalendarDays aria-hidden="true" data-icon="inline-start" />
+        <CalendarDays
+          aria-hidden="true"
+          className="size-4 text-muted-foreground"
+        />
         {displayDate}
       </PopoverTrigger>
       <PopoverContent

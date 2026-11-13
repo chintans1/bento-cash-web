@@ -27,6 +27,7 @@ export const KEY = {
   tags: "tags",
   accounts: "accounts",
   recurring: "recurring",
+  recurringMonth: (year: number, month: number) => `recurring:${year}-${month}`,
   balanceHistory: "balance-history",
   tx: (year: number, month: number) => `${TX}${year}-${month}`,
   budget: (year: number, month: number) => `${BUDGET}${year}-${month}`,

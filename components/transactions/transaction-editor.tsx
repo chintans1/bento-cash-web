@@ -5,14 +5,19 @@ import { Autocomplete } from "@base-ui/react/autocomplete";
 import {
   AlertTriangle,
   Check,
+  Circle,
   Clock3,
   ExternalLink,
+  LockKeyhole,
   Repeat2,
+  Split,
   Trash2,
   X,
 } from "lucide-react";
 import {
+  getRecurringItems,
   getTransaction,
+  getTransactionsForMonth,
   type RecurringItem,
   type Tag,
   type Transaction,
@@ -24,6 +29,7 @@ import {
   Metadata,
 } from "@/components/accounts/account-detail-fields";
 import { DatePicker } from "@/components/ui/date-picker";
+import { fieldStyles } from "@/components/ui/field-styles";
 import type { NormalizedAccount } from "@/lib/account-utils";
 import {
   canEditTransactionCurrency,
@@ -54,12 +60,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatShortDate } from "@/lib/format";
 import { amountForEditing } from "@/lib/lunchmoney/transaction-structure";
 import {
   confirmedRecurringId,
+  expectedRecurringDate,
+  postedRecurringIds,
   recurringMatch,
 } from "@/lib/lunchmoney/recurring-match";
+import {
+  parsePlaidMetadata,
+  plaidMerchantLogo,
+} from "@/lib/lunchmoney/plaid-metadata";
 import { PayeeSuggestionsPopup } from "./editable-text";
 
 type Draft = {
@@ -120,8 +132,16 @@ function recurringValueName(items: RecurringItem[], value: string) {
   return item ? recurringName(item) : `Recurring item #${value}`;
 }
 
+function recurringAmount(item: RecurringItem) {
+  const { amount, currency } = item.transaction_criteria;
+  const value = Number(amount);
+  if (!amount || !currency || !Number.isFinite(value)) return null;
+  return `${value < 0 ? "+" : ""}${formatCurrency(Math.abs(value), currency, true)} ${currency.toUpperCase()}`;
+}
+
 export function TransactionEditor({
   transaction,
+  monthTransactions,
   categoryOptions,
   accounts,
   tags,
@@ -140,6 +160,7 @@ export function TransactionEditor({
   onGroup,
 }: {
   transaction: Transaction;
+  monthTransactions: Transaction[];
   categoryOptions: CategoryOption[];
   accounts: NormalizedAccount[];
   tags: Tag[];
@@ -162,6 +183,16 @@ export function TransactionEditor({
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [draft, setDraft] = useState(() => makeDraft(transaction));
+  const [openedRecurringList, setOpenedRecurringList] = useState(false);
+  const [recurringScheduleVersion, setRecurringScheduleVersion] = useState(0);
+  const [recurringSchedule, setRecurringSchedule] = useState<{
+    month: string;
+    dates: Map<number, string[]>;
+  }>();
+  const [otherMonthMatches, setOtherMonthMatches] = useState<{
+    month: string;
+    ids: Set<number>;
+  }>();
   const [recurringPageOpened, setRecurringPageOpened] = useState(false);
   const [refreshingRecurringItems, setRefreshingRecurringItems] =
     useState(false);
@@ -182,12 +213,80 @@ export function TransactionEditor({
   const approvedRecurringItems = recurringItems.filter(
     (item) => item.status === "reviewed"
   );
+  const draftMonth = draft.date.slice(0, 7);
+  const originalMonth = transaction.date.slice(0, 7);
+  const { id: transactionId } = transaction;
+  const matchedIds = useMemo(
+    () =>
+      draftMonth === originalMonth
+        ? postedRecurringIds(monthTransactions, transactionId)
+        : otherMonthMatches?.month === draftMonth
+          ? otherMonthMatches.ids
+          : new Set<number>(),
+    [
+      draftMonth,
+      monthTransactions,
+      originalMonth,
+      otherMonthMatches,
+      transactionId,
+    ]
+  );
+  const orderedRecurringItems = approvedRecurringItems.sort(
+    (a, b) => Number(matchedIds.has(a.id)) - Number(matchedIds.has(b.id))
+  );
+  const { metadata, metadataStatus } = usePlaidDetails(transaction);
+  const merchantLogo = plaidMerchantLogo(metadata);
+
+  useEffect(() => {
+    if (!openedRecurringList) return;
+    const [year, month] = draftMonth.split("-").map(Number);
+    let active = true;
+    void getRecurringItems({ year, month }).then(
+      (items) => {
+        if (!active) return;
+        const dates = new Map<number, string[]>();
+        for (const item of items) {
+          if (item.matches?.expected_occurrence_dates)
+            dates.set(item.id, item.matches.expected_occurrence_dates);
+        }
+        setRecurringSchedule({ month: draftMonth, dates });
+      },
+      () => {
+        if (active) setRecurringSchedule(undefined);
+      }
+    );
+    return () => {
+      active = false;
+    };
+  }, [draftMonth, openedRecurringList, recurringScheduleVersion]);
+
+  useEffect(() => {
+    if (!openedRecurringList || draftMonth === originalMonth) return;
+    const [year, month] = draftMonth.split("-").map(Number);
+    let active = true;
+    void getTransactionsForMonth(year, month).then(
+      ({ transactions }) => {
+        if (active)
+          setOtherMonthMatches({
+            month: draftMonth,
+            ids: postedRecurringIds(transactions, transactionId),
+          });
+      },
+      () => {
+        if (active) setOtherMonthMatches(undefined);
+      }
+    );
+    return () => {
+      active = false;
+    };
+  }, [draftMonth, openedRecurringList, originalMonth, transactionId]);
 
   const refreshRecurringList = useCallback(async () => {
     setRefreshingRecurringItems(true);
     setRecurringRefreshError(null);
     try {
       await onRefreshRecurringItems();
+      setRecurringScheduleVersion((version) => version + 1);
     } catch (reason) {
       setRecurringRefreshError(
         reason instanceof Error
@@ -225,6 +324,19 @@ export function TransactionEditor({
     !locked &&
     !draft.account.startsWith("plaid-") &&
     canEditTransactionCurrency(transaction);
+  const reviewed = draft.status === "reviewed";
+  const canReview =
+    !transaction.is_pending &&
+    transaction.status !== "delete_pending" &&
+    !structurallyLocked;
+  const showStructureAction =
+    splitChild ||
+    transaction.is_split_parent ||
+    groupParent ||
+    (!transaction.is_pending &&
+      transaction.status !== "delete_pending" &&
+      transaction.recurring_id == null);
+
   const canDelete =
     !locked &&
     !transaction.is_split_parent &&
@@ -302,43 +414,47 @@ export function TransactionEditor({
             void save();
           }}
         >
-          <header className="flex items-start gap-3 border-b border-bento-hairline px-5 py-4 sm:px-6">
-            <div className="min-w-0 flex-1">
-              <p className="mb-2 text-xs font-medium tracking-wide text-bento-subtle uppercase">
+          <header className="border-b border-bento-hairline px-5 pt-3 pb-4 sm:px-6">
+            <div className="flex items-center justify-between gap-3">
+              <SheetTitle className="font-heading text-base font-semibold">
                 Transaction details
-              </p>
-              <SheetTitle className="font-heading text-xl font-bold text-balance wrap-anywhere">
-                {draft.payee || transaction.original_name || "Transaction"}
               </SheetTitle>
-              <SheetDescription className="mt-1 text-sm text-bento-subtle tabular-nums">
-                {detailDate(draft.date) ?? "Date needed"} ·{" "}
-                <span
-                  className={
-                    draft.categoryId == null
-                      ? "font-medium text-bento-negative"
-                      : undefined
-                  }
-                >
-                  {categoryName}
-                </span>
-              </SheetDescription>
-              {recurringStatus && (
-                <Badge
-                  variant="secondary"
-                  className={cn(
-                    "mt-2",
-                    recurringStatus === "possible" &&
-                      "bg-warning/10 text-warning-foreground"
-                  )}
-                >
-                  <Repeat2 aria-hidden="true" />
-                  {recurringStatus === "confirmed"
-                    ? "Recurring"
-                    : "Possible recurring"}
-                </Badge>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Close transaction details"
+                onClick={requestClose}
+                disabled={saving || deleting}
+              >
+                <X />
+              </Button>
+            </div>
+            <div className="mt-2 flex min-w-0 items-center gap-3">
+              {merchantLogo && (
+                <MerchantLogo key={merchantLogo} src={merchantLogo} />
               )}
+              <div className="min-w-0">
+                <p className="font-heading text-xl font-bold wrap-anywhere">
+                  {draft.payee || transaction.original_name || "Transaction"}
+                </p>
+                <SheetDescription className="mt-1 text-sm text-bento-subtle tabular-nums">
+                  {detailDate(draft.date) ?? "Date needed"} ·{" "}
+                  <span
+                    className={
+                      draft.categoryId == null
+                        ? "font-medium text-bento-negative"
+                        : undefined
+                    }
+                  >
+                    {categoryName}
+                  </span>
+                </SheetDescription>
+              </div>
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
               {draft.amount.trim() !== "" && Number.isFinite(amount) && (
-                <p className="mt-3 font-mono text-lg font-semibold text-bento-default tabular-nums">
+                <p className="font-mono text-lg font-semibold text-bento-default tabular-nums">
                   {formatCurrency(
                     Math.abs(amount),
                     canEditCurrency ? draft.currency : transaction.currency,
@@ -349,17 +465,73 @@ export function TransactionEditor({
                   </span>
                 </p>
               )}
+              {recurringStatus && (
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    recurringStatus === "possible" &&
+                      "bg-warning/10 text-warning-foreground"
+                  )}
+                >
+                  <Repeat2 aria-hidden="true" />
+                  {recurringStatus === "confirmed"
+                    ? "Recurring"
+                    : "Possible recurring"}
+                </Badge>
+              )}
             </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-lg"
-              aria-label="Close transaction details"
-              onClick={requestClose}
-              disabled={saving || deleting}
-            >
-              <X />
-            </Button>
+            {(canReview || showStructureAction) && (
+              <div className="mt-2 -ml-2 flex flex-wrap items-center gap-1">
+                {canReview && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className={cn(
+                      "text-xs",
+                      reviewed ? "text-bento-positive" : "text-bento-subtle"
+                    )}
+                    aria-label={reviewed ? "Mark unreviewed" : undefined}
+                    disabled={saving || deleting}
+                    onClick={() =>
+                      updateDraft(
+                        "status",
+                        reviewed ? "unreviewed" : "reviewed"
+                      )
+                    }
+                  >
+                    {reviewed ? (
+                      <Check data-icon="inline-start" aria-hidden="true" />
+                    ) : (
+                      <Circle data-icon="inline-start" aria-hidden="true" />
+                    )}
+                    {reviewed ? "Reviewed" : "Mark reviewed"}
+                  </Button>
+                )}
+                {showStructureAction && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs text-bento-subtle"
+                    disabled={saving || deleting || changed}
+                    onClick={groupParent ? onGroup : onSplit}
+                  >
+                    <Split data-icon="inline-start" aria-hidden="true" />
+                    {groupParent
+                      ? "View group"
+                      : splitChild || transaction.is_split_parent
+                        ? "Edit split"
+                        : "Split transaction"}
+                  </Button>
+                )}
+                {showStructureAction && changed && (
+                  <span className="px-2 text-xs text-bento-subtle">
+                    Save or discard changes first.
+                  </span>
+                )}
+              </div>
+            )}
           </header>
 
           <div
@@ -437,91 +609,16 @@ export function TransactionEditor({
               </section>
             )}
             {(structurallyLocked || splitChild) && (
-              <div className="flex gap-3 rounded-xl bg-bento-raised p-3 text-sm text-bento-subtle">
-                <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-                <p className="text-pretty">
-                  {splitChild
-                    ? structurallyLocked
-                      ? "This is part of a split. Use Edit split to change its details or recurring link."
-                      : "You can edit this split part here. Use Edit split to change its amount or the split structure."
-                    : transaction.is_split_parent
-                      ? "This transaction is split into parts. Use Edit split to change them."
-                      : "This transaction belongs to a group. Open the group to manage its members."}
-                </p>
-              </div>
+              <p className="text-xs text-bento-subtle">
+                {splitChild
+                  ? structurallyLocked
+                    ? "Use Edit split to change this part."
+                    : "Use Edit split to change this part’s amount or account."
+                  : transaction.is_split_parent
+                    ? "Use Edit split to manage the parts."
+                    : "Open the group to manage its transactions."}
+              </p>
             )}
-
-            {(transaction.split_parent_id != null ||
-              transaction.is_split_parent ||
-              transaction.is_group_parent ||
-              (!transaction.is_pending &&
-                transaction.status !== "delete_pending" &&
-                transaction.recurring_id == null)) && (
-              <section className="rounded-2xl border border-bento-hairline p-4">
-                <h3 className="text-sm font-semibold">Transaction structure</h3>
-                <p className="mt-1 text-xs text-bento-subtle">
-                  {transaction.is_group_parent
-                    ? "View the transactions in this group or ungroup them."
-                    : transaction.split_parent_id != null ||
-                        transaction.is_split_parent
-                      ? "Edit each part of this split or restore the original transaction."
-                      : "Allocate this transaction across two or more categories or payees."}
-                </p>
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="mt-3 h-10"
-                  disabled={saving || changed}
-                  onClick={transaction.is_group_parent ? onGroup : onSplit}
-                >
-                  {transaction.is_group_parent
-                    ? "View group"
-                    : transaction.split_parent_id != null ||
-                        transaction.is_split_parent
-                      ? "Edit split"
-                      : "Split transaction"}
-                </Button>
-                {changed && (
-                  <p className="mt-2 text-xs text-bento-subtle">
-                    Save or discard your other changes first.
-                  </p>
-                )}
-              </section>
-            )}
-
-            <section className="space-y-3">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-sm font-semibold">Review</h3>
-                  <p className="text-xs text-bento-subtle">
-                    Confirm this transaction is correct.
-                  </p>
-                </div>
-                <Button
-                  type="button"
-                  variant={draft.status === "reviewed" ? "default" : "outline"}
-                  className="h-10"
-                  aria-pressed={draft.status === "reviewed"}
-                  disabled={
-                    transaction.is_pending ||
-                    transaction.status === "delete_pending" ||
-                    structurallyLocked
-                  }
-                  onClick={() =>
-                    setDraft((current) => ({
-                      ...current,
-                      status:
-                        current.status === "reviewed"
-                          ? "unreviewed"
-                          : "reviewed",
-                    }))
-                  }
-                >
-                  <Check data-icon="inline-start" />
-                  {draft.status === "reviewed" ? "Reviewed" : "Mark reviewed"}
-                </Button>
-              </div>
-            </section>
 
             <section className="grid gap-4 sm:grid-cols-2">
               <Field label="Payee" className="sm:col-span-2">
@@ -607,10 +704,7 @@ export function TransactionEditor({
                       value && updateDraft("currency", value)
                     }
                   >
-                    <SelectTrigger
-                      aria-label="Currency"
-                      className="w-full rounded-xl"
-                    >
+                    <SelectTrigger aria-label="Currency" className="w-full">
                       <SelectValue>
                         {(value: string) => currencyLabel(value)}
                       </SelectValue>
@@ -624,11 +718,20 @@ export function TransactionEditor({
                     </SelectContent>
                   </Select>
                 ) : (
-                  <Input
-                    aria-label="Currency"
-                    value={currencyLabel(transaction.currency)}
-                    readOnly
-                  />
+                  <div
+                    className={cn(
+                      fieldStyles,
+                      "flex min-w-0 items-center gap-2 border-bento-hairline bg-transparent"
+                    )}
+                  >
+                    <span className="min-w-0 flex-1 truncate">
+                      {currencyLabel(transaction.currency)}
+                    </span>
+                    <span className="flex shrink-0 items-center gap-1 text-xs text-bento-subtle">
+                      <LockKeyhole className="size-3" aria-hidden="true" />
+                      Read only
+                    </span>
+                  </div>
                 )}
               </Field>
               <Field label="Account" className="sm:col-span-2">
@@ -640,7 +743,7 @@ export function TransactionEditor({
                 >
                   <SelectTrigger
                     aria-label="Account"
-                    className="h-10 w-full rounded-xl"
+                    className="w-full"
                     disabled={
                       locked || structurallyLocked || groupParent || splitChild
                     }
@@ -665,12 +768,7 @@ export function TransactionEditor({
                       ))}
                   </SelectContent>
                 </Select>
-                {splitChild ? (
-                  <p className="mt-1.5 px-1 text-xs wrap-anywhere text-bento-subtle">
-                    Change the amount in Edit split. Currency and account follow
-                    the original transaction.
-                  </p>
-                ) : groupParent ? (
+                {groupParent ? (
                   <p className="mt-1.5 px-1 text-xs wrap-anywhere text-bento-subtle">
                     The group amount comes from its transactions. Its currency
                     and account cannot be changed here.
@@ -685,15 +783,15 @@ export function TransactionEditor({
               <Field label="Recurring item" className="sm:col-span-2">
                 <Select
                   value={selectedRecurringId?.toString() ?? "none"}
+                  onOpenChange={(open) => {
+                    if (open) setOpenedRecurringList(true);
+                  }}
                   disabled={structurallyLocked || groupParent}
                   onValueChange={(value) =>
                     value && updateDraft("recurringId", value)
                   }
                 >
-                  <SelectTrigger
-                    aria-label="Recurring item"
-                    className="h-10 w-full rounded-xl"
-                  >
+                  <SelectTrigger aria-label="Recurring item" className="w-full">
                     <SelectValue>
                       {(value: string) =>
                         value === "none" && recurringStatus === "possible"
@@ -702,13 +800,45 @@ export function TransactionEditor({
                       }
                     </SelectValue>
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent alignItemWithTrigger={false}>
                     <SelectItem value="none">Not recurring</SelectItem>
-                    {approvedRecurringItems.map((item) => (
-                      <SelectItem key={item.id} value={item.id.toString()}>
-                        {recurringName(item)}
-                      </SelectItem>
-                    ))}
+                    {orderedRecurringItems.map((item) => {
+                      const matched = matchedIds.has(item.id);
+                      const expected = matched
+                        ? null
+                        : expectedRecurringDate(
+                            recurringSchedule?.month === draftMonth
+                              ? recurringSchedule.dates.get(item.id)
+                              : item.matches?.expected_occurrence_dates,
+                            draft.date
+                          );
+                      return (
+                        <SelectItem
+                          key={item.id}
+                          value={item.id.toString()}
+                          label={recurringName(item)}
+                          className="*:data-[slot=select-item-text]:min-w-0 *:data-[slot=select-item-text]:shrink"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="truncate">
+                                {recurringName(item)}
+                              </span>
+                              <span className="shrink-0 font-normal tabular-nums">
+                                {recurringAmount(item)}
+                              </span>
+                            </div>
+                            {(matched || expected) && (
+                              <div className="text-xs font-normal text-bento-subtle">
+                                {expected
+                                  ? `Expected date: ${formatShortDate(expected)}`
+                                  : "Matched this month"}
+                              </div>
+                            )}
+                          </div>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
                 {recurringItemsLoading ? (
@@ -788,9 +918,9 @@ export function TransactionEditor({
             </section>
 
             <TransactionSourceDetails
-              key={transaction.id}
               transaction={transaction}
-              isDemo={isDemo}
+              metadata={metadata}
+              metadataStatus={metadataStatus}
             />
           </div>
 
@@ -890,32 +1020,43 @@ export function TransactionEditor({
   );
 }
 
-function TransactionSourceDetails({
-  transaction,
-  isDemo,
-}: {
-  transaction: Transaction;
-  isDemo: boolean;
-}) {
+function MerchantLogo({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    // Plaid serves the 100×100 logo. The payee beside it provides the label.
+    <img
+      src={src}
+      alt=""
+      width={36}
+      height={36}
+      referrerPolicy="no-referrer"
+      className="size-9 shrink-0 rounded-lg bg-white object-contain -outline-offset-1 outline-black/10 dark:outline-white/10"
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+function usePlaidDetails(transaction: Transaction) {
   const isPlaid =
     transaction.source === "plaid" || transaction.plaid_account_id != null;
   const existingMetadata = transaction.plaid_metadata;
-  const [metadata, setMetadata] = useState<Transaction["plaid_metadata"]>(
-    existingMetadata ?? undefined
-  );
-  const [metadataUnavailable, setMetadataUnavailable] = useState(false);
-  const loadingMetadata =
-    isPlaid && metadata === undefined && !metadataUnavailable;
+  const [result, setResult] = useState<{
+    id: number;
+    data: Transaction["plaid_metadata"];
+    failed?: boolean;
+  }>();
 
   useEffect(() => {
     if (!isPlaid || existingMetadata) return;
     let active = true;
     void getTransaction(transaction.id).then(
       (details) => {
-        if (active) setMetadata(details.plaid_metadata ?? null);
+        if (active)
+          setResult({ id: transaction.id, data: details.plaid_metadata });
       },
       () => {
-        if (active) setMetadataUnavailable(true);
+        if (active) setResult({ id: transaction.id, data: null, failed: true });
       }
     );
     return () => {
@@ -923,6 +1064,24 @@ function TransactionSourceDetails({
     };
   }, [existingMetadata, isPlaid, transaction.id]);
 
+  const detail = result?.id === transaction.id ? result : undefined;
+  return {
+    metadata: parsePlaidMetadata(existingMetadata ?? detail?.data),
+    metadataStatus: !isPlaid
+      ? "hidden"
+      : existingMetadata || (detail && !detail.failed)
+        ? "loaded"
+        : detail?.failed
+          ? "failed"
+          : "loading",
+  } as const;
+}
+
+function TransactionSourceDetails({
+  transaction,
+  metadata,
+  metadataStatus,
+}: { transaction: Transaction } & ReturnType<typeof usePlaidDetails>) {
   return (
     <section className="space-y-3 rounded-2xl bg-bento-raised p-4 text-xs">
       <DetailFields
@@ -942,30 +1101,19 @@ function TransactionSourceDetails({
           ["Transaction ID", transaction.id],
         ]}
       />
-      {isPlaid &&
-        (loadingMetadata ? (
-          <p role="status" className="text-bento-subtle">
-            Loading Plaid metadata…
-          </p>
-        ) : metadata && Object.keys(metadata).length > 0 ? (
+      {metadataStatus === "loading" && (
+        <p role="status" className="text-bento-subtle">
+          Loading Plaid metadata…
+        </p>
+      )}
+      {metadataStatus === "loaded" &&
+        (metadata && Object.keys(metadata).length > 0 ? (
           <Metadata label="Plaid metadata" data={metadata} />
         ) : (
-          <p className="text-bento-subtle">
-            {metadataUnavailable
-              ? "Couldn’t load Plaid metadata."
-              : "No Plaid metadata available."}
-          </p>
+          <p className="text-bento-subtle">No Plaid metadata available.</p>
         ))}
-      {!isDemo && (
-        <a
-          href="https://support.lunchmoney.app/finances/transactions/other-features#view-change-history"
-          target="_blank"
-          rel="noreferrer"
-          className="inline-flex min-h-8 items-center gap-1.5 text-bento-subtle underline underline-offset-2 hover:text-bento-default"
-        >
-          How to view change history in Lunch Money
-          <ExternalLink aria-hidden="true" className="size-3" />
-        </a>
+      {metadataStatus === "failed" && (
+        <p className="text-bento-subtle">Couldn’t load Plaid metadata.</p>
       )}
     </section>
   );

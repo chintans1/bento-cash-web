@@ -90,6 +90,14 @@ beforeEach(() => {
 });
 
 describe("authenticated Lunch Money routes", () => {
+  it("rejects an incomplete recurring schedule month", async () => {
+    const response = await getRecurringItems(
+      request(`recurring-items?${query}&year=2026`)
+    );
+    expect(response.status).toBe(400);
+    expect(client.getRecurringItems).not.toHaveBeenCalled();
+  });
+
   it("rejects unscoped account activity filters", async () => {
     const response = await getAccountActivity(
       request(`accounts/activity?${query}&source=plaid&accountId=0&offset=0`)
@@ -288,6 +296,15 @@ describe("authenticated Lunch Money routes", () => {
       undefined,
       "getRecurringItems",
       [],
+    ],
+    [
+      "recurring schedule for a month",
+      getRecurringItems,
+      `recurring-items?${query}&year=2026&month=11`,
+      "GET",
+      undefined,
+      "getRecurringItems",
+      [{ year: 2026, month: 11 }],
     ],
     [
       "history",

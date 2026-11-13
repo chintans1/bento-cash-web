@@ -1,4 +1,5 @@
-import type { RecurringItem } from "./client";
+import type { RecurringItem, Transaction } from "./client";
+import { differenceInCalendarDays, parseISO } from "date-fns";
 
 export type RecurringMatch = "confirmed" | "possible" | null;
 
@@ -23,4 +24,45 @@ export function confirmedRecurringId(
   return recurringMatch(recurringId, items) === "confirmed"
     ? recurringId
     : null;
+}
+
+export function postedRecurringIds(
+  transactions: Pick<
+    Transaction,
+    "id" | "recurring_id" | "is_pending" | "status"
+  >[],
+  editingId: number
+): Set<number> {
+  const ids = new Set<number>();
+  for (const transaction of transactions) {
+    if (
+      transaction.id !== editingId &&
+      transaction.recurring_id != null &&
+      !transaction.is_pending &&
+      transaction.status !== "delete_pending"
+    ) {
+      ids.add(transaction.recurring_id);
+    }
+  }
+  return ids;
+}
+
+/** Choose the expected occurrence closest to the transaction being edited. */
+export function expectedRecurringDate(
+  dates: readonly string[] | undefined,
+  transactionDate: string
+): string | null {
+  const month = transactionDate.slice(0, 7);
+  const target = parseISO(transactionDate);
+  let closest = null;
+  let distance = Infinity;
+  for (const date of dates ?? []) {
+    if (!date.startsWith(`${month}-`)) continue;
+    const days = Math.abs(differenceInCalendarDays(parseISO(date), target));
+    if (days < distance || (days === distance && closest && date < closest)) {
+      closest = date;
+      distance = days;
+    }
+  }
+  return closest;
 }

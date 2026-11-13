@@ -868,6 +868,7 @@ function TransactionsPage() {
         <TransactionEditor
           key={editingTransaction.id}
           transaction={editingTransaction}
+          monthTransactions={transactions}
           categoryOptions={categoryOptions}
           accounts={accounts}
           tags={tags}

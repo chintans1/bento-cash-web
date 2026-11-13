@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import { fieldStyles } from "@/components/ui/field-styles";
 import { ListFilter } from "lucide-react";
 import {
   Combobox,
@@ -202,11 +203,11 @@ export function CategoryPicker({
         className={cn(
           "group/cat flex w-full items-center gap-1.5 text-left outline-none [&>svg]:ml-auto [&>svg]:shrink-0 [&>svg]:text-bento-subtle",
           appearance === "field"
-            ? "h-10 rounded-xl border border-transparent bg-input/50 px-3 text-sm transition-field hover:bg-input focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30"
+            ? fieldStyles
             : "min-h-8 rounded-lg pr-1.5 pl-2 text-xs transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40",
           appearance !== "field" &&
             "[&>svg]:size-3 [&>svg]:opacity-65 [&>svg]:transition-opacity focus-within:[&>svg]:opacity-100 hover:[&>svg]:opacity-100",
-          (saving || disabled) && "opacity-60"
+          (saving || (disabled && appearance !== "field")) && "opacity-60"
         )}
       >
         <span

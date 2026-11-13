@@ -119,6 +119,7 @@ function demoRecurring(seed: {
   id: number;
   payee: string;
   amount: string;
+  day: number;
   status?: RecurringItem["status"];
 }): RecurringItem {
   return {
@@ -130,7 +131,7 @@ function demoRecurring(seed: {
       end_date: null,
       granularity: "month",
       quantity: 1,
-      anchor_date: "2025-01-01",
+      anchor_date: `2025-01-${String(seed.day).padStart(2, "0")}`,
       payee: seed.payee,
       amount: seed.amount,
       to_base: parseFloat(seed.amount),
@@ -279,12 +280,18 @@ const DEMO_PLAID_ACCOUNTS: PlaidAccount[] = [
 ].map(demoPlaidAccount);
 
 const DEMO_RECURRING: RecurringItem[] = [
-  { id: 2001, payee: "Landlord", amount: "2100.00" },
-  { id: 2002, payee: "Netflix", amount: "15.99" },
-  { id: 2003, payee: "Spotify", amount: "9.99" },
-  { id: 2004, payee: "Con Edison", amount: "145.00" },
-  { id: 2005, payee: "Planet Fitness", amount: "24.99" },
-  { id: 2006, payee: "AT&T", amount: "89.00", status: "suggested" as const },
+  { id: 2001, payee: "Landlord", amount: "2100.00", day: 1 },
+  { id: 2002, payee: "Netflix", amount: "15.99", day: 7 },
+  { id: 2003, payee: "Spotify", amount: "9.99", day: 7 },
+  { id: 2004, payee: "Con Edison", amount: "145.00", day: 10 },
+  { id: 2005, payee: "Planet Fitness", amount: "24.99", day: 9 },
+  {
+    id: 2006,
+    payee: "AT&T",
+    amount: "89.00",
+    day: 28,
+    status: "suggested" as const,
+  },
 ].map(demoRecurring);
 
 const DEMO_TAGS: Tag[] = [
@@ -884,7 +891,22 @@ export function createDemoClient(): LMClient {
     getAccounts: () =>
       Promise.resolve({ manual: DEMO_ACCOUNTS, plaid: DEMO_PLAID_ACCOUNTS }),
 
-    getRecurringItems: () => Promise.resolve(DEMO_RECURRING),
+    getRecurringItems: async (period) => {
+      if (!period) return DEMO_RECURRING;
+      const month = `${period.year}-${String(period.month).padStart(2, "0")}`;
+      return DEMO_RECURRING.map((item) =>
+        item.status === "suggested"
+          ? item
+          : {
+              ...item,
+              matches: {
+                expected_occurrence_dates: [
+                  `${month}-${item.transaction_criteria.anchor_date.slice(8)}`,
+                ],
+              },
+            }
+      );
+    },
 
     getBalanceHistory: () => Promise.resolve(demoBalanceHistory()),
 

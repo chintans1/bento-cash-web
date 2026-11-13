@@ -54,6 +54,16 @@ export type AccountActivityQuery = {
   accountId: number;
   offset: number;
 };
+type RecurringMonth = { year: number; month: number };
+
+function monthDateRange(year: number, month: number) {
+  const prefix = `${year}-${String(month).padStart(2, "0")}`;
+  return {
+    start_date: `${prefix}-01`,
+    end_date: `${prefix}-${new Date(year, month, 0).getDate()}`,
+  };
+}
+
 export const ACCOUNT_ACTIVITY_PAGE_SIZE = 20;
 export type TransactionPatch = Pick<
   UpdateTransaction,
@@ -89,7 +99,7 @@ export interface LMClient {
   getManualAccounts(): Promise<ManualAccount[]>;
   getPlaidAccounts(): Promise<PlaidAccount[]>;
   getAccounts(): Promise<{ manual: ManualAccount[]; plaid: PlaidAccount[] }>;
-  getRecurringItems(): Promise<RecurringItem[]>;
+  getRecurringItems(period?: RecurringMonth): Promise<RecurringItem[]>;
   getBalanceHistory(): Promise<BalanceHistoryAccount[]>;
   getBudgetSummary(
     year: number,
@@ -283,10 +293,7 @@ function createTokenClient(
      * total, chart and category breakdown built on it was quietly wrong.
      */
     async getTransactionsForMonth(year, month) {
-      const start = `${year}-${String(month).padStart(2, "0")}-01`;
-      const lastDay = new Date(year, month, 0).getDate();
-      const end = `${year}-${String(month).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`;
-
+      const range = monthDateRange(year, month);
       const all: Transaction[] = [];
       let offset = 0;
       let hasMore = true;
@@ -295,8 +302,7 @@ function createTokenClient(
       // not an expected limit: 40 pages is far past any real month.
       for (let page = 0; page < MAX_TRANSACTION_PAGES && hasMore; page++) {
         const result = await sdk.transactions.getAll({
-          start_date: start,
-          end_date: end,
+          ...range,
           limit: TRANSACTION_PAGE_SIZE,
           offset,
           include_pending: true,
@@ -369,8 +375,11 @@ function createTokenClient(
       return { manual, plaid };
     },
 
-    getRecurringItems: () =>
-      sdk.recurringItems.getAll({ include_suggested: true }),
+    getRecurringItems: (period) =>
+      sdk.recurringItems.getAll({
+        include_suggested: true,
+        ...(period && monthDateRange(period.year, period.month)),
+      }),
 
     /**
      * Every month of balance history LM holds, for every account.
@@ -520,7 +529,13 @@ export function createRemoteClient(connectionId: string): LMClient {
       ]);
       return { manual, plaid };
     },
-    getRecurringItems: () => remoteRequest(connectionId, "recurring-items"),
+    getRecurringItems: (period) =>
+      remoteRequest(
+        connectionId,
+        period
+          ? `recurring-items?year=${period.year}&month=${period.month}`
+          : "recurring-items"
+      ),
     getBalanceHistory: () => remoteRequest(connectionId, "balance-history"),
     getBudgetSummary: (year, month) =>
       remoteRequest(connectionId, `budget-summary?year=${year}&month=${month}`),
@@ -618,8 +633,13 @@ export const getAccounts = (): Promise<{
   plaid: PlaidAccount[];
 }> => cached(KEY.accounts, () => activeClient().getAccounts());
 
-export const getRecurringItems = (): Promise<RecurringItem[]> =>
-  cached(KEY.recurring, () => activeClient().getRecurringItems());
+export const getRecurringItems = (
+  period?: RecurringMonth
+): Promise<RecurringItem[]> =>
+  cached(
+    period ? KEY.recurringMonth(period.year, period.month) : KEY.recurring,
+    () => activeClient().getRecurringItems(period)
+  );
 
 export const getBalanceHistory = (): Promise<BalanceHistoryAccount[]> =>
   cached(KEY.balanceHistory, () => activeClient().getBalanceHistory());
