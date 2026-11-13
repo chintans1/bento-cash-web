@@ -19,6 +19,7 @@ vi.mock("@/lib/server/feature-settings", () => ({
 }));
 
 import { GET, PUT } from "@/app/api/settings/[key]/route";
+import { DEMO_SALARY_PLAN, SALARY_PLAN_KEY } from "@/lib/salary-cash-flow";
 
 const context = { params: Promise.resolve({ key: "months" }) };
 
@@ -45,6 +46,26 @@ beforeEach(() => {
 });
 
 describe("user/account-scoped settings", () => {
+  it("validates payroll amounts before writing a salary plan", async () => {
+    const context = { params: Promise.resolve({ key: SALARY_PLAN_KEY }) };
+    const invalid = { ...DEMO_SALARY_PLAN, annualSalary: 100 };
+    const response = await PUT(
+      request("PUT", { value: JSON.stringify(invalid) }),
+      context
+    );
+    expect(response.status).toBe(400);
+    expect(mocks.setFeatureSetting).not.toHaveBeenCalled();
+
+    const value = JSON.stringify(DEMO_SALARY_PLAN);
+    const saved = await PUT(request("PUT", { value }), context);
+    expect(saved.status).toBe(200);
+    expect(mocks.setFeatureSetting).toHaveBeenCalledWith(
+      "user-1",
+      "connection-1",
+      SALARY_PLAN_KEY,
+      value
+    );
+  });
   it("requires a session before reading settings", async () => {
     mocks.getRequestUser.mockResolvedValue(null);
 

@@ -86,10 +86,8 @@ export function PayrollForm({
       );
       return;
     }
-    if (draft.annualSalary <= 0 || preview.takeHome < 0) {
-      setError(
-        "Enter a salary above zero and make sure deductions fit within gross pay."
-      );
+    if (draft.annualSalary <= 0) {
+      setError("Enter a salary above zero.");
       return;
     }
     savingRef.current = true;

@@ -12,6 +12,19 @@ export const PAY_SCHEDULES = {
   weekly: "Weekly",
 } as const;
 
+const checksPerYear = {
+  monthly: 12,
+  semimonthly: 24,
+  biweekly: 26,
+  weekly: 52,
+};
+
+const round = (amount: number) => Math.round(amount * 100) / 100;
+const deductionPerCheck = (
+  line: { unit: "fixed" | "percent"; amount: number },
+  gross: number
+) => round(line.unit === "percent" ? (gross * line.amount) / 100 : line.amount);
+
 const money = z.number().min(0).max(1_000_000_000);
 const deduction = z
   .object({
@@ -38,6 +51,20 @@ export const salaryPlanSchema = z
       (plan.schedule !== "weekly" && plan.schedule !== "biweekly") ||
       plan.payday !== null,
     { message: "Enter a known payday for this pay schedule." }
+  )
+  .refine(
+    (plan) => {
+      const gross = round(plan.annualSalary / checksPerYear[plan.schedule]);
+      return (
+        round(
+          plan.deductions.reduce(
+            (total, line) => total + deductionPerCheck(line, gross),
+            0
+          )
+        ) <= gross
+      );
+    },
+    { message: "Payroll deductions must fit within gross pay." }
   );
 
 export type SalaryPlan = z.infer<typeof salaryPlanSchema>;
@@ -92,14 +119,7 @@ export function readSalaryPlan(value: string) {
   }
 }
 
-const checksPerYear = {
-  monthly: 12,
-  semimonthly: 24,
-  biweekly: 26,
-  weekly: 52,
-};
 const dayMs = 86_400_000;
-const round = (amount: number) => Math.round(amount * 100) / 100;
 
 export function paychecksInMonth(
   plan: SalaryPlan,
@@ -121,9 +141,7 @@ export function calculatePaycheck(plan: SalaryPlan) {
   const gross = round(plan.annualSalary / checksPerYear[plan.schedule]);
   const deductions = plan.deductions.map((line) => ({
     ...line,
-    perCheck: round(
-      line.unit === "percent" ? (gross * line.amount) / 100 : line.amount
-    ),
+    perCheck: deductionPerCheck(line, gross),
   }));
   return {
     gross,
