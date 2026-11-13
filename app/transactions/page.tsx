@@ -13,6 +13,10 @@ import {
   CategoryFilterPicker,
 } from "@/components/transactions/category-picker";
 import {
+  AccountFilterPicker,
+  type AccountFilterOption,
+} from "@/components/transactions/account-filter-picker";
+import {
   TransactionRow,
   TRANSACTION_GRID_COLUMNS,
 } from "@/components/transactions/transaction-row";
@@ -60,6 +64,7 @@ import {
   isReviewableTransaction,
   matchesReviewFilter,
   reviewCounts,
+  transactionAccountKey,
   type ReviewFilter,
 } from "@/lib/lunchmoney/transaction-state";
 import { cn } from "@/lib/utils";
@@ -72,6 +77,9 @@ type SortDir = "asc" | "desc";
 
 const NO_SELECTION = new Set<number>();
 const TRANSACTIONS_PER_PAGE = 60;
+const CASH_ACCOUNT = { id: "cash", name: "Cash transaction" };
+const selectionBarGhost =
+  "text-bento-base hover:bg-bento-base/15 hover:text-bento-base dark:hover:bg-bento-base/15";
 
 /**
  * Arrow next to the active sort column. Declared at module scope rather than
@@ -156,14 +164,20 @@ function TransactionsPage() {
   } | null>(null);
   const categoryParam = searchParams.get("category");
   const filterCatId = parseCategoryFilter(categoryParam);
+  const accountParam = searchParams.get("account");
+  const filterAccountId =
+    accountParam && /^(cash|(manual|plaid)-\d+)$/.test(accountParam)
+      ? accountParam
+      : null;
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [reviewFilter, setReviewFilter] = useState<ReviewFilter>("all");
-  const monthKey = `${selectedYear}-${selectedMonth}`;
+  const monthKey = JSON.stringify([dataScopeKey, selectedYear, selectedMonth]);
   const listScope = JSON.stringify([
     monthKey,
     query,
     filterCatId,
+    filterAccountId,
     reviewFilter,
     sortKey,
     sortDir,
@@ -192,16 +206,33 @@ function TransactionsPage() {
     | null
   >(null);
 
-  const accountNames = useMemo(
-    () =>
-      new Map(
-        accounts.map((account) => [
-          `${account.source}-${account.rawId}`,
-          account.name,
-        ])
-      ),
-    [accounts]
-  );
+  const accountsById = useMemo(() => {
+    const byId = new Map<string, AccountFilterOption>(
+      accounts.map((account) => [account.id, account])
+    );
+    byId.set(CASH_ACCOUNT.id, CASH_ACCOUNT);
+    for (const tx of transactions) {
+      const id = transactionAccountKey(tx);
+      if (!byId.has(id)) {
+        byId.set(id, {
+          id,
+          name: `Unavailable account · ${id.replace("-", " ")}`,
+        });
+      }
+    }
+    return byId;
+  }, [accounts, transactions]);
+  const accountOptions = useMemo(() => {
+    const options = [...accountsById.values()];
+    if (filterAccountId && !accountsById.has(filterAccountId)) {
+      options.push({ id: filterAccountId, name: "Unavailable account" });
+    }
+    return options.sort(
+      (a, b) =>
+        a.name.localeCompare(b.name) ||
+        (a.institution ?? "").localeCompare(b.institution ?? "")
+    );
+  }, [accountsById, filterAccountId]);
   const tagNames = useMemo(
     () => new Map(tags.map((tag) => [tag.id, tag.name])),
     [tags]
@@ -239,6 +270,9 @@ function TransactionsPage() {
   const filtered = useMemo(() => {
     const q = query.toLowerCase();
     const result = transactions.filter((tx) => {
+      const accountId = transactionAccountKey(tx);
+      if (filterAccountId !== null && filterAccountId !== accountId)
+        return false;
       if (
         q &&
         !tx.payee?.toLowerCase().includes(q) &&
@@ -248,16 +282,7 @@ function TransactionsPage() {
           .get(tx.category_id ?? -1)
           ?.name.toLowerCase()
           .includes(q) &&
-        !accountNames
-          .get(
-            tx.manual_account_id != null
-              ? `manual-${tx.manual_account_id}`
-              : tx.plaid_account_id != null
-                ? `plaid-${tx.plaid_account_id}`
-                : "cash"
-          )
-          ?.toLowerCase()
-          .includes(q) &&
+        !accountsById.get(accountId)?.name.toLowerCase().includes(q) &&
         !tx.tag_ids.some((id) => tagNames.get(id)?.toLowerCase().includes(q)) &&
         !tx.amount.includes(q)
       ) {
@@ -287,11 +312,12 @@ function TransactionsPage() {
     transactions,
     query,
     filterCatId,
+    filterAccountId,
     reviewFilter,
     sortKey,
     sortDir,
     categoryMap,
-    accountNames,
+    accountsById,
     tagNames,
   ]);
 
@@ -342,7 +368,10 @@ function TransactionsPage() {
   }, [filtered, visibleLimit]);
 
   const hasFilters =
-    query !== "" || filterCatId !== null || reviewFilter !== "all";
+    query !== "" ||
+    filterCatId !== null ||
+    filterAccountId !== null ||
+    reviewFilter !== "all";
   const matchingSpend = useMemo(
     () =>
       hasFilters
@@ -405,11 +434,21 @@ function TransactionsPage() {
     [update]
   );
 
-  function setCategoryFilter(id: number | null) {
+  function setListFilters(
+    filters: Partial<Record<"category" | "account", string | null>>
+  ) {
     const params = new URLSearchParams(searchParams.toString());
-    if (id === null) params.delete("category");
-    else params.set("category", id.toString());
-    router.replace(`/transactions?${params}`, { scroll: false });
+    for (const [key, value] of Object.entries(filters)) {
+      if (value === null) params.delete(key);
+      else params.set(key, value);
+    }
+    router.replace(params.size ? `/transactions?${params}` : "/transactions", {
+      scroll: false,
+    });
+  }
+
+  function setCategoryFilter(id: number | null) {
+    setListFilters({ category: id?.toString() ?? null });
   }
 
   const handleOpen = useCallback(
@@ -444,6 +483,8 @@ function TransactionsPage() {
   );
 
   const selectedSaving = [...selectedIds].some((id) => savingIds.has(id));
+  const visibleTransactions = filtered.slice(0, visibleLimit);
+  const visibleIds = new Set(visibleTransactions.map(({ id }) => id));
   const selectable = filtered.filter(
     (tx) => isReviewableTransaction(tx) || canGroupTransaction(tx)
   );
@@ -456,6 +497,10 @@ function TransactionsPage() {
     selectedTransactions.every(canGroupTransaction);
   const allSelected =
     selectable.length > 0 && selectable.every((tx) => selectedIds.has(tx.id));
+  const someMatchingSelected = selectable.some((tx) => selectedIds.has(tx.id));
+  const hiddenCount = selectedTransactions.filter(
+    ({ id }) => !visibleIds.has(id)
+  ).length;
 
   const editingTransaction =
     editing?.month !== monthKey
@@ -510,12 +555,12 @@ function TransactionsPage() {
           aria-label="Transaction list"
           className="@container/ledger min-w-0 @page-sidebar/main:col-start-1 @page-sidebar/main:row-start-1"
         >
-          <div className="mb-2 grid grid-cols-transaction-search gap-2 @xl/ledger:grid-cols-2 @2xl/ledger:grid-cols-transaction-toolbar">
+          <div className="mb-2 grid grid-cols-transaction-search gap-2 @xl/ledger:grid-cols-transaction-filters @4xl/ledger:grid-cols-transaction-toolbar">
             <SegmentedControl
               label="Transaction status"
               value={reviewFilter}
               onChange={setReviewFilter}
-              className="col-span-full flex-wrap @2xl/ledger:col-span-1"
+              className="col-span-full flex-wrap @4xl/ledger:col-span-1"
               options={(
                 [
                   ["all", "All", transactions.length],
@@ -546,6 +591,7 @@ function TransactionsPage() {
               }))}
             />
             <SearchField
+              className="col-span-full @xl/ledger:col-span-1"
               ref={searchRef}
               label="Search transactions"
               value={query}
@@ -561,6 +607,12 @@ function TransactionsPage() {
               categoryId={filterCatId}
               options={categoryOptions}
               onChange={setCategoryFilter}
+            />
+
+            <AccountFilterPicker
+              accountId={filterAccountId}
+              options={accountOptions}
+              onChange={(id) => setListFilters({ account: id })}
             />
 
             <div className="min-w-0 @xl/ledger:hidden">
@@ -636,11 +688,15 @@ function TransactionsPage() {
               aria-pressed={allSelected}
               className="flex min-h-8 items-center justify-center rounded-lg disabled:opacity-40"
               onClick={() => {
-                setSelection({
-                  month: monthKey,
-                  ids: allSelected
-                    ? new Set()
-                    : new Set(selectable.map((transaction) => transaction.id)),
+                setSelection((current) => {
+                  const ids = new Set(
+                    current.month === monthKey ? current.ids : []
+                  );
+                  for (const { id } of selectable) {
+                    if (allSelected) ids.delete(id);
+                    else ids.add(id);
+                  }
+                  return { month: monthKey, ids };
                 });
               }}
             >
@@ -653,7 +709,7 @@ function TransactionsPage() {
               >
                 {allSelected ? (
                   <Check className="size-3" />
-                ) : selectedIds.size > 0 ? (
+                ) : someMatchingSelected ? (
                   <Minus className="size-3" />
                 ) : null}
               </span>
@@ -710,7 +766,7 @@ function TransactionsPage() {
                   onClick={() => {
                     setQuery("");
                     setReviewFilter("all");
-                    setCategoryFilter(null);
+                    setListFilters({ category: null, account: null });
                   }}
                 >
                   Clear filters
@@ -724,7 +780,7 @@ function TransactionsPage() {
                 inert={refreshing || pending}
                 className="relative divide-y divide-bento-hairline/50 overflow-hidden rounded-2xl glass"
               >
-                {filtered.slice(0, visibleLimit).map((tx) => (
+                {visibleTransactions.map((tx) => (
                   <TransactionRow
                     key={tx.id}
                     transaction={tx}
@@ -735,11 +791,7 @@ function TransactionsPage() {
                       )?.name ?? UNCATEGORIZED.name
                     }
                     accountName={
-                      tx.manual_account_id != null
-                        ? accountNames.get(`manual-${tx.manual_account_id}`)
-                        : tx.plaid_account_id != null
-                          ? accountNames.get(`plaid-${tx.plaid_account_id}`)
-                          : "Cash transaction"
+                      accountsById.get(transactionAccountKey(tx))?.name
                     }
                     recurringMatch={recurringMatch(
                       tx.recurring_id,
@@ -800,15 +852,41 @@ function TransactionsPage() {
             <div
               role="group"
               aria-label="Selected transaction actions"
-              className="sticky bottom-2 z-10 mt-3 flex flex-wrap items-center gap-2 rounded-2xl bg-bento-surface px-3 py-2 text-sm shadow-lg ring-1 ring-bento-hairline"
+              className="sticky bottom-3 z-10 mt-3 flex flex-wrap items-center gap-2 rounded-2xl bg-bento-default px-3 py-2 text-sm text-bento-base shadow-xl ring-1 ring-bento-base/25"
             >
               <span
                 role="status"
                 className="mr-auto px-1 font-medium tabular-nums"
               >
                 {selectedTransactions.length} selected
+                {hiddenCount > 0 && (
+                  <span className="ml-1.5 text-xs text-bento-base/75">
+                    · {hiddenCount} hidden
+                  </span>
+                )}
               </span>
+              {hiddenCount > 0 && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={selectionBarGhost}
+                  disabled={selectedSaving}
+                  onClick={() =>
+                    setSelection({
+                      month: monthKey,
+                      ids: new Set(
+                        selectedTransactions
+                          .filter(({ id }) => visibleIds.has(id))
+                          .map(({ id }) => id)
+                      ),
+                    })
+                  }
+                >
+                  Deselect hidden
+                </Button>
+              )}
               <Button
+                variant="secondary"
                 size="sm"
                 disabled={selectedSaving || bulkEditable.length === 0}
                 onClick={() => setBulkEditMonth(monthKey)}
@@ -816,8 +894,9 @@ function TransactionsPage() {
                 Bulk edit
               </Button>
               <Button
-                variant="secondary"
+                variant="ghost"
                 size="sm"
+                className={selectionBarGhost}
                 disabled={!canGroupSelection || selectedSaving}
                 onClick={() =>
                   setStructure({
@@ -831,6 +910,7 @@ function TransactionsPage() {
               <Button
                 variant="ghost"
                 size="sm"
+                className={selectionBarGhost}
                 disabled={selectedSaving}
                 onClick={() =>
                   setSelection({ month: monthKey, ids: new Set() })
@@ -847,6 +927,10 @@ function TransactionsPage() {
         <BulkEditDialog
           key={monthKey}
           transactions={bulkEditable}
+          visibleIds={visibleIds}
+          accountName={(tx) =>
+            accountsById.get(transactionAccountKey(tx))?.name
+          }
           categories={categoryOptions}
           tags={tags}
           onClose={() => setBulkEditMonth(undefined)}
@@ -865,7 +949,7 @@ function TransactionsPage() {
       )}
       {editingTransaction && (
         <TransactionEditor
-          key={editingTransaction.id}
+          key={`${monthKey}:${editingTransaction.id}`}
           transaction={editingTransaction}
           monthTransactions={transactions}
           categoryOptions={categoryOptions}
@@ -880,6 +964,21 @@ function TransactionsPage() {
           saving={savingIds.has(editingTransaction.id)}
           error={errors.get(editingTransaction.id)}
           onClose={() => setEditing(null)}
+          onReview={(reviewed) => {
+            const id = editingTransaction.id;
+            void update(id, {
+              status: reviewed ? "reviewed" : "unreviewed",
+            }).then((saved) => {
+              if (!saved || !reviewed) return;
+              setSelection((current) => {
+                if (current.month !== monthKey || !current.ids.has(id))
+                  return current;
+                const ids = new Set(current.ids);
+                ids.delete(id);
+                return { month: monthKey, ids };
+              });
+            });
+          }}
           onSave={(patch) => update(editingTransaction.id, patch)}
           onDelete={async () => {
             const deleted = await remove(editingTransaction.id);

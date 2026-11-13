@@ -335,8 +335,11 @@
 @utility grid-cols-transaction-search {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
 }
+@utility grid-cols-transaction-filters {
+  grid-template-columns: minmax(0, 1fr) repeat(2, minmax(0, 9rem));
+}
 @utility grid-cols-transaction-toolbar {
-  grid-template-columns: auto minmax(0, 1fr) 9rem;
+  grid-template-columns: auto minmax(0, 1fr) repeat(2, minmax(0, 9rem));
 }
 @utility max-h-transaction-summary {
   max-height: calc(100dvh - 2 * var(--spacing-page-gap));

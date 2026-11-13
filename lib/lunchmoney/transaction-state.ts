@@ -1,10 +1,20 @@
 import type { Transaction, TransactionPatch } from "./client";
-import type { NormalizedAccount } from "../account-utils";
+import { accountKey, type NormalizedAccount } from "../account-utils";
 import { amountUnits } from "./transaction-structure";
 
 export type { TransactionPatch } from "./client";
 
 export type ReviewFilter = "all" | "unreviewed" | "pending" | "attention";
+
+export function transactionAccountKey(
+  transaction: Pick<Transaction, "manual_account_id" | "plaid_account_id">
+): string {
+  if (transaction.manual_account_id != null)
+    return accountKey("manual", transaction.manual_account_id);
+  if (transaction.plaid_account_id != null)
+    return accountKey("plaid", transaction.plaid_account_id);
+  return "cash";
+}
 
 /** Keeps pending bank activity above posted transactions in every sorted view. */
 export function comparePendingFirst(

@@ -34,8 +34,10 @@ import type { NormalizedAccount } from "@/lib/account-utils";
 import {
   canEditTransactionCurrency,
   changedPatch,
+  isReviewableTransaction,
   isStructurallyLockedTransaction,
   isTransactionAccountOption,
+  transactionAccountKey,
   transactionAccountPatch,
   type TransactionPatch,
 } from "@/lib/lunchmoney/transaction-state";
@@ -85,18 +87,7 @@ type Draft = {
   recurringId: string;
   tagIds: number[];
   notes: string;
-  status: Transaction["status"];
 };
-
-function accountValue(transaction: Transaction) {
-  if (transaction.manual_account_id != null) {
-    return `manual-${transaction.manual_account_id}`;
-  }
-  if (transaction.plaid_account_id != null) {
-    return `plaid-${transaction.plaid_account_id}`;
-  }
-  return "cash";
-}
 
 function makeDraft(transaction: Transaction): Draft {
   return {
@@ -105,11 +96,10 @@ function makeDraft(transaction: Transaction): Draft {
     amount: amountForEditing(transaction.amount),
     currency: transaction.currency,
     categoryId: transaction.category_id,
-    account: accountValue(transaction),
+    account: transactionAccountKey(transaction),
     recurringId: transaction.recurring_id?.toString() ?? "none",
     tagIds: transaction.tag_ids,
     notes: transaction.notes ?? "",
-    status: transaction.status,
   };
 }
 
@@ -167,6 +157,7 @@ export function TransactionEditor({
   saving,
   error,
   onClose,
+  onReview,
   onSave,
   onDelete,
   onSplit,
@@ -186,6 +177,7 @@ export function TransactionEditor({
   saving: boolean;
   error?: string;
   onClose: () => void;
+  onReview: (reviewed: boolean) => void;
   onSave: (patch: TransactionPatch) => Promise<boolean>;
   onDelete: () => Promise<boolean>;
   onSplit: () => void;
@@ -331,7 +323,7 @@ export function TransactionEditor({
   }
 
   const currentAccount = accounts.find(
-    (account) => account.id === accountValue(transaction)
+    (account) => account.id === transactionAccountKey(transaction)
   );
   const locked = currentAccount?.allowTransactionModifications === false;
   const structurallyLocked = isStructurallyLockedTransaction(transaction);
@@ -341,11 +333,8 @@ export function TransactionEditor({
     !locked &&
     !draft.account.startsWith("plaid-") &&
     canEditTransactionCurrency(transaction);
-  const reviewed = draft.status === "reviewed";
-  const canReview =
-    !transaction.is_pending &&
-    transaction.status !== "delete_pending" &&
-    !structurallyLocked;
+  const reviewed = transaction.status === "reviewed";
+  const canReview = isReviewableTransaction(transaction);
   const showStructureAction =
     splitChild ||
     transaction.is_split_parent ||
@@ -371,14 +360,13 @@ export function TransactionEditor({
       amount: draft.amount,
       ...(canEditCurrency && { currency: draft.currency }),
       category_id: draft.categoryId,
-      ...(draft.account === accountValue(transaction)
+      ...(draft.account === transactionAccountKey(transaction)
         ? {}
         : transactionAccountPatch(selectedAccount)),
       recurring_id:
         draft.recurringId === "none" ? null : Number(draft.recurringId),
       tag_ids: draft.tagIds,
       notes: draft.notes.trim() || null,
-      ...(draft.status === "delete_pending" ? {} : { status: draft.status }),
     });
   }, [accounts, canEditCurrency, draft, transaction]);
 
@@ -564,12 +552,7 @@ export function TransactionEditor({
                     )}
                     aria-label={reviewed ? "Mark unreviewed" : undefined}
                     disabled={saving || deleting}
-                    onClick={() =>
-                      updateDraft(
-                        "status",
-                        reviewed ? "unreviewed" : "reviewed"
-                      )
-                    }
+                    onClick={() => onReview(!reviewed)}
                   >
                     {reviewed ? (
                       <Check data-icon="inline-start" aria-hidden="true" />
