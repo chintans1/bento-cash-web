@@ -349,6 +349,22 @@ export function PayrollForm({
                   }
                 />
               </Field>
+              <Field label="Employer contribution per paycheck">
+                <Input
+                  aria-label="Employer contribution per paycheck"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Optional"
+                  value={draft.employerMatchPerPaycheck || ""}
+                  onChange={(event) =>
+                    setDraft({
+                      ...draft,
+                      employerMatchPerPaycheck: Number(event.target.value),
+                    })
+                  }
+                />
+              </Field>
             </div>
           </fieldset>
           {error && (

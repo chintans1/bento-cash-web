@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type { Transaction } from "@/lib/lunchmoney/client";
 import type { CategoryInfo } from "@/lib/lunchmoney/categories";
+import { UNCATEGORIZED_ID } from "@/lib/lunchmoney/categories";
 
 export const SALARY_PLAN_KEY = "salary_cash_flow";
 
@@ -30,6 +31,7 @@ export const salaryPlanSchema = z
     rentCategoryId: z.number().int().positive().nullable(),
     paycheckCategoryId: z.number().int().positive().nullable(),
     cashSavingsTarget: money,
+    employerMatchPerPaycheck: money.default(0),
   })
   .refine(
     (plan) =>
@@ -49,6 +51,7 @@ export const EMPTY_SALARY_PLAN: SalaryPlan = {
   rentCategoryId: null,
   paycheckCategoryId: null,
   cashSavingsTarget: 0,
+  employerMatchPerPaycheck: 0,
 };
 
 export const DEMO_SALARY_PLAN: SalaryPlan = {
@@ -76,7 +79,9 @@ export const DEMO_SALARY_PLAN: SalaryPlan = {
     },
   ],
   rentCategoryId: 9,
+  paycheckCategoryId: 10,
   cashSavingsTarget: 800,
+  employerMatchPerPaycheck: 135,
 };
 
 export function readSalaryPlan(value: string) {
@@ -129,12 +134,35 @@ export function calculatePaycheck(plan: SalaryPlan) {
   };
 }
 
+export function projectAnnualPayroll(plan: SalaryPlan, year: number) {
+  const checks = Array.from({ length: 12 }, (_, index) =>
+    paychecksInMonth(plan, year, index + 1)
+  ).reduce((total, count) => total + count, 0);
+  const paycheck = calculatePaycheck(plan);
+  const sum = (kind: "tax" | "investment") =>
+    round(
+      checks *
+        paycheck.deductions.reduce(
+          (total, line) =>
+            total + (line.type.endsWith(kind) ? line.perCheck : 0),
+          0
+        )
+    );
+  return {
+    checks,
+    takeHome: round(paycheck.takeHome * checks),
+    taxes: sum("tax"),
+    invested: round(sum("investment") + plan.employerMatchPerPaycheck * checks),
+  };
+}
+
 export function salaryCashFlow(
   plan: SalaryPlan,
   year: number,
   month: number,
   transactions: Transaction[],
-  categories: Map<number, CategoryInfo>
+  categories: Map<number, CategoryInfo>,
+  useRecordedPay = false
 ) {
   const checks = paychecksInMonth(plan, year, month);
   const paycheck = calculatePaycheck(plan);
@@ -167,6 +195,7 @@ export function salaryCashFlow(
   let rent = 0;
   let recordedPay = 0;
   let paycheckDeposits = 0;
+  const spendingByCategory = new Map<number, number>();
   for (const tx of transactions) {
     if (
       tx.is_pending ||
@@ -189,30 +218,50 @@ export function salaryCashFlow(
     if (category?.exclude_from_totals || category?.is_income || tx.to_base <= 0)
       continue;
     spending += tx.to_base;
+    const categoryId = tx.category_id ?? UNCATEGORIZED_ID;
+    spendingByCategory.set(
+      categoryId,
+      (spendingByCategory.get(categoryId) ?? 0) + tx.to_base
+    );
     if (tx.category_id === plan.rentCategoryId && plan.rentCategoryId !== null)
       rent += tx.to_base;
   }
   spending = round(spending);
   rent = round(rent);
-  const cashRemaining = round(takeHome - spending);
+  const recorded = paycheckDeposits ? round(recordedPay) : null;
+  const netPay = useRecordedPay && recorded !== null ? recorded : takeHome;
+  const cashRemaining = round(netPay - spending);
+  const employerMatch = round(plan.employerMatchPerPaycheck * checks);
   const savings = round(cashRemaining + invested);
+  const spendingCategories = [...spendingByCategory]
+    .map(([id, amount]) => ({
+      id,
+      amount: round(amount),
+      label:
+        categories.get(id)?.name ??
+        (id === UNCATEGORIZED_ID ? "Uncategorized" : "Unknown category"),
+    }))
+    .sort((a, b) => b.amount - a.amount);
   return {
     checks,
     gross,
     takeHome,
+    netPay,
     deductions,
     taxes,
     benefits,
     invested,
+    employerMatch,
     spending,
     rent,
     cashRemaining,
     savings,
+    spendingCategories,
     savingsRate: gross > 0 ? savings / gross : null,
     rentToGross:
       plan.rentCategoryId !== null && gross > 0 ? rent / gross : null,
     rentToTakeHome:
-      plan.rentCategoryId !== null && takeHome > 0 ? rent / takeHome : null,
-    recordedPay: paycheckDeposits ? round(recordedPay) : null,
+      plan.rentCategoryId !== null && netPay > 0 ? rent / netPay : null,
+    recordedPay: recorded,
   };
 }

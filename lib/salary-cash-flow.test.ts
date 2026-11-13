@@ -4,6 +4,7 @@ import {
   DEMO_SALARY_PLAN,
   EMPTY_SALARY_PLAN,
   paychecksInMonth,
+  projectAnnualPayroll,
   readSalaryPlan,
   salaryCashFlow,
 } from "./salary-cash-flow";
@@ -74,5 +75,25 @@ describe("salary cash flow", () => {
     expect(readSalaryPlan(JSON.stringify(DEMO_SALARY_PLAN))).toEqual(
       DEMO_SALARY_PLAN
     );
+  });
+
+  it("uses recorded pay for cash savings when selected and keeps the employer match separate", () => {
+    const plan = { ...DEMO_SALARY_PLAN, paycheckCategoryId: 5 };
+    const transactions = [{ to_base: -5500, category_id: 5 }] as Transaction[];
+    const flow = salaryCashFlow(plan, 2026, 11, transactions, new Map(), true);
+    expect(flow).toMatchObject({
+      takeHome: 5680,
+      netPay: 5500,
+      cashRemaining: 5500,
+      invested: 990,
+      employerMatch: 270,
+      savings: 6490,
+    });
+    expect(projectAnnualPayroll(plan, 2026)).toEqual({
+      checks: 24,
+      takeHome: 68160,
+      taxes: 25920,
+      invested: 15120,
+    });
   });
 });

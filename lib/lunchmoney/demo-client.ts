@@ -42,7 +42,7 @@ const TS = "2025-01-01T00:00:00.000Z";
 function demoCategory(seed: Pick<Category, "id" | "name">): Category {
   return {
     description: null,
-    is_income: false,
+    is_income: seed.name === "Paycheck",
     exclude_from_budget: false,
     exclude_from_totals: false,
     created_at: TS,
@@ -220,6 +220,7 @@ const DEMO_CATEGORIES: Category[] = [
   { id: 7, name: "Travel" },
   { id: 8, name: "Personal Care" },
   { id: 9, name: "Housing" },
+  { id: 10, name: "Paycheck" },
 ].map(demoCategory);
 
 const DEMO_ACCOUNTS: ManualAccount[] = [
@@ -417,17 +418,17 @@ const TX_TEMPLATES: TxTemplate[] = [
   // Income — salary fixed, freelance varies
   {
     payee: "ACME Corp",
-    min: -4850,
-    max: -4850,
-    category_id: null,
+    min: -2850,
+    max: -2850,
+    category_id: 10,
     day: 1,
     notes: "Paycheck",
   },
   {
     payee: "ACME Corp",
-    min: -4850,
-    max: -4850,
-    category_id: null,
+    min: -2850,
+    max: -2850,
+    category_id: 10,
     day: 15,
     notes: "Paycheck",
   },

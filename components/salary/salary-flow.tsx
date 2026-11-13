@@ -5,11 +5,17 @@ import {
   PiggyBank,
   Wallet,
 } from "lucide-react";
+import Link from "next/link";
 import type { ReactNode } from "react";
 import { Card } from "@/components/ui/card";
+import { CompositionBar } from "@/components/ui/composition-bar";
 import { SummaryAmount, SummaryCard } from "@/components/ui/summary-card";
+import { SegmentedControl } from "@/components/ui/segmented-control";
 import { formatCurrency } from "@/lib/format";
-import type { salaryCashFlow } from "@/lib/salary-cash-flow";
+import type {
+  projectAnnualPayroll,
+  salaryCashFlow,
+} from "@/lib/salary-cash-flow";
 import { cn } from "@/lib/utils";
 
 type Flow = ReturnType<typeof salaryCashFlow>;
@@ -24,12 +30,14 @@ function Step({
   amount,
   currency,
   icon,
+  footer,
   children,
 }: {
   title: string;
   amount: number;
   currency: string;
   icon: ReactNode;
+  footer?: ReactNode;
   children?: ReactNode;
 }) {
   return (
@@ -56,6 +64,7 @@ function Step({
             {children}
           </dl>
         )}
+        {footer && <div className="mt-3">{footer}</div>}
       </Card>
     </li>
   );
@@ -84,15 +93,42 @@ export function SalaryFlow({
   currency,
   cashSavingsTarget,
   rentSelected,
+  paycheckCategorySelected,
+  payBasis,
+  onPayBasisChange,
+  monthKey,
+  year,
+  annual,
 }: {
   flow: Flow;
   currency: string;
   cashSavingsTarget: number;
   rentSelected: boolean;
+  paycheckCategorySelected: boolean;
+  payBasis: "scheduled" | "recorded";
+  onPayBasisChange: (value: "scheduled" | "recorded") => void;
+  monthKey: string;
+  year: number;
+  annual: ReturnType<typeof projectAnnualPayroll>;
 }) {
   const money = (value: number) => formatCurrency(value, currency, true);
   const ratio = (value: number | null) =>
     value === null ? "—" : percent.format(value);
+  const recorded = payBasis === "recorded" && flow.recordedPay !== null;
+  const savingsGap = flow.cashRemaining - cashSavingsTarget;
+  const progress =
+    cashSavingsTarget > 0
+      ? Math.min(
+          100,
+          Math.max(0, (flow.cashRemaining / cashSavingsTarget) * 100)
+        )
+      : 0;
+  const grossBreakdown = [
+    { id: "pay", amount: flow.takeHome, color: "var(--bento-positive)" },
+    { id: "tax", amount: flow.taxes, color: "var(--cat-2)" },
+    { id: "benefits", amount: flow.benefits, color: "var(--cat-5)" },
+    { id: "investment", amount: flow.invested, color: "var(--cat-4)" },
+  ].filter(({ amount }) => amount > 0);
   return (
     <div className="grid items-start gap-page-gap lg:grid-cols-3">
       <ol aria-label="Salary cash flow" className="min-w-0 lg:col-span-2">
@@ -101,6 +137,17 @@ export function SalaryFlow({
           amount={flow.gross}
           currency={currency}
           icon={<Banknote className="size-4" aria-hidden="true" />}
+          footer={
+            flow.gross > 0 && (
+              <CompositionBar
+                segments={grossBreakdown.map(({ id, amount, color }) => ({
+                  id,
+                  color,
+                  percent: (amount / flow.gross) * 100,
+                }))}
+              />
+            )
+          }
         >
           <Line label="Scheduled paychecks" value={String(flow.checks)} />
           {flow.taxes > 0 && (
@@ -118,15 +165,38 @@ export function SalaryFlow({
         </Step>
         {connector}
         <Step
-          title="Take-home pay"
-          amount={flow.takeHome}
+          title={
+            recorded ? "Recorded take-home pay" : "Estimated take-home pay"
+          }
+          amount={flow.netPay}
           currency={currency}
           icon={<Wallet className="size-4" aria-hidden="true" />}
+          footer={
+            flow.recordedPay !== null ? (
+              <SegmentedControl
+                label="Take-home pay source"
+                options={[
+                  { value: "scheduled", label: "Estimated" },
+                  { value: "recorded", label: "Recorded" },
+                ]}
+                value={payBasis}
+                onChange={onPayBasisChange}
+              />
+            ) : paycheckCategorySelected ? (
+              <p className="text-xs text-bento-subtle">
+                No matching paycheck deposits this month.
+              </p>
+            ) : null
+          }
         >
           {flow.recordedPay !== null && (
             <Line
-              label="Recorded paycheck deposits"
-              value={money(flow.recordedPay)}
+              label={
+                recorded
+                  ? "Estimated take-home pay"
+                  : "Recorded paycheck deposits"
+              }
+              value={money(recorded ? flow.takeHome : flow.recordedPay)}
             />
           )}
         </Step>
@@ -153,6 +223,12 @@ export function SalaryFlow({
             value={money(flow.cashRemaining)}
           />
           <Line label="Invested through payroll" value={money(flow.invested)} />
+          {flow.employerMatch > 0 && (
+            <Line
+              label="Employer contribution (additional)"
+              value={money(flow.employerMatch)}
+            />
+          )}
         </Step>
       </ol>
       <div className="space-y-page-gap">
@@ -180,13 +256,26 @@ export function SalaryFlow({
                 />
               </>
             )}
-            {cashSavingsTarget > 0 && (
-              <Line
-                label="Monthly cash savings target"
-                value={money(cashSavingsTarget)}
-              />
-            )}
           </dl>
+          {cashSavingsTarget > 0 && (
+            <div className="mt-4 space-y-2 border-t border-bento-hairline pt-4">
+              <div className="flex justify-between gap-2 text-xs">
+                <h3 className="font-medium">Cash savings target</h3>
+                <span className="tabular-nums">{money(cashSavingsTarget)}</span>
+              </div>
+              <progress
+                aria-label="Cash savings target progress"
+                value={progress}
+                max={100}
+                className="block h-2 w-full overflow-hidden rounded-full bg-bento-raised accent-primary [&::-webkit-progress-bar]:bg-bento-raised [&::-webkit-progress-value]:bg-primary"
+              />
+              <p className="text-xs text-bento-subtle">
+                {savingsGap >= 0
+                  ? `${money(savingsGap)} above target`
+                  : `${money(-savingsGap)} short of target`}
+              </p>
+            </div>
+          )}
         </SummaryCard>
         {flow.deductions.length > 0 && (
           <Card className="gap-3 px-(--card-spacing)">
@@ -202,6 +291,44 @@ export function SalaryFlow({
             </dl>
           </Card>
         )}
+        {flow.spendingCategories.length > 0 && (
+          <Card className="gap-3 px-(--card-spacing)">
+            <h3 className="font-semibold">Spending by category</h3>
+            <ul className="max-h-56 space-y-1 overflow-y-auto">
+              {flow.spendingCategories.map((category) => (
+                <li key={category.id}>
+                  <Link
+                    href={`/transactions?month=${monthKey}&category=${category.id}`}
+                    className="flex items-center justify-between gap-3 rounded-lg px-2 py-1.5 text-xs hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  >
+                    <span className="min-w-0 wrap-anywhere">
+                      {category.label}
+                    </span>
+                    <span className="shrink-0 font-medium tabular-nums">
+                      {money(category.amount)}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+        <Card className="gap-3 px-(--card-spacing)">
+          <details className="group">
+            <summary className="cursor-pointer rounded-sm font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
+              {year} payroll projection
+            </summary>
+            <dl className="mt-3 space-y-2">
+              <Line label="Scheduled paychecks" value={String(annual.checks)} />
+              <Line label="Take-home pay" value={money(annual.takeHome)} />
+              <Line label="Tax withholding" value={money(annual.taxes)} />
+              <Line
+                label="Investments including employer contributions"
+                value={money(annual.invested)}
+              />
+            </dl>
+          </details>
+        </Card>
       </div>
     </div>
   );

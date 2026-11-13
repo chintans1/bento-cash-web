@@ -16,7 +16,8 @@ import { useAppData } from "@/hooks/use-app-data";
 import { useMonthNavigation } from "@/hooks/use-month-navigation";
 import { useMonthTransactions } from "@/hooks/use-month-transactions";
 import { useSalaryPlan } from "@/hooks/use-salary-plan";
-import { salaryCashFlow } from "@/lib/salary-cash-flow";
+import { projectAnnualPayroll, salaryCashFlow } from "@/lib/salary-cash-flow";
+import { isCurrentOrFutureMonth, monthKeyOf } from "@/lib/date-utils";
 
 function SalaryPage() {
   const { hasDataSource, dataScopeKey, activeConnection, isDemo } = useAuth();
@@ -46,6 +47,9 @@ function SalaryWorkspace({
   const ledger = useMonthTransactions(month.year, month.month, scope);
   const { plan, loadError, retry, save } = useSalaryPlan(connectionId, isDemo);
   const [editing, setEditing] = useState(false);
+  const [payBasis, setPayBasis] = useState<"scheduled" | "recorded">(
+    "scheduled"
+  );
   const categories = useMemo(
     () => buildCategoryOptions(catGroups),
     [catGroups]
@@ -59,7 +63,8 @@ function SalaryWorkspace({
           month.year,
           month.month,
           ledger.transactions,
-          categoryMap
+          categoryMap,
+          payBasis === "recorded"
         )
       : null;
 
@@ -132,10 +137,18 @@ function SalaryWorkspace({
                 currency={primaryCurrency}
                 cashSavingsTarget={plan.cashSavingsTarget}
                 rentSelected={plan.rentCategoryId !== null}
+                paycheckCategorySelected={plan.paycheckCategoryId !== null}
+                payBasis={payBasis}
+                onPayBasisChange={setPayBasis}
+                monthKey={monthKeyOf(month.year, month.month)}
+                year={month.year}
+                annual={projectAnnualPayroll(plan, month.year)}
               />
               <p className="mt-4 text-xs text-bento-subtle">
-                Payroll amounts use your saved plan. Spending uses posted
-                transactions in your budget.
+                {isCurrentOrFutureMonth(month.year, month.month)
+                  ? "This month’s spending reflects posted transactions so far."
+                  : "Spending reflects posted transactions in your budget."}{" "}
+                Payroll estimates use your current plan.
               </p>
             </>
           ) : (
