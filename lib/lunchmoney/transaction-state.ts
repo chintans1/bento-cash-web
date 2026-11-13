@@ -78,6 +78,27 @@ export function isReviewableTransaction(transaction: Transaction): boolean {
   );
 }
 
+export type BulkTransactionEdit = {
+  categoryId?: number | null;
+  tagIds: number[];
+  markReviewed: boolean;
+};
+
+export function bulkTransactionPatch(
+  transaction: Transaction,
+  edit: BulkTransactionEdit
+): TransactionPatch {
+  if (!isReviewableTransaction(transaction)) return {};
+  return changedPatch(transaction, {
+    ...(edit.categoryId !== undefined &&
+      transaction.recurring_id == null && { category_id: edit.categoryId }),
+    ...(edit.tagIds.length > 0 && {
+      tag_ids: [...new Set([...transaction.tag_ids, ...edit.tagIds])],
+    }),
+    ...(edit.markReviewed && { status: "reviewed" }),
+  });
+}
+
 /** Inline category changes complete review for eligible transactions. */
 export function inlineCategoryPatch(
   transaction: Transaction,

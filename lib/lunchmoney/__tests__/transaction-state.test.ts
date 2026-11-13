@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Transaction } from "../client";
 import {
+  bulkTransactionPatch,
   canonicalFieldsAtRevision,
   changedPatch,
   comparePendingFirst,
@@ -41,6 +42,32 @@ const transaction: Transaction = {
 };
 
 describe("transaction state", () => {
+  it("adds tags without replacing existing tags and keeps review optional", () => {
+    const tagged = { ...transaction, tag_ids: [2, 3] };
+    expect(
+      bulkTransactionPatch(tagged, {
+        categoryId: 4,
+        tagIds: [3, 5],
+        markReviewed: false,
+      })
+    ).toEqual({ category_id: 4, tag_ids: [2, 3, 5] });
+    expect(
+      bulkTransactionPatch(tagged, {
+        tagIds: [3],
+        markReviewed: true,
+      })
+    ).toEqual({ status: "reviewed" });
+  });
+
+  it("keeps recurring categories and skips pending transactions", () => {
+    const edit = { categoryId: 4, tagIds: [3], markReviewed: true };
+    expect(
+      bulkTransactionPatch({ ...transaction, recurring_id: 7 }, edit)
+    ).toEqual({ tag_ids: [3], status: "reviewed" });
+    expect(
+      bulkTransactionPatch({ ...transaction, is_pending: true }, edit)
+    ).toEqual({});
+  });
   it("reviews eligible inline category edits in the same patch", () => {
     expect(inlineCategoryPatch(transaction, 4)).toEqual({
       category_id: 4,

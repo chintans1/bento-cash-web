@@ -9,9 +9,11 @@ import {
   type Transaction,
 } from "@/lib/lunchmoney/client";
 import {
+  bulkTransactionPatch,
   canonicalFieldsAtRevision,
   fieldsAtRevision,
   isInMonth,
+  type BulkTransactionEdit,
   type TransactionPatch,
 } from "@/lib/lunchmoney/transaction-state";
 
@@ -24,7 +26,7 @@ export type MonthTransactions = {
   errors: Map<number, string>;
   update: (id: number, patch: TransactionPatch) => Promise<boolean>;
   remove: (id: number) => Promise<boolean>;
-  reviewMany: (ids: number[]) => Promise<boolean>;
+  editMany: (ids: number[], edit: BulkTransactionEdit) => Promise<void>;
   refresh: () => Promise<void>;
 };
 
@@ -254,65 +256,63 @@ export function useMonthTransactions(
     [loadedKey, markSaving, updateLocal]
   );
 
-  const reviewMany = useCallback(
-    async (ids: number[]) => {
+  const editMany = useCallback(
+    async (ids: number[], edit: BulkTransactionEdit) => {
       const key = activeRequestKey.current;
-      if (!key || loadedKey !== key) return false;
+      if (!key || loadedKey !== key) {
+        throw new Error("The selected transactions are no longer available.");
+      }
       const requestedIds = new Set(ids);
-      const before = new Map(
-        latest.current
-          .filter((transaction) => requestedIds.has(transaction.id))
-          .map((transaction) => [transaction.id, transaction.status])
-      );
-      const transactionIds = [...before.keys()];
-      if (transactionIds.length === 0) return true;
+      const changes = new Map<number, TransactionPatch>();
+      for (const transaction of latest.current) {
+        if (!requestedIds.has(transaction.id)) continue;
+        const patch = bulkTransactionPatch(transaction, edit);
+        if (Object.keys(patch).length > 0) changes.set(transaction.id, patch);
+      }
+      const transactionIds = [...changes.keys()];
+      if (transactionIds.length === 0) return;
+      if (
+        transactionIds.some((id) => pendingWrites.current.get(key)?.has(id))
+      ) {
+        throw new Error("Wait for the selected transactions to finish saving.");
+      }
 
       const revision = ++nextRevision.current;
-      transactionIds.forEach((id) =>
-        fieldRevisions.current.set(`${id}:status`, revision)
-      );
-      updateLocal((current) =>
-        current.map((transaction) =>
-          requestedIds.has(transaction.id)
-            ? { ...transaction, status: "reviewed" }
-            : transaction
-        )
-      );
+      for (const [id, patch] of changes) {
+        for (const field of Object.keys(patch)) {
+          fieldRevisions.current.set(`${id}:${field}`, revision);
+        }
+      }
       markSaving(key, transactionIds, true);
-
       try {
-        await updateTransactions(
-          transactionIds.map((id) => ({ id, status: "reviewed" }))
+        const updated = await updateTransactions(
+          [...changes].map(([id, patch]) => ({ id, ...patch }))
         );
-        return true;
-      } catch (error) {
-        const rollbackIds = transactionIds.filter(
-          (id) => fieldRevisions.current.get(`${id}:status`) === revision
+        const byId = new Map(
+          updated.map((transaction) => [transaction.id, transaction])
         );
-        if (activeRequestKey.current === key && rollbackIds.length > 0) {
-          const rollbackSet = new Set(rollbackIds);
+        if (activeRequestKey.current === key) {
           updateLocal((current) =>
             current.map((transaction) => {
-              const status = before.get(transaction.id);
-              return status !== undefined && rollbackSet.has(transaction.id)
-                ? { ...transaction, status }
-                : transaction;
+              const patch = changes.get(transaction.id);
+              const canonical = byId.get(transaction.id);
+              if (!patch || !canonical) return transaction;
+              return {
+                ...transaction,
+                ...canonicalFieldsAtRevision(
+                  canonical,
+                  patch,
+                  fieldRevisions.current,
+                  transaction.id,
+                  revision
+                ),
+              };
             })
           );
-          setSaveErrors((current) => {
-            const next = new Map(current?.key === key ? current.values : []);
-            rollbackIds.forEach((id) =>
-              next.set(
-                id,
-                error instanceof Error
-                  ? error.message
-                  : "Couldn't mark reviewed"
-              )
-            );
-            return { key, values: next };
-          });
         }
-        return false;
+        if (transactionIds.some((id) => !byId.has(id))) {
+          throw new Error("Some transactions could not be saved. Try again.");
+        }
       } finally {
         markSaving(key, transactionIds, false);
       }
@@ -353,7 +353,7 @@ export function useMonthTransactions(
     errors,
     update,
     remove,
-    reviewMany,
+    editMany,
     refresh,
   };
 }

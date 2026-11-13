@@ -17,10 +17,17 @@ const updateSchema = connectionQuery.extend({
         z.object({
           id: positiveId,
           currency: z.enum(SUPPORTED_CURRENCIES).optional(),
+          category_id: positiveId.nullable().optional(),
+          tag_ids: z.array(positiveId).optional(),
+          status: z.enum(["reviewed", "unreviewed"]).optional(),
         })
       )
     )
-    .min(1),
+    .min(1)
+    .refine(
+      (transactions) =>
+        new Set(transactions.map(({ id }) => id)).size === transactions.length
+    ),
 });
 
 export const PATCH = (request: Request) =>

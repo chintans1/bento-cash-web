@@ -16,6 +16,7 @@ import {
   TransactionRow,
   TRANSACTION_GRID_COLUMNS,
 } from "@/components/transactions/transaction-row";
+import { BulkEditDialog } from "@/components/transactions/bulk-edit-dialog";
 import { TransactionEditor } from "@/components/transactions/transaction-editor";
 import { MonthSummary } from "@/components/transactions/month-summary";
 import {
@@ -137,7 +138,7 @@ function TransactionsPage() {
     errors,
     update,
     remove,
-    reviewMany,
+    editMany,
     refresh,
   } = useMonthTransactions(selectedYear, selectedMonth, dataScopeKey);
 
@@ -179,6 +180,7 @@ function TransactionsPage() {
   }>({ month: monthKey, ids: new Set() });
   const selectedIds =
     selection.month === monthKey ? selection.ids : NO_SELECTION;
+  const [bulkEditMonth, setBulkEditMonth] = useState<string>();
   const [editing, setEditing] = useState<{
     month: string;
     id: number;
@@ -448,11 +450,7 @@ function TransactionsPage() {
   const selectedTransactions = transactions.filter((tx) =>
     selectedIds.has(tx.id)
   );
-  const canReviewSelection =
-    selectedTransactions.length > 0 &&
-    selectedTransactions.every(
-      (tx) => tx.status === "unreviewed" && isReviewableTransaction(tx)
-    );
+  const bulkEditable = selectedTransactions.filter(isReviewableTransaction);
   const canGroupSelection =
     selectedTransactions.length >= 2 &&
     selectedTransactions.every(canGroupTransaction);
@@ -614,52 +612,6 @@ function TransactionsPage() {
               </Select>
             </div>
           </div>
-
-          {selectedIds.size > 0 && (
-            <div className="mb-2 flex flex-wrap items-center gap-2 rounded-xl bg-bento-default px-3 py-2 text-sm text-bento-base shadow-lg">
-              <span className="mr-auto px-1 font-medium tabular-nums">
-                {selectedIds.size} selected
-              </span>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={selectedSaving || !canReviewSelection}
-                aria-busy={selectedSaving}
-                onClick={() => {
-                  if (!canReviewSelection) return;
-                  void reviewMany([...selectedIds]).then((saved) => {
-                    if (saved)
-                      setSelection({ month: monthKey, ids: new Set() });
-                  });
-                }}
-              >
-                {selectedSaving ? "Reviewing…" : "Mark reviewed"}
-              </Button>
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={!canGroupSelection || selectedSaving}
-                onClick={() =>
-                  setStructure({
-                    type: "group-create",
-                    transactions: selectedTransactions,
-                  })
-                }
-              >
-                Group transactions
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="text-bento-base hover:text-bento-default"
-                onClick={() =>
-                  setSelection({ month: monthKey, ids: new Set() })
-                }
-              >
-                Clear
-              </Button>
-            </div>
-          )}
 
           {/* Table header */}
           <div
@@ -844,9 +796,73 @@ function TransactionsPage() {
               </div>
             </>
           )}
+          {selectedTransactions.length > 0 && (
+            <div
+              role="group"
+              aria-label="Selected transaction actions"
+              className="sticky bottom-2 z-10 mt-3 flex flex-wrap items-center gap-2 rounded-2xl bg-bento-surface px-3 py-2 text-sm shadow-lg ring-1 ring-bento-hairline"
+            >
+              <span
+                role="status"
+                className="mr-auto px-1 font-medium tabular-nums"
+              >
+                {selectedTransactions.length} selected
+              </span>
+              <Button
+                size="sm"
+                disabled={selectedSaving || bulkEditable.length === 0}
+                onClick={() => setBulkEditMonth(monthKey)}
+              >
+                Bulk edit
+              </Button>
+              <Button
+                variant="secondary"
+                size="sm"
+                disabled={!canGroupSelection || selectedSaving}
+                onClick={() =>
+                  setStructure({
+                    type: "group-create",
+                    transactions: selectedTransactions,
+                  })
+                }
+              >
+                Group transactions
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={selectedSaving}
+                onClick={() =>
+                  setSelection({ month: monthKey, ids: new Set() })
+                }
+              >
+                Clear
+              </Button>
+            </div>
+          )}
         </section>
       </PageSidebarLayout>
 
+      {bulkEditMonth === monthKey && (
+        <BulkEditDialog
+          key={monthKey}
+          transactions={bulkEditable}
+          categories={categoryOptions}
+          tags={tags}
+          onClose={() => setBulkEditMonth(undefined)}
+          onSave={async (edit) => {
+            await editMany(
+              bulkEditable.map(({ id }) => id),
+              edit
+            );
+            setSelection((current) =>
+              current.month === monthKey
+                ? { month: monthKey, ids: new Set() }
+                : current
+            );
+          }}
+        />
+      )}
       {editingTransaction && (
         <TransactionEditor
           key={editingTransaction.id}
