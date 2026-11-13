@@ -34,8 +34,7 @@ import { ConnectionPrompt } from "@/components/connection-prompt";
 import { useMonthNavigation } from "@/hooks/use-month-navigation";
 import { isCurrentOrFutureMonth } from "@/lib/date-utils";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { compactFieldStyles } from "@/components/ui/field-styles";
+import { SearchField } from "@/components/ui/search-field";
 import { PageTitle } from "@/components/ui/page-title";
 import {
   PageSidebar,
@@ -49,7 +48,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowDownUp, Check, Minus, Search, X } from "lucide-react";
+import { ArrowDownUp, Check, Minus } from "lucide-react";
 import { Kbd } from "@/components/ui/kbd";
 import { MonthSelector } from "@/components/dashboard/month-selector";
 import { SegmentedControl } from "@/components/ui/segmented-control";
@@ -548,38 +547,17 @@ function TransactionsPage() {
                 ),
               }))}
             />
-            <div className="relative min-w-0">
-              <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-3.5 -translate-y-1/2 text-bento-subtle" />
-              <Input
-                ref={searchRef}
-                className={cn(compactFieldStyles, "pr-8 pl-8 text-xs")}
-                aria-label="Search transactions"
-                placeholder="Search…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Escape") {
-                    setQuery("");
-                    e.currentTarget.blur();
-                  }
-                }}
-              />
-              {query ? (
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="absolute top-0 right-0 rounded-compact-control"
-                  aria-label="Clear search"
-                  onClick={() => setQuery("")}
-                >
-                  <X className="size-3.5" />
-                </Button>
-              ) : (
+            <SearchField
+              ref={searchRef}
+              label="Search transactions"
+              value={query}
+              onChange={setQuery}
+              shortcutHint={
                 <Kbd className="pointer-events-none absolute top-1/2 right-2 z-10 hidden -translate-y-1/2 @2xl/ledger:inline-flex">
                   /
                 </Kbd>
-              )}
-            </div>
+              }
+            />
 
             <CategoryFilterPicker
               categoryId={filterCatId}

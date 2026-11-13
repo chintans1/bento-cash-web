@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, Search, TriangleAlert, X } from "lucide-react";
+import { ChevronRight, TriangleAlert } from "lucide-react";
 import { useMemo, useRef, useState, type ReactNode, type Ref } from "react";
 import type { NormalizedAccount } from "@/lib/account-utils";
 import { getAccountStatus } from "@/lib/account-status";
@@ -19,8 +19,7 @@ import { AccountRow } from "@/components/accounts/account-row";
 import { AccountSummary } from "@/components/accounts/account-summary";
 import { ConnectionPrompt } from "@/components/connection-prompt";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Input } from "@/components/ui/input";
-import { compactFieldStyles } from "@/components/ui/field-styles";
+import { SearchField } from "@/components/ui/search-field";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PageTitle } from "@/components/ui/page-title";
@@ -29,7 +28,6 @@ import {
   PageSidebarHeading,
   PageSidebarLayout,
 } from "@/components/ui/page-sidebar-layout";
-import { cn } from "@/lib/utils";
 import { useBalanceHistory } from "@/hooks/use-balance-history";
 import { NetWorthPerformanceCard } from "@/components/accounts/net-worth-performance-card";
 import { SegmentedControl } from "@/components/ui/segmented-control";
@@ -194,35 +192,12 @@ export default function AccountsPage() {
                   value={grouping}
                   onChange={setGrouping}
                 />
-                <div className="relative min-w-36 flex-1 sm:max-w-52">
-                  <Search
-                    aria-hidden="true"
-                    className="pointer-events-none absolute top-2 left-2.5 size-4 text-bento-subtle"
-                  />
-                  <Input
-                    type="search"
-                    aria-label="Search accounts"
-                    placeholder="Search accounts"
-                    value={query}
-                    onChange={(event) => setQuery(event.target.value)}
-                    className={cn(
-                      compactFieldStyles,
-                      "pl-8 text-sm md:text-xs [&::-webkit-search-cancel-button]:appearance-none",
-                      query ? "pr-8" : "pr-2.5"
-                    )}
-                  />
-                  {query && (
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label="Clear search"
-                      className="absolute top-0 right-0 rounded-compact-control"
-                      onClick={() => setQuery("")}
-                    >
-                      <X className="size-3.5" />
-                    </Button>
-                  )}
-                </div>
+                <SearchField
+                  label="Search accounts"
+                  value={query}
+                  onChange={setQuery}
+                  className="min-w-36 flex-1 sm:max-w-52"
+                />
               </div>
               {(needsAttention.length > 0 || showRefresh) && (
                 <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-b border-bento-hairline px-(--card-spacing) py-panel-row">
