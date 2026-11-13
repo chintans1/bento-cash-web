@@ -42,38 +42,19 @@ export function ReportBreakdown({
   kind: "category" | "merchant" | "source";
 }) {
   const [expanded, setExpanded] = useState(false);
-  const [sort, setSort] = useState<"amount" | "change">("amount");
   if (rows.length === 0)
     return (
       <EmptyBreakdown>
         No matching transactions in either period.
       </EmptyBreakdown>
     );
-  const ranked =
-    sort === "amount"
-      ? rows
-      : rows.toSorted(
-          (a, b) =>
-            Math.abs(b.amount - b.previous) - Math.abs(a.amount - a.previous)
-        );
-
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-xs text-bento-subtle">
-          Compared with {previousLabel}.
-        </p>
-        <Button
-          size="sm"
-          variant="outline"
-          aria-pressed={sort === "change"}
-          onClick={() => setSort(sort === "amount" ? "change" : "amount")}
-        >
-          Biggest changes
-        </Button>
-      </div>
+      <p className="text-xs text-bento-subtle">
+        Compared with {previousLabel}.
+      </p>
       <ul className="divide-y divide-bento-hairline">
-        {(expanded ? ranked : ranked.slice(0, 6)).map((row) => {
+        {(expanded ? rows : rows.slice(0, 6)).map((row) => {
           const params = new URLSearchParams();
           params.set("direction", kind === "source" ? "income" : "spending");
           if (row.categoryId !== undefined)
@@ -147,14 +128,14 @@ export function ReportBreakdown({
           );
         })}
       </ul>
-      {ranked.length > 6 && (
+      {rows.length > 6 && (
         <Button
           size="sm"
           variant="secondary"
           aria-expanded={expanded}
           onClick={() => setExpanded(!expanded)}
         >
-          {expanded ? "Show fewer" : `Show all ${ranked.length}`}
+          {expanded ? "Show fewer" : `Show all ${rows.length}`}
         </Button>
       )}
     </div>
