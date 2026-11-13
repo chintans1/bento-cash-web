@@ -935,7 +935,29 @@ export function createDemoClient(): LMClient {
       saveTransaction(id, { recurring_id: recurringId }),
     updateTransactions: async (transactions) =>
       transactions.map(({ id, ...patch }) => saveTransaction(id, patch)),
-    getTransaction: async (id) => currentTransaction(id),
+    getTransaction: async (id) => {
+      const transaction = currentTransaction(id);
+      const original = knownTransactions.get(id);
+      if (original?.source !== "plaid" || original.payee !== "AT&T")
+        return transaction;
+
+      return {
+        ...transaction,
+        // Lunch Money's SDK leaves the Plaid metadata fields untyped.
+        plaid_metadata: {
+          merchant_name: "AT&T",
+          website: "att.com",
+          payment_channel: "online",
+          authorized_date: `${original.date.slice(0, 7)}-27`,
+          date: original.date,
+          pending: false,
+          personal_finance_category: {
+            primary: "RENT_AND_UTILITIES",
+            detailed: "RENT_AND_UTILITIES_INTERNET_AND_CABLE",
+          },
+        } as unknown as Transaction["plaid_metadata"],
+      };
+    },
     splitTransaction: async (id, children, recurringIds) =>
       splitDemo(id, children, recurringIds),
     replaceSplit: async (id, children, recurringIds) => {

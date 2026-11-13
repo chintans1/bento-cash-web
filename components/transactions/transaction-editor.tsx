@@ -70,7 +70,8 @@ import {
 } from "@/lib/lunchmoney/recurring-match";
 import {
   parsePlaidMetadata,
-  plaidMerchantLogo,
+  plaidCategorySuggestion,
+  plaidTransactionContext,
 } from "@/lib/lunchmoney/plaid-metadata";
 import { PayeeSuggestionsPopup } from "./editable-text";
 
@@ -113,6 +114,18 @@ function makeDraft(transaction: Transaction): Draft {
 }
 
 const currencyNames = new Intl.DisplayNames("en-US", { type: "currency" });
+
+const sourceLabels: Record<NonNullable<Transaction["source"]>, string> = {
+  api: "Added via API",
+  csv: "CSV import",
+  manual: "Manual entry",
+  merge: "Account merge",
+  plaid: "Plaid sync",
+  recurring: "Recurring item",
+  rule: "Transaction rule",
+  split: "Split transaction",
+  user: "User entry",
+};
 
 function currencyLabel(code: string) {
   const upper = code.toUpperCase();
@@ -232,7 +245,7 @@ export function TransactionEditor({
     (a, b) => Number(matchedIds.has(a.id)) - Number(matchedIds.has(b.id))
   );
   const { metadata, metadataStatus } = usePlaidDetails(transaction);
-  const merchantLogo = plaidMerchantLogo(metadata);
+  const plaid = plaidTransactionContext(metadata);
 
   useEffect(() => {
     if (!openedRecurringList) return;
@@ -376,6 +389,21 @@ export function TransactionEditor({
   const categoryName =
     categoryOptions.find((option) => option.id === (draft.categoryId ?? -1))
       ?.name ?? "Uncategorized";
+  const plaidCategoryHint =
+    !structurallyLocked && draft.categoryId == null
+      ? plaidCategorySuggestion(plaid.category, categoryOptions)
+      : null;
+  const plaidCategoryLabel = (plaid.category.detail ?? plaid.category.primary)
+    ?.toLowerCase()
+    .replaceAll("_", " ")
+    .replace(/^./, (letter) => letter.toUpperCase());
+  const merchantContext = [
+    plaid.merchantName?.toLowerCase() !== draft.payee.trim().toLowerCase()
+      ? plaid.merchantName
+      : null,
+    plaid.channel,
+    plaid.location,
+  ].filter(Boolean);
   const changed = Object.keys(patch).length > 0;
   const amount = Number(draft.amount);
 
@@ -435,9 +463,7 @@ export function TransactionEditor({
               </Button>
             </div>
             <div className="mt-2 flex min-w-0 items-center gap-3">
-              {merchantLogo && (
-                <MerchantLogo key={merchantLogo} src={merchantLogo} />
-              )}
+              {plaid.logo && <MerchantLogo key={plaid.logo} src={plaid.logo} />}
               <div className="min-w-0">
                 <p className="font-heading text-xl font-bold wrap-anywhere">
                   {draft.payee || transaction.original_name || "Transaction"}
@@ -456,6 +482,33 @@ export function TransactionEditor({
                 </SheetDescription>
               </div>
             </div>
+            <p className="mt-2 text-xs text-bento-subtle">
+              Source:{" "}
+              {(transaction.source && sourceLabels[transaction.source]) ??
+                "Unknown"}
+            </p>
+            {(merchantContext.length > 0 || plaid.website) && (
+              <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-bento-subtle">
+                {merchantContext.join(" · ")}
+                {plaid.website && (
+                  <>
+                    {merchantContext.length > 0 && (
+                      <span aria-hidden="true">·</span>
+                    )}
+                    <a
+                      href={plaid.website.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 rounded-sm underline underline-offset-2 hover:text-bento-default focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                      aria-label={`${plaid.website.label} (opens in a new tab)`}
+                    >
+                      {plaid.website.label}
+                      <ExternalLink aria-hidden="true" className="size-3" />
+                    </a>
+                  </>
+                )}
+              </p>
+            )}
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
               {draft.amount.trim() !== "" && Number.isFinite(amount) && (
                 <p className="font-mono text-lg font-semibold text-bento-default tabular-nums">
@@ -623,6 +676,14 @@ export function TransactionEditor({
                   disabled={structurallyLocked}
                   onChange={(value) => updateDraft("date", value)}
                 />
+                {plaid.authorizedDate && (
+                  <p className="mt-1.5 px-1 text-xs text-bento-subtle">
+                    Authorized {detailDate(plaid.authorizedDate)}
+                    {plaid.postedDate &&
+                      plaid.postedDate !== plaid.authorizedDate &&
+                      ` · Posted ${detailDate(plaid.postedDate)}`}
+                  </p>
+                )}
               </Field>
               <Field label="Category">
                 <CategoryPicker
@@ -639,6 +700,25 @@ export function TransactionEditor({
                     updateDraft("categoryId", categoryId)
                   }
                 />
+                {!structurallyLocked &&
+                  draft.categoryId == null &&
+                  plaidCategoryLabel && (
+                    <div className="mt-1 flex flex-wrap items-center gap-x-2 px-1 text-xs text-bento-subtle">
+                      <span>Plaid suggests {plaidCategoryLabel}</span>
+                      {plaidCategoryHint && (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="xs"
+                          onClick={() =>
+                            updateDraft("categoryId", plaidCategoryHint.id)
+                          }
+                        >
+                          Use {plaidCategoryHint.name}
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 {!categoryValid && (
                   <p role="alert" className="mt-1 text-xs text-bento-negative">
                     Choose a category or recurring item for this split part.
@@ -1056,16 +1136,6 @@ function TransactionSourceDetails({
     <section className="space-y-3 rounded-2xl bg-bento-raised p-4 text-xs">
       <DetailFields
         fields={[
-          [
-            "Source",
-            transaction.source === "plaid" ? (
-              "Plaid"
-            ) : (
-              <span className="capitalize">
-                {transaction.source ?? "Unknown"}
-              </span>
-            ),
-          ],
           ["Created", detailDate(transaction.created_at, true)],
           ["Last updated", detailDate(transaction.updated_at, true)],
           ["Transaction ID", transaction.id],
