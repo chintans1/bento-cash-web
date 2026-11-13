@@ -36,6 +36,7 @@ import {
   prevMonthOf,
 } from "@/lib/date-utils";
 import { formatCurrency } from "@/lib/format";
+import { categoryColor } from "@/lib/lunchmoney/category-colors";
 import {
   compareIncome,
   compareSpending,
@@ -85,6 +86,13 @@ type Report = (typeof reports)[number]["value"];
 
 const ranges = [
   { value: 1, label: "1 month" },
+  { value: 3, label: "3 months" },
+  { value: 6, label: "6 months" },
+  { value: 12, label: "12 months" },
+];
+
+const paceRanges = [
+  { value: 1, label: "Last month" },
   { value: 3, label: "3 months" },
   { value: 6, label: "6 months" },
   { value: 12, label: "12 months" },
@@ -164,12 +172,36 @@ function CashAllocation({
   spend,
   saved,
   currency,
+  categories,
+  range,
 }: {
   income: number;
   spend: number;
   saved: number;
   currency: string;
+  categories: ReturnType<typeof compareSpending>;
+  range: number;
 }) {
+  const largest = categories.filter(({ amount }) => amount > 0).slice(0, 4);
+  const other = spend - largest.reduce((total, row) => total + row.amount, 0);
+  const destinations = [
+    ...largest.map(({ key, name, amount }) => ({
+      id: key,
+      name,
+      amount,
+      color: categoryColor(name),
+    })),
+    ...(other >= 0.005
+      ? [
+          {
+            id: "other",
+            name: "Other spending",
+            amount: other,
+            color: "var(--bento-subtle)",
+          },
+        ]
+      : []),
+  ];
   const segments = [
     {
       id: "Covered by income",
@@ -212,6 +244,52 @@ function CashAllocation({
           ))}
         </ul>
       </CardContent>
+      {destinations.length > 0 && (
+        <CardContent className="space-y-3 border-t border-bento-hairline pt-4">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold">Where spending went</h3>
+            <Link
+              href={`/reports?report=spending&range=${range}`}
+              className="inline-flex items-center gap-1 rounded-sm text-xs font-medium underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            >
+              Spending breakdown{" "}
+              <ArrowUpRight aria-hidden="true" className="size-3" />
+            </Link>
+          </div>
+          <CompositionBar
+            segments={destinations.map(({ id, amount, color }) => ({
+              id,
+              color,
+              percent: (amount / spend) * 100,
+            }))}
+          />
+          <dl className="divide-y divide-bento-hairline">
+            {destinations.map(({ id, name, amount, color }) => (
+              <div
+                key={id}
+                className="flex items-center justify-between gap-3 py-2 text-xs"
+              >
+                <dt className="flex min-w-0 items-center gap-2">
+                  <span
+                    aria-hidden="true"
+                    className="size-2 shrink-0 rounded-full bg-(--allocation-color)"
+                    style={
+                      { "--allocation-color": color } as React.CSSProperties
+                    }
+                  />
+                  <span className="wrap-anywhere">{name}</span>
+                </dt>
+                <dd className="flex shrink-0 gap-3 tabular-nums">
+                  <span className="text-bento-subtle">
+                    {((amount / spend) * 100).toFixed(1)}%
+                  </span>
+                  <strong>{formatCurrency(amount, currency, true)}</strong>
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </CardContent>
+      )}
     </Card>
   );
 }
@@ -245,7 +323,15 @@ function ReportsWorkspace({ scope }: { scope: string | null }) {
   const group =
     searchParams.get("group") === "merchant" ? "merchant" : "category";
 
-  function setReportParam(key: "report" | "range" | "group", value: string) {
+  const paceRange =
+    paceRanges.find(
+      ({ value }) => String(value) === searchParams.get("baseline")
+    )?.value ?? 3;
+
+  function setReportParam(
+    key: "report" | "range" | "group" | "baseline",
+    value: string
+  ) {
     const params = new URLSearchParams(searchParams.toString());
     params.set(key, value);
     router.replace(`/reports?${params}`, { scroll: false });
@@ -257,7 +343,7 @@ function ReportsWorkspace({ scope }: { scope: string | null }) {
   const today = new Date();
   const year = today.getFullYear();
   const month = today.getMonth() + 1;
-  const count = paceActive ? 3 : range * 2;
+  const count = paceActive ? paceRange : range * 2;
   const history = useTransactionHistory(
     count,
     planActive ? null : scope,
@@ -362,6 +448,17 @@ function ReportsWorkspace({ scope }: { scope: string | null }) {
           />
         </div>
       )}
+      {paceActive && (
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-sm font-medium">Compare with</p>
+          <SegmentedControl
+            label="Spending pace baseline"
+            options={paceRanges}
+            value={paceRange}
+            onChange={(value) => setReportParam("baseline", String(value))}
+          />
+        </div>
+      )}
 
       {planActive && !error && !loading ? (
         <>
@@ -405,6 +502,13 @@ function ReportsWorkspace({ scope }: { scope: string | null }) {
             <SpendingPaceReport
               pace={pace}
               currency={primaryCurrency}
+              baselineLabel={
+                paceRange === 1
+                  ? formatMonthKey(
+                      monthKeyOf(periods[0].year, periods[0].month)
+                    )
+                  : undefined
+              }
               today={`${monthKeyOf(year, month)}-${String(today.getDate()).padStart(2, "0")}`}
             />
           </CardContent>
@@ -551,6 +655,8 @@ function PeriodReport({
           spend={spend}
           saved={saved}
           currency={currency}
+          categories={data.spending}
+          range={current.length}
         />
       )}
 

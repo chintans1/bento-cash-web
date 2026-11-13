@@ -14,27 +14,33 @@ import { EmptyBreakdown, formatCompactCurrency } from "./report-ui";
 
 const config = {
   actual: { label: "This month", color: "var(--bento-brand)" },
-  typical: { label: "Previous 3 months average", color: "var(--bento-subtle)" },
+  typical: { label: "Recent months average", color: "var(--bento-subtle)" },
 };
 
 export function SpendingPaceReport({
   pace,
   currency,
   today,
+  baselineLabel,
 }: {
   pace: ReturnType<typeof spendingPace>;
   currency: string;
   today: string;
+  baselineLabel?: string;
 }) {
   const money = (value: number) => formatCurrency(value, currency, true);
   const change = pace.typical === null ? null : pace.current - pace.typical;
   const baseline =
-    pace.baselineCount === 1
+    baselineLabel ??
+    (pace.baselineCount === 1
       ? "the previous month with activity"
-      : `the average of ${pace.baselineCount} recent months with activity`;
+      : `the average of ${pace.baselineCount} recent months with activity`);
   const chartConfig = {
     ...config,
-    typical: { ...config.typical, label: "Recent months average" },
+    typical: {
+      ...config.typical,
+      label: baselineLabel ?? config.typical.label,
+    },
   };
   return (
     <div className="space-y-5">
@@ -44,7 +50,7 @@ export function SpendingPaceReport({
         </h2>
         <p className="mt-1 text-sm text-bento-subtle">
           {change === null
-            ? "A comparison will appear when you have earlier months to compare."
+            ? "No posted activity in the selected comparison window."
             : Math.abs(change) < 0.005
               ? `Matches ${baseline} through the same day.`
               : `${amountChange(change, currency)} than ${money(pace.typical!)} through the same day, based on ${baseline}.`}
@@ -55,7 +61,7 @@ export function SpendingPaceReport({
           <strong className="tabular-nums">{money(pace.projected)}</strong>{" "}
           projected at month end
           <p className="mt-1 text-xs text-bento-subtle">
-            Spent so far plus what recent months typically added after this day.
+            Spent so far plus the spending after this day in the comparison.
           </p>
         </div>
       )}
@@ -77,7 +83,7 @@ export function SpendingPaceReport({
                   className="w-5 border-t-2 border-dashed border-bento-subtle"
                   aria-hidden="true"
                 />{" "}
-                Recent months average
+                {chartConfig.typical.label}
               </span>
             )}
           </div>
