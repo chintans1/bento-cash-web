@@ -1,6 +1,7 @@
 import { formatMonthKey, monthKeyOf } from "../date-utils";
 import type { CategoryInfo } from "./categories";
 import type { Transaction } from "./client";
+import { reportableTransactions } from "./report-comparisons";
 import {
   computeCategoryTotals,
   computeMonthTotals,
@@ -57,14 +58,17 @@ export function describeMonthlyChange(change: number | null) {
   return `${Math.abs(change).toFixed(0)}% ${change < 0 ? "less" : "more"} than the month before`;
 }
 
-export function buildReportData(
+export function buildMonthlyReports(
   monthlyTransactions: Transaction[][],
   periods: ReportPeriod[],
   categoryMap: Map<number, CategoryInfo>
-): ReportData {
-  const months = monthlyTransactions.map((transactions, index) => {
+) {
+  return monthlyTransactions.map((transactions, index) => {
     const period = periods[index];
-    const { income, spend } = computeMonthTotals(transactions, categoryMap);
+    const { income, spend } = computeMonthTotals(
+      reportableTransactions(transactions),
+      categoryMap
+    );
     const saved = income - spend;
 
     return {
@@ -76,7 +80,15 @@ export function buildReportData(
       savingsRate: income ? (saved / income) * 100 : 0,
     };
   });
+}
 
+export function buildReportData(
+  monthlyTransactions: Transaction[][],
+  periods: ReportPeriod[],
+  categoryMap: Map<number, CategoryInfo>
+): ReportData {
+  const months = buildMonthlyReports(monthlyTransactions, periods, categoryMap);
+  monthlyTransactions = monthlyTransactions.map(reportableTransactions);
   const totalIncome = months.reduce((sum, month) => sum + month.income, 0);
   const totalSpend = months.reduce((sum, month) => sum + month.spend, 0);
   const allTransactions = monthlyTransactions.flat();

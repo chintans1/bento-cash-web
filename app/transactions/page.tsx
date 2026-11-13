@@ -24,7 +24,7 @@ import {
   SplitEditor,
 } from "@/components/transactions/transaction-structure-editor";
 import { usePayeeSuggestions } from "@/hooks/use-payee-suggestions";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatShortDate } from "@/lib/format";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useAppData } from "@/hooks/use-app-data";
@@ -66,6 +66,7 @@ import { cn } from "@/lib/utils";
 import { canGroupTransaction } from "@/lib/lunchmoney/transaction-structure";
 import type { Transaction } from "@/lib/lunchmoney/client";
 import { recurringMatch } from "@/lib/lunchmoney/recurring-match";
+import { isReportableTransaction } from "@/lib/lunchmoney/report-comparisons";
 
 type SortKey = "date" | "amount" | "payee";
 type SortDir = "asc" | "desc";
@@ -155,6 +156,17 @@ function TransactionsPage() {
     target: "category" | "review" | "details";
   } | null>(null);
   const categoryParam = searchParams.get("category");
+  const payeeParam = searchParams.get("payee");
+  const direction = searchParams.get("direction");
+  const directionParam =
+    direction === "income" || direction === "spending" ? direction : null;
+  const through = searchParams.get("through");
+  const throughDate =
+    through?.startsWith(
+      `${selectedYear}-${String(selectedMonth).padStart(2, "0")}-`
+    ) && /^\d{4}-\d{2}-\d{2}$/.test(through)
+      ? through
+      : null;
   const filterCatId = parseCategoryFilter(categoryParam);
   const [sortKey, setSortKey] = useState<SortKey>("date");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
@@ -164,6 +176,9 @@ function TransactionsPage() {
     monthKey,
     query,
     filterCatId,
+    payeeParam,
+    directionParam,
+    throughDate,
     reviewFilter,
     sortKey,
     sortDir,
@@ -240,6 +255,21 @@ function TransactionsPage() {
     const q = query.toLowerCase();
     const result = transactions.filter((tx) => {
       if (
+        payeeParam !== null &&
+        (tx.payee?.trim() ?? "").toLowerCase() !== payeeParam.toLowerCase()
+      )
+        return false;
+      if (directionParam === "income" && tx.to_base >= 0) return false;
+      if (directionParam === "spending" && tx.to_base <= 0) return false;
+      if (throughDate && tx.date > throughDate) return false;
+      if (
+        directionParam &&
+        (!isReportableTransaction(tx) ||
+          categoryMap.get(tx.category_id ?? UNCATEGORIZED_ID)
+            ?.exclude_from_totals)
+      )
+        return false;
+      if (
         q &&
         !tx.payee?.toLowerCase().includes(q) &&
         !tx.original_name?.toLowerCase().includes(q) &&
@@ -287,6 +317,9 @@ function TransactionsPage() {
     transactions,
     query,
     filterCatId,
+    payeeParam,
+    directionParam,
+    throughDate,
     reviewFilter,
     sortKey,
     sortDir,
@@ -342,7 +375,11 @@ function TransactionsPage() {
   }, [filtered, visibleLimit]);
 
   const hasFilters =
-    query !== "" || filterCatId !== null || reviewFilter !== "all";
+    query !== "" ||
+    filterCatId !== null ||
+    reviewFilter !== "all" ||
+    payeeParam !== null ||
+    directionParam !== null;
   const matchingSpend = useMemo(
     () =>
       hasFilters
@@ -409,6 +446,14 @@ function TransactionsPage() {
     const params = new URLSearchParams(searchParams.toString());
     if (id === null) params.delete("category");
     else params.set("category", id.toString());
+    router.replace(`/transactions?${params}`, { scroll: false });
+  }
+
+  function clearReportFilter() {
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("payee");
+    params.delete("direction");
+    params.delete("through");
     router.replace(`/transactions?${params}`, { scroll: false });
   }
 
@@ -613,6 +658,29 @@ function TransactionsPage() {
             </div>
           </div>
 
+          {(payeeParam !== null || directionParam !== null) && (
+            <div className="mb-2 flex items-center gap-2 text-xs text-bento-subtle">
+              <span>
+                {[
+                  directionParam === "income"
+                    ? "Income"
+                    : directionParam === "spending"
+                      ? "Spending"
+                      : null,
+                  payeeParam === "" ? "Unknown payee" : payeeParam,
+                  throughDate
+                    ? `Through ${formatShortDate(throughDate)}`
+                    : null,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+              </span>
+              <Button size="xs" variant="ghost" onClick={clearReportFilter}>
+                Clear report filter
+              </Button>
+            </div>
+          )}
+
           {/* Table header */}
           <div
             className={cn(
@@ -710,7 +778,10 @@ function TransactionsPage() {
                   onClick={() => {
                     setQuery("");
                     setReviewFilter("all");
-                    setCategoryFilter(null);
+                    router.replace(
+                      `/transactions?month=${selectedYear}-${String(selectedMonth).padStart(2, "0")}`,
+                      { scroll: false }
+                    );
                   }}
                 >
                   Clear filters

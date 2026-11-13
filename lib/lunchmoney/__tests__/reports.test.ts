@@ -2,6 +2,12 @@ import { describe, expect, it } from "vitest";
 import type { Transaction } from "../client";
 import type { CategoryInfo } from "../categories";
 import { buildReportData, describeMonthlyChange } from "../reports";
+import {
+  compareBudget,
+  compareIncome,
+  compareSpending,
+  spendingPace,
+} from "../report-comparisons";
 
 function transaction(
   toBase: number,
@@ -44,6 +50,147 @@ const periods = [
   { year: 2026, month: 1 },
   { year: 2026, month: 2 },
 ];
+
+describe("report comparisons", () => {
+  it("keeps merchants from both periods and reconciles reportable spending", () => {
+    const rows = compareSpending(
+      [
+        transaction(125, { payee: "Market", date: "2026-02-02" }),
+        transaction(25, { payee: " market ", date: "2026-02-03" }),
+        transaction(70, { is_split_parent: true }),
+        transaction(30, { status: "delete_pending" }),
+        transaction(30, { group_parent_id: 11 }),
+        transaction(30, { is_pending: true }),
+        transaction(30, { category_id: 3 }),
+      ],
+      [
+        transaction(100, { payee: "Market" }),
+        transaction(75, { payee: "Books" }),
+      ],
+      categories,
+      "merchant"
+    );
+    expect(rows).toEqual([
+      expect.objectContaining({
+        name: "Market",
+        amount: 150,
+        previous: 100,
+        latestMonth: "2026-02",
+      }),
+      expect.objectContaining({
+        name: "Books",
+        amount: 0,
+        previous: 75,
+        latestMonth: null,
+      }),
+    ]);
+    expect(
+      compareIncome(
+        [
+          transaction(-100, { payee: "Employer" }),
+          transaction(-200, { payee: "employer" }),
+        ],
+        [transaction(-250, { payee: "Employer" })],
+        categories
+      )[0]
+    ).toMatchObject({ amount: 300, previous: 250, payments: 2 });
+  });
+
+  it("uses the same-day comparison and only projects the days remaining", () => {
+    const pace = spendingPace(
+      [
+        transaction(75, { date: "2026-03-05" }),
+        transaction(500, { date: "2026-03-20" }),
+      ],
+      [
+        { period: periods[0], transactions: [] },
+        {
+          period: periods[1],
+          transactions: [
+            transaction(100, { date: "2026-02-05" }),
+            transaction(200, { date: "2026-02-20" }),
+          ],
+        },
+      ],
+      new Date(2026, 2, 10),
+      categories
+    );
+    expect(pace).toMatchObject({
+      current: 75,
+      typical: 100,
+      projected: 275,
+      baselineCount: 1,
+    });
+    expect(pace.days).toHaveLength(10);
+    expect(pace.drivers[0]).toMatchObject({
+      name: "Food",
+      amount: 75,
+      previous: 100,
+    });
+  });
+
+  it("adds recurring actuals to other budget activity", () => {
+    const totals = {
+      budgeted: 100,
+      other_activity: 80,
+      recurring_activity: 45,
+      recurring_expected: 60,
+      recurring_remaining: 15,
+    };
+    expect(
+      compareBudget(
+        {
+          aligned: true,
+          categories: [
+            { category_id: 1, totals },
+            { category_id: 2, totals },
+            { category_id: 3, totals },
+          ],
+        },
+        categories
+      )
+    ).toMatchObject({ planned: 100, spent: 125, over: 1 });
+  });
+
+  it("counts a budgeted parent and its children only once", () => {
+    const totals = {
+      budgeted: 100,
+      other_activity: 80,
+      recurring_activity: 0,
+      recurring_expected: 0,
+      recurring_remaining: 0,
+    };
+    const map = new Map(categories);
+    map.set(10, {
+      name: "Household",
+      is_income: false,
+      exclude_from_totals: false,
+    });
+    expect(
+      compareBudget(
+        {
+          aligned: true,
+          categories: [
+            { category_id: 10, totals },
+            { category_id: 1, totals },
+          ],
+        },
+        map,
+        [
+          {
+            groupId: 10,
+            groupName: "Household",
+            items: [{ id: 1, name: "Food" }],
+          },
+        ]
+      )
+    ).toMatchObject({
+      planned: 100,
+      spent: 80,
+      rows: [{ id: 10, group: true }],
+    });
+  });
+});
 
 describe("buildReportData", () => {
   it("computes monthly cash flow and period averages", () => {
