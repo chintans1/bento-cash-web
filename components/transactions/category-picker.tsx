@@ -206,7 +206,7 @@ export function CategoryPicker({
             ? fieldStyles
             : "min-h-8 rounded-lg pr-1.5 pl-2 text-xs transition-colors hover:bg-bento-raised focus-visible:ring-2 focus-visible:ring-ring/40",
           appearance !== "field" &&
-            "[&>svg]:size-3 [&>svg]:opacity-65 [&>svg]:transition-opacity focus-within:[&>svg]:opacity-100 hover:[&>svg]:opacity-100",
+            "[&>svg]:size-3 [&>svg]:opacity-65 [&>svg]:transition-opacity hover:[&>svg]:opacity-100 focus-visible:[&>svg]:opacity-100 aria-expanded:[&>svg]:opacity-100",
           (saving || (disabled && appearance !== "field")) && "opacity-60"
         )}
       >

@@ -88,9 +88,10 @@ export const TransactionRow = memo(function TransactionRow({
       data-tx-row
       data-tx-id={tx.id}
       className={cn(
-        "group/row cursor-pointer transition-row focus-within:bg-bento-raised hover:bg-bento-raised",
+        "group/row cursor-pointer transition-row hover:bg-bento-raised/60 has-[:focus-visible]:bg-bento-raised/60",
         tx.is_pending && !structurallyLocked && "opacity-70 hover:opacity-100",
-        selected && "bg-bento-raised"
+        selected &&
+          "bg-bento-raised hover:bg-bento-raised has-[:focus-visible]:bg-bento-raised"
       )}
       onClick={(event) => {
         const target = event.target;

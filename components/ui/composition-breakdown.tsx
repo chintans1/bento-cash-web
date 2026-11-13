@@ -35,7 +35,8 @@ export function CompositionBreakdown<Id extends string | number>({
   footer?: ReactNode;
   selectedId?: Id | null;
 }) {
-  const { activeId, onHover, rowHandlers } = useCompositionHighlight<Id>();
+  const { activeId, onHover, clearHighlight, rowHandlers } =
+    useCompositionHighlight<Id>();
   const selectedEntry = entries.find((entry) => entry.id === selectedId);
 
   return (
@@ -101,7 +102,10 @@ export function CompositionBreakdown<Id extends string | number>({
                     <button
                       type="button"
                       aria-pressed={selected}
-                      onClick={entry.onSelect}
+                      onClick={() => {
+                        clearHighlight();
+                        entry.onSelect?.();
+                      }}
                       className={rowClassName}
                       {...rowHandlers(entry.id)}
                     >

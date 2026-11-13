@@ -10,14 +10,20 @@ export function useCompositionHighlight<Id extends string | number>() {
   return {
     activeId: hoveredId ?? focusedId,
     onHover: setHoveredId,
+    clearHighlight: () => {
+      setHoveredId(null);
+      setFocusedId(null);
+    },
     rowHandlers: (id: Id) => ({
       onPointerEnter: (event: PointerEvent) => {
         if (event.pointerType !== "touch") setHoveredId(id);
       },
       onPointerLeave: () => setHoveredId(null),
-      onFocus: () => {
-        setHoveredId(null);
-        setFocusedId(id);
+      onFocus: (event: React.FocusEvent<HTMLElement>) => {
+        if (event.currentTarget.matches(":focus-visible")) {
+          setHoveredId(null);
+          setFocusedId(id);
+        }
       },
       onBlur: () => setFocusedId(null),
     }),
