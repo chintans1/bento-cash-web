@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { compactFieldStyles, fieldStyles } from "@/components/ui/field-styles";
-import { ListFilter } from "lucide-react";
+import { fieldStyles } from "@/components/ui/field-styles";
 import {
   Combobox,
   ComboboxContent,
@@ -19,10 +18,7 @@ import { cn } from "@/lib/utils";
 import type { CategoryGroupEntry } from "@/lib/lunchmoney/analytics";
 
 export type CategoryOption = {
-  /**
-   * -1 is the "Uncategorized" sentinel, which saves as null; -2 is the filter's
-   * "All categories" row, which clears the filter.
-   */
+  /** -1 is the "Uncategorized" sentinel, which saves as null. */
   id: number;
   name: string;
   group: string | null;
@@ -68,16 +64,6 @@ function commitTopMatchOnEnter(event: React.KeyboardEvent<HTMLInputElement>) {
   }
 }
 
-const ALL_CATEGORIES: CategoryOption = {
-  id: -2,
-  name: "All categories",
-  group: null,
-};
-
-/**
- * The popup: search box over the flat category list. Shared so the row picker
- * and the list filter search the same way and read the same way.
- */
 function CategoryComboboxPopup({
   finalFocus,
 }: {
@@ -97,19 +83,15 @@ function CategoryComboboxPopup({
       <ComboboxList>
         {(option: CategoryOption) => (
           <ComboboxItem key={option.id} value={option}>
-            {option.id === ALL_CATEGORIES.id ? (
-              <ListFilter className="size-3.5 shrink-0 text-bento-subtle" />
-            ) : (
-              <CategoryIcon
-                name={option.name}
-                className="size-3.5 shrink-0 text-(--item-color)"
-                style={
-                  {
-                    "--item-color": categoryColor(option.name),
-                  } as React.CSSProperties
-                }
-              />
-            )}
+            <CategoryIcon
+              name={option.name}
+              className="size-3.5 shrink-0 text-(--item-color)"
+              style={
+                {
+                  "--item-color": categoryColor(option.name),
+                } as React.CSSProperties
+              }
+            />
             <span
               className={cn(
                 "min-w-0 flex-1 truncate",
@@ -225,78 +207,6 @@ export function CategoryPicker({
       </ComboboxTrigger>
 
       <CategoryComboboxPopup finalFocus={() => !skipFinalFocus.current} />
-    </Combobox>
-  );
-}
-
-/**
- * The list's category filter — the same searchable picker as the row cell, with
- * an "All categories" row on top. Every category is offered, not just the ones
- * this month happens to contain, so filtering to an empty month is possible.
- *
- * Styled to match `SelectTrigger size="sm"`, which is what it replaced.
- */
-export function CategoryFilterPicker({
-  categoryId,
-  options,
-  onChange,
-}: {
-  /** null = no filter; -1 = uncategorized only. */
-  categoryId: number | null;
-  options: CategoryOption[];
-  onChange: (categoryId: number | null) => void;
-}) {
-  const [query, setQuery] = useState("");
-  const filterOptions = useMemo(() => [ALL_CATEGORIES, ...options], [options]);
-  const matches = useMemo(
-    () => rankCategoryMatches(filterOptions, query),
-    [filterOptions, query]
-  );
-
-  const selected = useMemo(
-    () =>
-      filterOptions.find((o) => o.id === (categoryId ?? ALL_CATEGORIES.id)) ??
-      ALL_CATEGORIES,
-    [filterOptions, categoryId]
-  );
-
-  return (
-    <Combobox
-      items={filterOptions}
-      filteredItems={matches}
-      itemToStringLabel={(option: CategoryOption) => option.name}
-      filter={null}
-      inputValue={query}
-      onInputValueChange={setQuery}
-      onOpenChange={(open) => {
-        if (!open) setQuery("");
-      }}
-      value={selected}
-      onValueChange={(option: CategoryOption | null) => {
-        if (!option) return;
-        onChange(option.id === ALL_CATEGORIES.id ? null : option.id);
-      }}
-    >
-      <ComboboxTrigger
-        aria-label={`Filter by category: ${selected.name}. Change`}
-        className={cn(
-          fieldStyles,
-          compactFieldStyles,
-          "flex w-full min-w-0 items-center justify-between gap-1.5 px-2.5 text-xs whitespace-nowrap md:text-xs [&>svg]:size-3.5 [&>svg]:shrink-0"
-        )}
-      >
-        <span
-          className={cn(
-            "truncate",
-            categoryId === null && "text-muted-foreground",
-            categoryId === -1 && "font-medium text-bento-negative"
-          )}
-        >
-          {selected.name}
-        </span>
-      </ComboboxTrigger>
-
-      <CategoryComboboxPopup />
     </Combobox>
   );
 }

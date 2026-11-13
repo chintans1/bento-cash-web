@@ -8,14 +8,11 @@ import {
   useRef,
   useState,
 } from "react";
+import { buildCategoryOptions } from "@/components/transactions/category-picker";
 import {
-  buildCategoryOptions,
-  CategoryFilterPicker,
-} from "@/components/transactions/category-picker";
-import {
-  AccountFilterPicker,
+  TransactionFilters,
   type AccountFilterOption,
-} from "@/components/transactions/account-filter-picker";
+} from "@/components/transactions/transaction-filters";
 import {
   TransactionRow,
   TRANSACTION_GRID_COLUMNS,
@@ -555,12 +552,12 @@ function TransactionsPage() {
           aria-label="Transaction list"
           className="@container/ledger min-w-0 @page-sidebar/main:col-start-1 @page-sidebar/main:row-start-1"
         >
-          <div className="mb-2 grid grid-cols-transaction-search gap-2 @xl/ledger:grid-cols-transaction-filters @4xl/ledger:grid-cols-transaction-toolbar">
+          <div className="mb-2 grid grid-cols-transaction-search gap-2 @xl/ledger:grid-cols-transaction-filter @2xl/ledger:grid-cols-transaction-toolbar">
             <SegmentedControl
               label="Transaction status"
               value={reviewFilter}
               onChange={setReviewFilter}
-              className="col-span-full flex-wrap @4xl/ledger:col-span-1"
+              className="order-1 col-span-full flex-wrap @2xl/ledger:col-span-1"
               options={(
                 [
                   ["all", "All", transactions.length],
@@ -591,7 +588,7 @@ function TransactionsPage() {
               }))}
             />
             <SearchField
-              className="col-span-full @xl/ledger:col-span-1"
+              className="order-2"
               ref={searchRef}
               label="Search transactions"
               value={query}
@@ -603,19 +600,16 @@ function TransactionsPage() {
               }
             />
 
-            <CategoryFilterPicker
+            <TransactionFilters
               categoryId={filterCatId}
-              options={categoryOptions}
-              onChange={setCategoryFilter}
-            />
-
-            <AccountFilterPicker
               accountId={filterAccountId}
-              options={accountOptions}
-              onChange={(id) => setListFilters({ account: id })}
+              categories={categoryOptions}
+              accounts={accountOptions}
+              onCategoryChange={setCategoryFilter}
+              onAccountChange={(id) => setListFilters({ account: id })}
             />
 
-            <div className="min-w-0 @xl/ledger:hidden">
+            <div className="order-4 min-w-0 @xl/ledger:hidden">
               <Select
                 value={`${sortKey}-${sortDir}`}
                 onValueChange={(value) => {
