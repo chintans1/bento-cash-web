@@ -45,7 +45,9 @@ export function SpendingPaceReport({
         <p className="mt-1 text-sm text-bento-subtle">
           {change === null
             ? "A comparison will appear when you have earlier months to compare."
-            : `${amountChange(change, currency)} than ${money(pace.typical!)} through the same day, based on ${baseline}.`}
+            : Math.abs(change) < 0.005
+              ? `Matches ${baseline} through the same day.`
+              : `${amountChange(change, currency)} than ${money(pace.typical!)} through the same day, based on ${baseline}.`}
         </p>
       </div>
       {pace.projected !== null && (

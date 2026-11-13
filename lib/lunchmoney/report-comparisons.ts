@@ -24,8 +24,19 @@ type Breakdown = {
   payee?: string;
   amount: number;
   previous: number;
-  latestMonth: string | null;
+  months: Map<string, number>;
 };
+
+function addBreakdownAmount(
+  row: Breakdown,
+  field: "amount" | "previous",
+  date: string,
+  amount: number
+) {
+  row[field] += amount;
+  const month = date.slice(0, 7);
+  row.months.set(month, (row.months.get(month) ?? 0) + amount);
+}
 
 export function compareSpending(
   current: Transaction[],
@@ -54,12 +65,9 @@ export function compareSpending(
         payee: group === "merchant" ? payee : undefined,
         amount: 0,
         previous: 0,
-        latestMonth: null,
+        months: new Map<string, number>(),
       };
-      row[field] += tx.to_base;
-      const month = tx.date.slice(0, 7);
-      if (field === "amount" && (!row.latestMonth || month > row.latestMonth))
-        row.latestMonth = month;
+      addBreakdownAmount(row, field, tx.date, tx.to_base);
       rows.set(key, row);
     }
   }
@@ -90,16 +98,11 @@ export function compareIncome(
         payee,
         amount: 0,
         previous: 0,
-        latestMonth: null,
+        months: new Map<string, number>(),
         payments: 0,
       };
-      row[field] -= tx.to_base;
-      const month = tx.date.slice(0, 7);
-      if (field === "amount") {
-        row.payments++;
-        if (!row.latestMonth || month > row.latestMonth)
-          row.latestMonth = month;
-      }
+      addBreakdownAmount(row, field, tx.date, -tx.to_base);
+      if (field === "amount") row.payments++;
       rows.set(key, row);
     }
   }

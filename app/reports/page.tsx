@@ -587,6 +587,7 @@ function PeriodReport({
                 rows={isIncome ? data.income : data.spending}
                 currency={currency}
                 previousLabel={previousLabel}
+                periodStart={current[0].key}
                 total={isIncome ? income : spend}
                 kind={isIncome ? "source" : group}
               />

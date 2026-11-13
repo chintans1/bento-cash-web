@@ -22,7 +22,7 @@ type Row = {
   previous: number;
   categoryId?: number;
   payee?: string;
-  latestMonth: string | null;
+  months: ReadonlyMap<string, number>;
   payments?: number;
 };
 
@@ -30,12 +30,14 @@ export function ReportBreakdown({
   rows,
   currency,
   previousLabel,
+  periodStart,
   total,
   kind,
 }: {
   rows: Row[];
   currency: string;
   previousLabel: string;
+  periodStart: string;
   total: number;
   kind: "category" | "merchant" | "source";
 }) {
@@ -74,7 +76,6 @@ export function ReportBreakdown({
         {(expanded ? ranked : ranked.slice(0, 6)).map((row) => {
           const params = new URLSearchParams();
           params.set("direction", kind === "source" ? "income" : "spending");
-          if (row.latestMonth) params.set("month", row.latestMonth);
           if (row.categoryId !== undefined)
             params.set("category", String(row.categoryId));
           else if (row.payee !== undefined) params.set("payee", row.payee);
@@ -100,16 +101,48 @@ export function ReportBreakdown({
                   {formatCurrency(row.previous, currency, true)} before
                 </p>
               </div>
-              {row.latestMonth && (
-                <Link
-                  href={`/transactions?${params}`}
-                  className="col-span-2 -ml-1 flex min-h-7 w-fit items-center gap-1 rounded-md px-1 text-xs font-medium text-bento-subtle hover:text-bento-default hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                  aria-label={`View ${row.name} transactions for ${formatMonthKey(row.latestMonth)}`}
+              <details className="col-span-2">
+                <summary
+                  className="w-fit cursor-pointer rounded-sm py-1 text-xs font-medium text-bento-subtle hover:text-bento-default focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                  aria-label={`View monthly activity for ${row.name}`}
                 >
-                  View {formatMonthKey(row.latestMonth)}{" "}
-                  <ArrowUpRight className="size-3" aria-hidden="true" />
-                </Link>
-              )}
+                  View monthly activity
+                </summary>
+                <ul className="mt-2 divide-y divide-bento-hairline rounded-xl bg-bento-raised px-3">
+                  {[...row.months]
+                    .sort(([a], [b]) => b.localeCompare(a))
+                    .map(([month, amount]) => {
+                      const monthParams = new URLSearchParams(params);
+                      monthParams.set("month", month);
+                      const label = formatMonthKey(month);
+                      return (
+                        <li key={month}>
+                          <Link
+                            href={`/transactions?${monthParams}`}
+                            aria-label={`View ${row.name} transactions for ${label}`}
+                            className="flex min-h-8 items-center justify-between gap-2 rounded-sm py-1.5 text-xs hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                          >
+                            <span>
+                              {label}
+                              {month < periodStart && (
+                                <span className="ml-2 text-bento-subtle">
+                                  Previous period
+                                </span>
+                              )}
+                            </span>
+                            <span className="inline-flex shrink-0 items-center gap-1 font-medium tabular-nums">
+                              {formatCurrency(amount, currency, true)}
+                              <ArrowUpRight
+                                className="size-3"
+                                aria-hidden="true"
+                              />
+                            </span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                </ul>
+              </details>
             </li>
           );
         })}

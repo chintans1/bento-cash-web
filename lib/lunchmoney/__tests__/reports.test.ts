@@ -75,13 +75,16 @@ describe("report comparisons", () => {
         name: "Market",
         amount: 150,
         previous: 100,
-        latestMonth: "2026-02",
+        months: new Map([
+          ["2026-02", 150],
+          ["2026-01", 100],
+        ]),
       }),
       expect.objectContaining({
         name: "Books",
         amount: 0,
         previous: 75,
-        latestMonth: null,
+        months: new Map([["2026-01", 75]]),
       }),
     ]);
     expect(
