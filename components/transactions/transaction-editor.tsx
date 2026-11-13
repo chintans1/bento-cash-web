@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Autocomplete } from "@base-ui/react/autocomplete";
 import {
   AlertTriangle,
@@ -193,7 +193,7 @@ export function TransactionEditor({
     month: string;
     ids: Set<number>;
   }>();
-  const [recurringPageOpened, setRecurringPageOpened] = useState(false);
+  const recurringPageOpened = useRef(false);
   const [refreshingRecurringItems, setRefreshingRecurringItems] =
     useState(false);
   const [recurringRefreshError, setRecurringRefreshError] = useState<
@@ -206,10 +206,7 @@ export function TransactionEditor({
     draftRecurringId,
     recurringItems
   );
-  const suggestedItem =
-    recurringStatus === "possible"
-      ? recurringItems.find((item) => item.id === draftRecurringId)
-      : undefined;
+  const canReviewSuggestion = recurringStatus === "possible" && !isDemo;
   const approvedRecurringItems = recurringItems.filter(
     (item) => item.status === "reviewed"
   );
@@ -299,15 +296,22 @@ export function TransactionEditor({
   }, [onRefreshRecurringItems]);
 
   useEffect(() => {
-    if (!recurringPageOpened) return;
     function onReturn() {
-      if (document.visibilityState !== "visible") return;
-      setRecurringPageOpened(false);
+      if (
+        !recurringPageOpened.current ||
+        document.visibilityState !== "visible"
+      )
+        return;
+      recurringPageOpened.current = false;
       void refreshRecurringList();
     }
     document.addEventListener("visibilitychange", onReturn);
-    return () => document.removeEventListener("visibilitychange", onReturn);
-  }, [recurringPageOpened, refreshRecurringList]);
+    window.addEventListener("focus", onReturn);
+    return () => {
+      document.removeEventListener("visibilitychange", onReturn);
+      window.removeEventListener("focus", onReturn);
+    };
+  }, [refreshRecurringList]);
 
   function updateDraft<K extends keyof Draft>(field: K, value: Draft[K]) {
     setDraft((current) => ({ ...current, [field]: value }));
@@ -470,13 +474,29 @@ export function TransactionEditor({
                   variant="secondary"
                   className={cn(
                     recurringStatus === "possible" &&
-                      "bg-warning/10 text-warning-foreground"
+                      "bg-warning/10 text-warning-foreground",
+                    canReviewSuggestion &&
+                      "hover:underline [a]:hover:bg-warning/20"
                   )}
+                  render={
+                    canReviewSuggestion ? (
+                      <a
+                        href="https://my.lunchmoney.app/recurring/suggested"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label="Possible recurring. Review in Lunch Money (opens in a new tab)"
+                        onClick={() => {
+                          recurringPageOpened.current = true;
+                        }}
+                      />
+                    ) : undefined
+                  }
                 >
                   <Repeat2 aria-hidden="true" />
                   {recurringStatus === "confirmed"
                     ? "Recurring"
                     : "Possible recurring"}
+                  {canReviewSuggestion && <ExternalLink aria-hidden="true" />}
                 </Badge>
               )}
             </div>
@@ -555,58 +575,6 @@ export function TransactionEditor({
                   change.
                 </p>
               </div>
-            )}
-            {recurringStatus === "possible" && (
-              <section className="rounded-xl border border-warning/25 bg-warning/10 p-4 text-sm text-warning-foreground">
-                <div className="flex gap-3">
-                  <Repeat2
-                    aria-hidden="true"
-                    className="mt-0.5 size-4 shrink-0"
-                  />
-                  <div className="min-w-0">
-                    <h3 className="font-semibold">Possible recurring item</h3>
-                    <p className="mt-1 text-pretty">
-                      {`Lunch Money suggested ${suggestedItem ? recurringName(suggestedItem) : "a recurring pattern"} as a recurring item. Review it before it becomes an assigned recurring item.`}
-                    </p>
-                    {isDemo ? (
-                      <p className="mt-2 text-xs">
-                        This is demo data. Connect Lunch Money to review your
-                        own suggestions.
-                      </p>
-                    ) : (
-                      <div className="mt-3 flex flex-wrap items-center gap-2">
-                        <a
-                          href="https://my.lunchmoney.app/recurring/suggested"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={buttonVariants({
-                            variant: "outline",
-                            size: "sm",
-                          })}
-                          onClick={() => setRecurringPageOpened(true)}
-                        >
-                          Accept or dismiss in Lunch Money
-                          <ExternalLink
-                            aria-hidden="true"
-                            className="size-3.5"
-                          />
-                        </a>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          disabled={refreshingRecurringItems}
-                          onClick={() => void refreshRecurringList()}
-                        >
-                          {refreshingRecurringItems
-                            ? "Checking…"
-                            : "Refresh status"}
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </section>
             )}
             {(structurallyLocked || splitChild) && (
               <p className="text-xs text-bento-subtle">
@@ -873,7 +841,9 @@ export function TransactionEditor({
                             variant: "outline",
                             size: "sm",
                           })}
-                          onClick={() => setRecurringPageOpened(true)}
+                          onClick={() => {
+                            recurringPageOpened.current = true;
+                          }}
                         >
                           Open recurring items in Lunch Money
                           <ExternalLink
