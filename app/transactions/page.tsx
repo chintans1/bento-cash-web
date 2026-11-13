@@ -496,11 +496,15 @@ function TransactionsPage() {
             primaryCurrency={primaryCurrency}
             loading={loading}
             error={error}
+            selectedCategoryId={filterCatId}
             onCategorySelect={(id) => {
+              if (id === filterCatId) {
+                setCategoryFilter(null);
+                return;
+              }
               setQuery("");
               setReviewFilter("all");
               setCategoryFilter(id);
-              searchRef.current?.focus();
             }}
           />
         </PageSidebar>

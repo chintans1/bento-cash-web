@@ -24,12 +24,14 @@ function CategoryBreakdown({
   categories,
   total,
   primaryCurrency,
+  selectedCategoryId,
   onCategorySelect,
 }: {
   label: "Income" | "Spending";
   categories: CategoryAmount[];
   total: number;
   primaryCurrency: string;
+  selectedCategoryId: number | null;
   onCategorySelect: (id: number) => void;
 }) {
   const remaining = categories.slice(CATEGORY_LIMIT);
@@ -57,6 +59,7 @@ function CategoryBreakdown({
       title={`${label} by category`}
       separated={label === "Spending"}
       primaryCurrency={primaryCurrency}
+      selectedId={selectedCategoryId}
       emptyMessage={
         label === "Income" ? "No income this month." : "No spending this month."
       }
@@ -79,6 +82,7 @@ export function MonthSummary({
   primaryCurrency,
   loading,
   error,
+  selectedCategoryId,
   onCategorySelect,
 }: {
   transactions: Transaction[];
@@ -86,6 +90,7 @@ export function MonthSummary({
   primaryCurrency: string;
   loading: boolean;
   error: string | null;
+  selectedCategoryId: number | null;
   onCategorySelect: (id: number) => void;
 }) {
   const { incomeCategories, spendingCategories, income, spend } =
@@ -124,6 +129,7 @@ export function MonthSummary({
         categories={incomeCategories}
         total={income}
         primaryCurrency={primaryCurrency}
+        selectedCategoryId={selectedCategoryId}
         onCategorySelect={onCategorySelect}
       />
       <CategoryBreakdown
@@ -131,6 +137,7 @@ export function MonthSummary({
         categories={spendingCategories}
         total={spend}
         primaryCurrency={primaryCurrency}
+        selectedCategoryId={selectedCategoryId}
         onCategorySelect={onCategorySelect}
       />
     </>

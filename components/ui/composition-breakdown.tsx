@@ -25,6 +25,7 @@ export function CompositionBreakdown<Id extends string | number>({
   emptyMessage,
   separated,
   footer,
+  selectedId,
 }: {
   title: string;
   entries: readonly CompositionEntry<Id>[];
@@ -32,8 +33,10 @@ export function CompositionBreakdown<Id extends string | number>({
   emptyMessage: string;
   separated?: boolean;
   footer?: ReactNode;
+  selectedId?: Id | null;
 }) {
   const { activeId, onHover, rowHandlers } = useCompositionHighlight<Id>();
+  const selectedEntry = entries.find((entry) => entry.id === selectedId);
 
   return (
     <section
@@ -49,15 +52,17 @@ export function CompositionBreakdown<Id extends string | number>({
         <>
           <CompositionBar
             segments={entries}
-            activeId={activeId}
+            activeId={activeId ?? selectedEntry?.id}
             onHover={onHover}
             className="mt-3 mb-2"
           />
           <ul className="space-y-0.5">
             {entries.map((entry) => {
+              const selected = selectedEntry?.id === entry.id;
               const rowClassName = cn(
                 "flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-xs transition-colors focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none motion-reduce:transition-none",
-                activeId === entry.id && "bg-bento-raised"
+                (selected || activeId === entry.id) && "bg-bento-raised",
+                selected && "inset-ring inset-ring-ring/50"
               );
               const content = (
                 <>
@@ -95,6 +100,7 @@ export function CompositionBreakdown<Id extends string | number>({
                   {entry.onSelect ? (
                     <button
                       type="button"
+                      aria-pressed={selected}
                       onClick={entry.onSelect}
                       className={rowClassName}
                       {...rowHandlers(entry.id)}
