@@ -486,29 +486,27 @@ export function TransactionEditor({
               Source:{" "}
               {(transaction.source && sourceLabels[transaction.source]) ??
                 "Unknown"}
+              {merchantContext.length > 0 &&
+                ` · ${merchantContext.join(" · ")}`}
+              {plaid.website && (
+                <>
+                  {" · "}
+                  <a
+                    href={plaid.website.href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex max-w-full items-center gap-1 rounded-sm underline underline-offset-2 hover:text-bento-default focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    aria-label={`${plaid.website.label} (opens in a new tab)`}
+                  >
+                    <span className="truncate">{plaid.website.label}</span>
+                    <ExternalLink
+                      aria-hidden="true"
+                      className="size-3 shrink-0"
+                    />
+                  </a>
+                </>
+              )}
             </p>
-            {(merchantContext.length > 0 || plaid.website) && (
-              <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs text-bento-subtle">
-                {merchantContext.join(" · ")}
-                {plaid.website && (
-                  <>
-                    {merchantContext.length > 0 && (
-                      <span aria-hidden="true">·</span>
-                    )}
-                    <a
-                      href={plaid.website.href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 rounded-sm underline underline-offset-2 hover:text-bento-default focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                      aria-label={`${plaid.website.label} (opens in a new tab)`}
-                    >
-                      {plaid.website.label}
-                      <ExternalLink aria-hidden="true" className="size-3" />
-                    </a>
-                  </>
-                )}
-              </p>
-            )}
             <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-2">
               {draft.amount.trim() !== "" && Number.isFinite(amount) && (
                 <p className="font-mono text-lg font-semibold text-bento-default tabular-nums">
