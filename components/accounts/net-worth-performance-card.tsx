@@ -218,7 +218,7 @@ export function NetWorthPerformanceCard({
           <SelectTrigger
             aria-label="Account group"
             size="sm"
-            className="w-full rounded-lg text-xs"
+            className="w-full text-xs"
           >
             <SelectValue />
           </SelectTrigger>

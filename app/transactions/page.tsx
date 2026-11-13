@@ -35,6 +35,7 @@ import { useMonthNavigation } from "@/hooks/use-month-navigation";
 import { isCurrentOrFutureMonth } from "@/lib/date-utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { compactFieldStyles } from "@/components/ui/field-styles";
 import { PageTitle } from "@/components/ui/page-title";
 import {
   PageSidebar,
@@ -551,7 +552,7 @@ function TransactionsPage() {
               <Search className="pointer-events-none absolute top-1/2 left-3 z-10 size-3.5 -translate-y-1/2 text-bento-subtle" />
               <Input
                 ref={searchRef}
-                className="h-8 rounded-lg pr-8 pl-8 text-xs"
+                className={cn(compactFieldStyles, "pr-8 pl-8 text-xs")}
                 aria-label="Search transactions"
                 placeholder="Search…"
                 value={query}
@@ -567,7 +568,7 @@ function TransactionsPage() {
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className="absolute top-0 right-0 size-8 rounded-lg"
+                  className="absolute top-0 right-0 rounded-compact-control"
                   aria-label="Clear search"
                   onClick={() => setQuery("")}
                 >
@@ -600,7 +601,7 @@ function TransactionsPage() {
                   aria-label="Sort transactions"
                   size="sm"
                   title="Sort transactions"
-                  className="size-8 justify-center rounded-lg p-0 @lg/ledger:w-full @lg/ledger:justify-between @lg/ledger:px-2.5 @lg/ledger:text-xs [&>svg:last-child]:hidden @lg/ledger:[&>svg:last-child]:block"
+                  className="w-8 justify-center p-0 @lg/ledger:w-full @lg/ledger:justify-between @lg/ledger:px-2.5 @lg/ledger:text-xs [&>svg:last-child]:hidden @lg/ledger:[&>svg:last-child]:block"
                 >
                   <span className="text-bento-subtle @lg/ledger:hidden">
                     <ArrowDownUp aria-hidden="true" className="size-3.5" />

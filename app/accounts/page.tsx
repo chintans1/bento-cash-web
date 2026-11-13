@@ -20,6 +20,7 @@ import { AccountSummary } from "@/components/accounts/account-summary";
 import { ConnectionPrompt } from "@/components/connection-prompt";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Input } from "@/components/ui/input";
+import { compactFieldStyles } from "@/components/ui/field-styles";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { PageTitle } from "@/components/ui/page-title";
@@ -205,16 +206,17 @@ export default function AccountsPage() {
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
                     className={cn(
-                      "h-8 rounded-lg pl-8 text-sm md:text-xs [&::-webkit-search-cancel-button]:appearance-none",
+                      compactFieldStyles,
+                      "pl-8 text-sm md:text-xs [&::-webkit-search-cancel-button]:appearance-none",
                       query ? "pr-8" : "pr-2.5"
                     )}
                   />
                   {query && (
                     <Button
                       variant="ghost"
-                      size="icon"
+                      size="icon-sm"
                       aria-label="Clear search"
-                      className="absolute top-0 right-0 size-8 rounded-lg"
+                      className="absolute top-0 right-0 rounded-compact-control"
                       onClick={() => setQuery("")}
                     >
                       <X className="size-3.5" />

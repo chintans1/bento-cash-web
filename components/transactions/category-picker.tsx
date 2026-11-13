@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { fieldStyles } from "@/components/ui/field-styles";
+import { compactFieldStyles, fieldStyles } from "@/components/ui/field-styles";
 import { ListFilter } from "lucide-react";
 import {
   Combobox,
@@ -279,7 +279,11 @@ export function CategoryFilterPicker({
     >
       <ComboboxTrigger
         aria-label={`Filter by category: ${selected.name}. Change`}
-        className="flex h-8 w-full min-w-0 items-center justify-between gap-1.5 rounded-lg border border-transparent bg-input/50 px-2.5 text-xs whitespace-nowrap transition-field outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/30 [&>svg]:size-3.5 [&>svg]:shrink-0"
+        className={cn(
+          fieldStyles,
+          compactFieldStyles,
+          "flex w-full min-w-0 items-center justify-between gap-1.5 px-2.5 text-xs whitespace-nowrap md:text-xs [&>svg]:size-3.5 [&>svg]:shrink-0"
+        )}
       >
         <span
           className={cn(

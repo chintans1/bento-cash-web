@@ -19,7 +19,7 @@ export function SegmentedControl<T extends string | number>({
       role="group"
       aria-label={label}
       className={cn(
-        "flex w-fit max-w-full rounded-xl bg-bento-raised p-0.5",
+        "flex w-fit max-w-full rounded-compact-control bg-bento-raised p-(--segment-inset) [--segment-inset:--spacing(0.5)]",
         className
       )}
     >
@@ -31,7 +31,7 @@ export function SegmentedControl<T extends string | number>({
           aria-label={option.ariaLabel}
           aria-pressed={option.value === value}
           className={cn(
-            "pointer-press min-h-7 rounded-lg px-2.5 text-xs font-medium whitespace-nowrap transition-segmented focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
+            "pointer-press min-h-7 rounded-[calc(var(--radius-compact-control)-var(--segment-inset))] px-2.5 text-xs font-medium whitespace-nowrap transition-segmented focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none",
             option.value === value
               ? "bg-bento-surface shadow-sm"
               : "text-bento-subtle hover:text-bento-default"
