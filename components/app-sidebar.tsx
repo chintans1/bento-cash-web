@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   ArrowLeftRight,
   ArrowUpRight,
+  Banknote,
   ChartNoAxesCombined,
   LayoutDashboard,
   Landmark,
@@ -33,6 +34,7 @@ import {
 const NAV_LINKS = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
+  { href: "/salary", label: "Salary", icon: Banknote },
   { href: "/reports", label: "Reports", icon: ChartNoAxesCombined },
   { href: "/accounts", label: "Accounts", icon: Landmark },
   { href: "/investments", label: "Investments", icon: TrendingUp },

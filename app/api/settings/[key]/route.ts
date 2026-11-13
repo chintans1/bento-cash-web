@@ -4,6 +4,7 @@ import {
   setFeatureSetting,
 } from "@/lib/server/feature-settings";
 import { getRequestUser, hasSameOrigin } from "@/lib/server/session";
+import { readSalaryPlan, SALARY_PLAN_KEY } from "@/lib/salary-cash-flow";
 
 type RouteContext = { params: Promise<{ key: string }> };
 
@@ -28,7 +29,10 @@ export async function GET(request: Request, { params }: RouteContext) {
   if (!(await ownsConnection(user.id, id))) {
     return Response.json({ error: "Connection not found" }, { status: 404 });
   }
-  return Response.json({ value: await getFeatureSetting(user.id, id, key) });
+  return Response.json(
+    { value: await getFeatureSetting(user.id, id, key) },
+    { headers: { "cache-control": "private, no-store" } }
+  );
 }
 
 export async function PUT(request: Request, { params }: RouteContext) {
@@ -47,6 +51,9 @@ export async function PUT(request: Request, { params }: RouteContext) {
   const { key } = await params;
   if (!validKey(key)) {
     return Response.json({ error: "Invalid setting key" }, { status: 400 });
+  }
+  if (key === SALARY_PLAN_KEY && !readSalaryPlan(body.value)) {
+    return Response.json({ error: "Invalid salary plan" }, { status: 400 });
   }
   if (!(await setFeatureSetting(user.id, id, key, body.value))) {
     return Response.json({ error: "Connection not found" }, { status: 404 });
