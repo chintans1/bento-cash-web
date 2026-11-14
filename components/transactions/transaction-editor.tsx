@@ -344,10 +344,9 @@ export function TransactionEditor({
       transaction.recurring_id == null);
 
   const canDelete =
-    !locked &&
     !transaction.is_split_parent &&
     !splitChild &&
-    !transaction.is_group_parent &&
+    !groupParent &&
     transaction.group_parent_id == null;
 
   const patch = useMemo(() => {
