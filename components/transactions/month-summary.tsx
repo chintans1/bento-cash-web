@@ -15,7 +15,7 @@ import { categoryColor } from "@/lib/lunchmoney/category-colors";
 import type { CategoryInfo } from "@/lib/lunchmoney/categories";
 import type { Transaction } from "@/lib/lunchmoney/client";
 
-const CATEGORY_LIMIT = 5;
+const CATEGORY_LIMIT = { Income: 5, Spending: 6 };
 
 function CategoryBreakdown({
   label,
@@ -32,8 +32,9 @@ function CategoryBreakdown({
   selectedCategoryId: number | null;
   onCategorySelect: (id: number) => void;
 }) {
-  const remaining = categories.slice(CATEGORY_LIMIT);
-  const entries = categories.slice(0, CATEGORY_LIMIT).map((category) => ({
+  const limit = CATEGORY_LIMIT[label];
+  const remaining = categories.slice(limit);
+  const entries = categories.slice(0, limit).map((category) => ({
     ...category,
     color: categoryColor(category.name),
   }));
