@@ -12,7 +12,7 @@ import {
   getPeakDayTxs,
   computeQuickStats,
   computeCategoryTotals,
-  computeIncomeCategoryTotals,
+  computeTransactionSummary,
   computeMerchantTotals,
   computeMonthTotals,
   computeDailySpend,
@@ -368,7 +368,7 @@ describe("computeCategoryTotals", () => {
   });
 });
 
-describe("computeIncomeCategoryTotals", () => {
+describe("computeTransactionSummary", () => {
   it("ranks income categories by converted inflows and skips pending and excluded activity", () => {
     const categories = new Map([
       [1, { name: "Paycheck", is_income: true, exclude_from_totals: false }],
@@ -383,10 +383,37 @@ describe("computeIncomeCategoryTotals", () => {
       makeTx({ amount: "-300", category_id: 1, is_pending: true }),
     ];
 
-    expect(computeIncomeCategoryTotals(transactions, categories)).toEqual([
+    expect(
+      computeTransactionSummary(transactions, categories).incomeCategories
+    ).toEqual([
       { id: 1, name: "Paycheck", amount: 110, txCount: 2 },
       { id: -1, name: "Uncategorized", amount: 15, txCount: 1 },
     ]);
+  });
+
+  it("puts each spending category on the side of its net balance", () => {
+    const categories = new Map([
+      [1, { name: "Netflix", is_income: false, exclude_from_totals: false }],
+      [2, { name: "Shopping", is_income: false, exclude_from_totals: false }],
+      [3, { name: "Dining", is_income: false, exclude_from_totals: false }],
+    ]);
+    const transactions = [
+      makeTx({ amount: "20", category_id: 1 }),
+      makeTx({ amount: "-15", to_base: -12, category_id: 1 }),
+      makeTx({ amount: "-20", category_id: 1, is_pending: true }),
+      makeTx({ amount: "20", category_id: 2 }),
+      makeTx({ amount: "-24", category_id: 2 }),
+      makeTx({ amount: "0.1", category_id: 3 }),
+      makeTx({ amount: "0.2", category_id: 3 }),
+      makeTx({ amount: "-0.3", category_id: 3 }),
+    ];
+
+    expect(computeTransactionSummary(transactions, categories)).toEqual({
+      spend: 8,
+      income: 4,
+      spendingCategories: [{ id: 1, name: "Netflix", amount: 8, txCount: 2 }],
+      incomeCategories: [{ id: 2, name: "Shopping", amount: 4, txCount: 2 }],
+    });
   });
 });
 

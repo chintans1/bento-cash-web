@@ -30,7 +30,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/hooks/use-auth";
 import { useAppData } from "@/hooks/use-app-data";
 import { useMonthTransactions } from "@/hooks/use-month-transactions";
-import { filterSpendTransactions } from "@/lib/lunchmoney/analytics";
+import { computeTransactionSummary } from "@/lib/lunchmoney/analytics";
 import { UNCATEGORIZED, UNCATEGORIZED_ID } from "@/lib/lunchmoney/categories";
 import { ConnectionPrompt } from "@/components/connection-prompt";
 import { useMonthNavigation } from "@/hooks/use-month-navigation";
@@ -370,12 +370,7 @@ function TransactionsPage() {
     reviewFilter !== "all";
   const matchingSpend = useMemo(
     () =>
-      hasFilters
-        ? filterSpendTransactions(filtered, categoryMap).reduce(
-            (s, tx) => s + tx.to_base,
-            0
-          )
-        : 0,
+      hasFilters ? computeTransactionSummary(filtered, categoryMap).spend : 0,
     [hasFilters, filtered, categoryMap]
   );
 

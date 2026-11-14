@@ -75,6 +75,13 @@ export function buildCategoryData(res: CategoriesResponse): {
   return { categoryMap, catGroups: groups };
 }
 
+export type CategoryAmount = {
+  id: number;
+  name: string;
+  amount: number;
+  txCount: number;
+};
+
 export type CategoryTotal = {
   id: number;
   name: string;
@@ -183,17 +190,86 @@ export function computeCategoryTotals(
   ).map(({ amount, ...category }) => ({ ...category, spend: amount }));
 }
 
-/** Groups eligible income by category and reports inflows as positive amounts. */
-export function computeIncomeCategoryTotals(
+/** Totals for the Transactions summary, with credits offsetting spending within their category. */
+export function computeTransactionSummary(
   transactions: Transaction[],
-  catMap: Map<number, CategoryInfo>,
-  limit = 10
+  catMap: Map<number, CategoryInfo>
 ) {
-  return groupAmountsByCategory(
-    filterIncomeTxs(transactions, catMap),
-    catMap,
-    limit
-  );
+  const byCategory = new Map<
+    number,
+    {
+      name: string;
+      netSpending: boolean;
+      debits: number;
+      credits: number;
+      debitCount: number;
+      creditCount: number;
+    }
+  >();
+  for (const tx of transactions) {
+    if (tx.is_pending || !Number.isFinite(tx.to_base) || tx.to_base === 0)
+      continue;
+    const id = tx.category_id ?? UNCATEGORIZED_ID;
+    const category = catMap.get(id);
+    if (category?.exclude_from_totals) continue;
+    let total = byCategory.get(id);
+    if (!total) {
+      total = {
+        name: category?.name ?? UNCATEGORIZED.name,
+        // Without a known spending category, keep classifying each entry by sign.
+        netSpending: id !== UNCATEGORIZED_ID && category?.is_income === false,
+        debits: 0,
+        credits: 0,
+        debitCount: 0,
+        creditCount: 0,
+      };
+      byCategory.set(id, total);
+    }
+    if (tx.to_base > 0) {
+      total.debits += tx.to_base;
+      total.debitCount++;
+    } else {
+      total.credits -= tx.to_base;
+      total.creditCount++;
+    }
+  }
+
+  const spendingCategories: CategoryAmount[] = [];
+  const incomeCategories: CategoryAmount[] = [];
+  let spend = 0;
+  let income = 0;
+  for (const [
+    id,
+    { name, netSpending, debits, credits, debitCount, creditCount },
+  ] of byCategory) {
+    const net = debits - credits;
+    // Ignore floating point residue when the debits and credits cancel out.
+    const netAmount =
+      Math.abs(net) <= Number.EPSILON * Math.max(debits, credits) ? 0 : net;
+    const categorySpend = netSpending ? Math.max(0, netAmount) : debits;
+    const categoryIncome = netSpending ? Math.max(0, -netAmount) : credits;
+    if (categorySpend > 0) {
+      spend += categorySpend;
+      spendingCategories.push({
+        id,
+        name,
+        amount: categorySpend,
+        txCount: netSpending ? debitCount + creditCount : debitCount,
+      });
+    }
+    if (categoryIncome > 0) {
+      income += categoryIncome;
+      incomeCategories.push({
+        id,
+        name,
+        amount: categoryIncome,
+        txCount: netSpending ? debitCount + creditCount : creditCount,
+      });
+    }
+  }
+  spendingCategories.sort((a, b) => b.amount - a.amount);
+  incomeCategories.sort((a, b) => b.amount - a.amount);
+  return { income, spend, incomeCategories, spendingCategories };
 }
 
 /** Returns top non-recurring merchants (by payee) sorted by spend descending. */

@@ -8,14 +8,12 @@ import {
   SummaryTotals,
 } from "@/components/ui/summary-card";
 import {
-  computeCategoryTotals,
-  computeIncomeCategoryTotals,
+  computeTransactionSummary,
+  type CategoryAmount,
 } from "@/lib/lunchmoney/analytics";
 import { categoryColor } from "@/lib/lunchmoney/category-colors";
 import type { CategoryInfo } from "@/lib/lunchmoney/categories";
 import type { Transaction } from "@/lib/lunchmoney/client";
-
-type CategoryAmount = ReturnType<typeof computeIncomeCategoryTotals>[number];
 
 const CATEGORY_LIMIT = 4;
 
@@ -93,33 +91,10 @@ export function MonthSummary({
   selectedCategoryId: number | null;
   onCategorySelect: (id: number) => void;
 }) {
-  const { incomeCategories, spendingCategories, income, spend } =
-    useMemo(() => {
-      const incomeCategories = computeIncomeCategoryTotals(
-        transactions,
-        categoryMap,
-        Infinity
-      );
-      const spendingCategories = computeCategoryTotals(
-        transactions,
-        categoryMap,
-        Infinity
-      ).map(({ spend, ...category }) => ({ ...category, amount: spend }));
-      const income = incomeCategories.reduce(
-        (sum, category) => sum + category.amount,
-        0
-      );
-      const spend = spendingCategories.reduce(
-        (sum, category) => sum + category.amount,
-        0
-      );
-      return {
-        incomeCategories,
-        spendingCategories,
-        income,
-        spend,
-      };
-    }, [transactions, categoryMap]);
+  const { incomeCategories, spendingCategories, income, spend } = useMemo(
+    () => computeTransactionSummary(transactions, categoryMap),
+    [transactions, categoryMap]
+  );
   const net = income - spend;
 
   const breakdown = (
