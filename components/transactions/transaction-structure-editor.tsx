@@ -16,7 +16,6 @@ import {
   splitTransaction,
   updateTransaction,
   updateSplitChildRecurring,
-  ungroupTransaction,
   unsplitTransaction,
 } from "@/lib/lunchmoney/client";
 import {
@@ -50,6 +49,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { CategoryPicker, type CategoryOption } from "./category-picker";
+import { GroupMemberList } from "./group-member-list";
 import { TagPicker } from "./tag-picker";
 import {
   Select,
@@ -794,79 +794,48 @@ export function SplitEditor({
 
 export function GroupEditor({
   transactions,
-  groupId,
   categories,
   onClose,
   onCommitted,
 }: {
-  transactions?: Transaction[];
-  groupId?: number;
+  transactions: Transaction[];
   categories: CategoryOption[];
   onClose: () => void;
   onCommitted: () => Promise<void>;
 }) {
-  const first = transactions?.[0];
-  const [group, setGroup] = useState<Transaction | null>(null);
+  const first = transactions[0];
   const [payee, setPayee] = useState(first?.payee ?? "");
   const [date, setDate] = useState(first?.date ?? "");
   const [categoryId, setCategoryId] = useState<number | null>(() =>
-    transactions?.every((tx) => tx.category_id === first?.category_id)
+    transactions.every((tx) => tx.category_id === first?.category_id)
       ? (first?.category_id ?? null)
       : null
   );
   const [notes, setNotes] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmUngroup, setConfirmUngroup] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [open, setOpen] = useState(true);
 
-  useEffect(() => {
-    if (groupId == null) return;
-    let cancelled = false;
-    getTransaction(groupId)
-      .then((result) => {
-        if (cancelled) return;
-        if (!result.is_group_parent || !result.children) {
-          setError(
-            "The group details could not be loaded. Close and reopen it."
-          );
-          return;
-        }
-        setGroup(result);
-      })
-      .catch((cause: unknown) => {
-        if (!cancelled)
-          setError(
-            cause instanceof Error ? cause.message : "Could not load group"
-          );
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [groupId]);
-
   const input: GroupInput = {
-    ids: transactions?.map((tx) => tx.id) ?? [],
+    ids: transactions.map((tx) => tx.id),
     payee: payee.trim(),
     date,
     category_id: categoryId,
     notes: notes.trim() || null,
-    status: transactions?.every((tx) => tx.status === "reviewed")
+    status: transactions.every((tx) => tx.status === "reviewed")
       ? "reviewed"
       : "unreviewed",
   };
   const validation = groupError(input);
-  const children = group?.children ?? transactions ?? [];
   const changed =
-    !groupId &&
-    (payee !== (first?.payee ?? "") ||
-      date !== (first?.date ?? "") ||
-      categoryId !==
-        (transactions?.every((tx) => tx.category_id === first?.category_id)
-          ? (first?.category_id ?? null)
-          : null) ||
-      notes !== "");
+    payee !== (first?.payee ?? "") ||
+    date !== (first?.date ?? "") ||
+    categoryId !==
+      (transactions.every((tx) => tx.category_id === first?.category_id)
+        ? (first?.category_id ?? null)
+        : null) ||
+    notes !== "";
 
   function requestClose() {
     if (busy) return;
@@ -891,25 +860,6 @@ export function GroupEditor({
     }
   }
 
-  async function ungroup() {
-    if (groupId == null || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      await ungroupTransaction(groupId);
-      await onCommitted().catch(() => undefined);
-      setOpen(false);
-    } catch (cause) {
-      setError(
-        cause instanceof Error
-          ? cause.message
-          : "Could not ungroup transactions"
-      );
-    } finally {
-      setBusy(false);
-    }
-  }
-
   return (
     <Sheet
       open={open}
@@ -927,10 +877,10 @@ export function GroupEditor({
                 Transaction group
               </p>
               <SheetTitle className="font-heading text-xl font-bold">
-                {groupId ? (group?.payee ?? "Loading…") : "Group transactions"}
+                Group transactions
               </SheetTitle>
               <SheetDescription className="mt-1 text-sm text-bento-subtle">
-                {children.length} transactions
+                {transactions.length} transactions
               </SheetDescription>
             </div>
             <Button
@@ -947,77 +897,53 @@ export function GroupEditor({
             inert={busy}
             className="min-h-0 flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-6"
           >
-            {!groupId && (
-              <div className="space-y-4">
-                <label className="block space-y-1 text-xs font-medium">
-                  Group payee
-                  <Input
-                    aria-label="Group payee"
-                    value={payee}
-                    onChange={(e) => setPayee(e.target.value)}
-                  />
-                </label>
-                <label className="block space-y-1 text-xs font-medium">
-                  Group date
-                  <Input
-                    aria-label="Group date"
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                  />
-                </label>
-                <div className="space-y-1 text-xs font-medium">
-                  Category
-                  <CategoryPicker
-                    categoryId={categoryId}
-                    categoryName={
-                      categories.find((item) => item.id === categoryId)?.name ??
-                      "Uncategorized"
-                    }
-                    options={categories}
-                    appearance="field"
-                    onChange={setCategoryId}
-                  />
-                </div>
-                <label className="block space-y-1 text-xs font-medium">
-                  Notes
-                  <Textarea
-                    aria-label="Group notes"
-                    rows={3}
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                  />
-                </label>
+            <div className="space-y-4">
+              <label className="block space-y-1 text-xs font-medium">
+                Group payee
+                <Input
+                  aria-label="Group payee"
+                  value={payee}
+                  onChange={(e) => setPayee(e.target.value)}
+                />
+              </label>
+              <label className="block space-y-1 text-xs font-medium">
+                Group date
+                <Input
+                  aria-label="Group date"
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                />
+              </label>
+              <div className="space-y-1 text-xs font-medium">
+                Category
+                <CategoryPicker
+                  categoryId={categoryId}
+                  categoryName={
+                    categories.find((item) => item.id === categoryId)?.name ??
+                    "Uncategorized"
+                  }
+                  options={categories}
+                  appearance="field"
+                  onChange={setCategoryId}
+                />
               </div>
-            )}
+              <label className="block space-y-1 text-xs font-medium">
+                Notes
+                <Textarea
+                  aria-label="Group notes"
+                  rows={3}
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </label>
+            </div>
             <section>
               <h3 className="mb-2 text-sm font-semibold">
                 Transactions in this group
               </h3>
-              <div className="divide-y divide-bento-hairline rounded-2xl border border-bento-hairline">
-                {children.map((tx) => (
-                  <div
-                    key={tx.id}
-                    className="flex items-center justify-between gap-3 px-4 py-3 text-sm"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">{tx.payee}</p>
-                      <p className="text-xs text-bento-subtle">
-                        {formatShortDate(tx.date)}
-                      </p>
-                    </div>
-                    <span className="shrink-0 font-mono text-xs tabular-nums">
-                      {formatCurrency(Number(tx.amount), tx.currency, true)}
-                    </span>
-                  </div>
-                ))}
-              </div>
+              <GroupMemberList transactions={transactions} />
             </section>
-            {groupId && (
-              <p className="text-xs text-bento-subtle">
-                Ungrouping restores the individual transactions.
-              </p>
-            )}
           </div>
           <footer className="border-t border-bento-hairline bg-card px-5 py-4 sm:px-6">
             {error && (
@@ -1040,45 +966,16 @@ export function GroupEditor({
                   </Button>
                 </div>
               </div>
-            ) : confirmUngroup ? (
-              <div className="space-y-2">
-                <p className="text-sm">Ungroup these transactions?</p>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setConfirmUngroup(false)}
-                  >
-                    Keep group
-                  </Button>
-                  <Button
-                    variant="destructive"
-                    disabled={busy}
-                    onClick={() => void ungroup()}
-                  >
-                    Ungroup
-                  </Button>
-                </div>
-              </div>
             ) : (
-              <div className="flex justify-end gap-2">
-                {groupId ? (
-                  <Button
-                    variant="outline"
-                    disabled={!group || busy}
-                    onClick={() => setConfirmUngroup(true)}
-                  >
-                    Ungroup
-                  </Button>
-                ) : (
-                  <Button
-                    disabled={!!validation || busy}
-                    onClick={() => void save()}
-                  >
-                    {busy
-                      ? "Grouping…"
-                      : `Group ${transactions?.length ?? 0} transactions`}
-                  </Button>
-                )}
+              <div className="flex justify-end">
+                <Button
+                  disabled={!!validation || busy}
+                  onClick={() => void save()}
+                >
+                  {busy
+                    ? "Grouping…"
+                    : `Group ${transactions.length} transactions`}
+                </Button>
               </div>
             )}
           </footer>

@@ -66,7 +66,7 @@ import {
 } from "@/lib/lunchmoney/transaction-state";
 import { cn } from "@/lib/utils";
 import { canGroupTransaction } from "@/lib/lunchmoney/transaction-structure";
-import type { Transaction } from "@/lib/lunchmoney/client";
+import { ungroupTransaction, type Transaction } from "@/lib/lunchmoney/client";
 import { recurringMatch } from "@/lib/lunchmoney/recurring-match";
 
 type SortKey = "date" | "amount" | "payee";
@@ -198,7 +198,6 @@ function TransactionsPage() {
   } | null>(null);
   const [structure, setStructure] = useState<
     | { type: "split"; transaction: Transaction }
-    | { type: "group"; id: number }
     | { type: "group-create"; transactions: Transaction[] }
     | null
   >(null);
@@ -983,9 +982,9 @@ function TransactionsPage() {
             setStructure({ type: "split", transaction: editingTransaction });
             setEditing(null);
           }}
-          onGroup={() => {
-            setStructure({ type: "group", id: editingTransaction.id });
-            setEditing(null);
+          onUngroup={async () => {
+            await ungroupTransaction(editingTransaction.id);
+            await refresh().catch(() => undefined);
           }}
         />
       )}
@@ -997,15 +996,6 @@ function TransactionsPage() {
           tags={tags}
           recurringItems={recurringItems}
           isDemo={isDemo}
-          onClose={() => setStructure(null)}
-          onCommitted={refresh}
-        />
-      )}
-      {structure?.type === "group" && (
-        <GroupEditor
-          key={`group-${structure.id}`}
-          groupId={structure.id}
-          categories={categoryOptions}
           onClose={() => setStructure(null)}
           onCommitted={refresh}
         />

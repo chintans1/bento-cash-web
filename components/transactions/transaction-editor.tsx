@@ -76,6 +76,7 @@ import {
   plaidTransactionContext,
 } from "@/lib/lunchmoney/plaid-metadata";
 import { PayeeSuggestionsPopup } from "./editable-text";
+import { GroupMembers } from "./group-member-list";
 
 type Draft = {
   payee: string;
@@ -161,7 +162,7 @@ export function TransactionEditor({
   onSave,
   onDelete,
   onSplit,
-  onGroup,
+  onUngroup,
 }: {
   transaction: Transaction;
   monthTransactions: Transaction[];
@@ -181,12 +182,16 @@ export function TransactionEditor({
   onSave: (patch: TransactionPatch) => Promise<boolean>;
   onDelete: () => Promise<boolean>;
   onSplit: () => void;
-  onGroup: () => void;
+  onUngroup: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(true);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [confirmUngroup, setConfirmUngroup] = useState(false);
+  const [ungrouping, setUngrouping] = useState(false);
+  const [ungroupError, setUngroupError] = useState<string>();
+  const busy = saving || deleting || ungrouping;
   const [draft, setDraft] = useState(() => makeDraft(transaction));
   const [openedRecurringList, setOpenedRecurringList] = useState(false);
   const [recurringScheduleVersion, setRecurringScheduleVersion] = useState(0);
@@ -336,12 +341,12 @@ export function TransactionEditor({
   const reviewed = transaction.status === "reviewed";
   const canReview = isReviewableTransaction(transaction);
   const showStructureAction =
-    splitChild ||
-    transaction.is_split_parent ||
-    groupParent ||
-    (!transaction.is_pending &&
-      transaction.status !== "delete_pending" &&
-      transaction.recurring_id == null);
+    !groupParent &&
+    (splitChild ||
+      transaction.is_split_parent ||
+      (!transaction.is_pending &&
+        transaction.status !== "delete_pending" &&
+        transaction.recurring_id == null));
 
   const canDelete =
     !transaction.is_split_parent &&
@@ -395,7 +400,7 @@ export function TransactionEditor({
   const amount = Number(draft.amount);
 
   async function save() {
-    if (!valid || !changed || saving) return;
+    if (!valid || !changed || busy || confirmUngroup) return;
     if (await onSave(patch)) setOpen(false);
   }
 
@@ -409,8 +414,26 @@ export function TransactionEditor({
     }
   }
 
+  async function ungroup() {
+    if (!groupParent || busy || changed) return;
+    setUngrouping(true);
+    setUngroupError(undefined);
+    try {
+      await onUngroup();
+      setOpen(false);
+    } catch (cause) {
+      setUngroupError(
+        cause instanceof Error
+          ? cause.message
+          : "Could not ungroup transactions."
+      );
+    } finally {
+      setUngrouping(false);
+    }
+  }
+
   function requestClose() {
-    if (saving || deleting) return;
+    if (busy) return;
     if (changed) setConfirmDiscard(true);
     else setOpen(false);
   }
@@ -427,7 +450,7 @@ export function TransactionEditor({
       >
         <form
           className="flex h-full flex-col"
-          aria-busy={saving || deleting}
+          aria-busy={busy}
           onSubmit={(event) => {
             event.preventDefault();
             void save();
@@ -444,7 +467,7 @@ export function TransactionEditor({
                 size="icon-sm"
                 aria-label="Close transaction details"
                 onClick={requestClose}
-                disabled={saving || deleting}
+                disabled={busy}
               >
                 <X />
               </Button>
@@ -550,7 +573,7 @@ export function TransactionEditor({
                       reviewed ? "text-bento-positive" : "text-bento-subtle"
                     )}
                     aria-label={reviewed ? "Mark unreviewed" : undefined}
-                    disabled={saving || deleting}
+                    disabled={busy || confirmUngroup}
                     onClick={() => onReview(!reviewed)}
                   >
                     {reviewed ? (
@@ -568,14 +591,12 @@ export function TransactionEditor({
                     size="sm"
                     className="text-xs text-bento-subtle"
                     disabled={saving || deleting || changed}
-                    onClick={groupParent ? onGroup : onSplit}
+                    onClick={onSplit}
                   >
                     <Split data-icon="inline-start" aria-hidden="true" />
-                    {groupParent
-                      ? "View group"
-                      : splitChild || transaction.is_split_parent
-                        ? "Edit split"
-                        : "Split transaction"}
+                    {splitChild || transaction.is_split_parent
+                      ? "Edit split"
+                      : "Split transaction"}
                   </Button>
                 )}
                 {showStructureAction && changed && (
@@ -588,7 +609,7 @@ export function TransactionEditor({
           </header>
 
           <div
-            inert={saving || deleting}
+            inert={busy || confirmUngroup}
             className="min-h-0 flex-1 space-y-6 overflow-y-auto overscroll-contain px-5 py-5 sm:px-6"
           >
             {transaction.status === "delete_pending" && (
@@ -619,6 +640,10 @@ export function TransactionEditor({
                     ? "Use Edit split to manage the parts."
                     : "Open the group to manage its transactions."}
               </p>
+            )}
+
+            {groupParent && (
+              <GroupMembers key={transaction.id} transaction={transaction} />
             )}
 
             <section className="grid gap-4 sm:grid-cols-2">
@@ -955,9 +980,9 @@ export function TransactionEditor({
           </div>
 
           <footer className="border-t border-bento-hairline bg-card px-5 py-4 sm:px-6">
-            {error && (
+            {(ungroupError || error) && (
               <p role="alert" className="mb-3 text-sm text-bento-negative">
-                {error}
+                {ungroupError || error}
               </p>
             )}
             {confirmDiscard ? (
@@ -1005,6 +1030,33 @@ export function TransactionEditor({
                   </Button>
                 </div>
               </div>
+            ) : confirmUngroup ? (
+              <div className="space-y-3">
+                <p className="text-sm">
+                  Ungroup and restore the individual transactions?
+                </p>
+                <div className="flex justify-end gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={busy}
+                    onClick={() => {
+                      setConfirmUngroup(false);
+                      setUngroupError(undefined);
+                    }}
+                  >
+                    Keep group
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    disabled={busy}
+                    onClick={() => void ungroup()}
+                  >
+                    {ungrouping ? "Ungrouping…" : "Ungroup transactions"}
+                  </Button>
+                </div>
+              </div>
             ) : (
               <div className="flex justify-between gap-2">
                 {canDelete ? (
@@ -1017,6 +1069,16 @@ export function TransactionEditor({
                   >
                     <Trash2 data-icon="inline-start" />
                     Delete
+                  </Button>
+                ) : groupParent ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    className="h-10"
+                    disabled={busy || changed}
+                    onClick={() => setConfirmUngroup(true)}
+                  >
+                    Ungroup
                   </Button>
                 ) : (
                   <span />
