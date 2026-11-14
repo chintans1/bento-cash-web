@@ -73,6 +73,11 @@
   background-color: color-mix(in oklab, var(--foreground) 14%, transparent);
 }
 
+/* Keep the category color when the combobox highlights an option. */
+.categoryIcon {
+  stroke: var(--item-color);
+}
+
 .navigationIcon {
   transition: translate 120ms var(--filter-ease);
 }

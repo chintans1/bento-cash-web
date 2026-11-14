@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { type CSSProperties, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Check,
@@ -20,6 +20,8 @@ import {
   ComboboxTrigger,
 } from "@/components/ui/combobox";
 import { compactFieldStyles, fieldStyles } from "@/components/ui/field-styles";
+import { categoryColor } from "@/lib/lunchmoney/category-colors";
+import { CategoryIcon } from "@/lib/lunchmoney/category-icons";
 import { rankCategoryMatches } from "@/lib/lunchmoney/category-search";
 import { cn } from "@/lib/utils";
 import type { CategoryOption } from "./category-picker";
@@ -44,6 +46,18 @@ const sections: MenuItem[] = [
 ];
 const back: MenuItem = { kind: "back", name: "All filters" };
 const filterLabels = { category: "Category", account: "Account" };
+
+function FilterCategoryIcon({ name }: { name: string }) {
+  return (
+    <span aria-hidden="true" className="shrink-0">
+      <CategoryIcon
+        name={name}
+        className={cn("size-3.5", styles.categoryIcon)}
+        style={{ "--item-color": categoryColor(name) } as CSSProperties}
+      />
+    </span>
+  );
+}
 
 export function TransactionFilters({
   categoryId,
@@ -232,16 +246,20 @@ export function TransactionFilters({
                   }
                   value={item}
                 >
-                  <Icon
-                    aria-hidden="true"
-                    className={cn(
-                      "size-3.5 shrink-0 text-bento-subtle",
-                      item.kind === "back" && [
-                        styles.navigationIcon,
-                        styles.backIcon,
-                      ]
-                    )}
-                  />
+                  {item.kind === "category" ? (
+                    <FilterCategoryIcon name={item.name} />
+                  ) : (
+                    <Icon
+                      aria-hidden="true"
+                      className={cn(
+                        "size-3.5 shrink-0 text-bento-subtle",
+                        item.kind === "back" && [
+                          styles.navigationIcon,
+                          styles.backIcon,
+                        ]
+                      )}
+                    />
+                  )}
                   <span className="min-w-0 flex-1">
                     <span className="block truncate">{item.name}</span>
                     {detail && (
@@ -301,6 +319,7 @@ export function TransactionFilters({
                   setOpen(true);
                 }}
               >
+                {type === "category" && <FilterCategoryIcon name={name} />}
                 <span className="text-bento-subtle">{filterLabels[type]}</span>
                 <span className="truncate font-medium">{name}</span>
               </button>
