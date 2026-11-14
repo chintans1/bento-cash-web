@@ -1,6 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Autocomplete } from "@base-ui/react/autocomplete";
 import {
   AlertTriangle,
@@ -82,6 +89,7 @@ type Draft = {
   payee: string;
   date: string;
   amount: string;
+  direction: AmountDirection;
   currency: Transaction["currency"];
   categoryId: number | null;
   account: string;
@@ -91,10 +99,12 @@ type Draft = {
 };
 
 function makeDraft(transaction: Transaction): Draft {
+  const amount = amountForEditing(transaction.amount);
   return {
     payee: transaction.payee ?? "",
     date: transaction.date,
-    amount: amountForEditing(transaction.amount),
+    amount: amount.replace(/^-/, ""),
+    direction: amount.startsWith("-") ? "income" : "spending",
     currency: transaction.currency,
     categoryId: transaction.category_id,
     account: transactionAccountKey(transaction),
@@ -102,6 +112,70 @@ function makeDraft(transaction: Transaction): Draft {
     tagIds: transaction.tag_ids,
     notes: transaction.notes ?? "",
   };
+}
+
+type AmountDirection = "spending" | "income";
+
+const amountDirections = [
+  { value: "spending", symbol: "−", label: "Spending" },
+  { value: "income", symbol: "+", label: "Income" },
+] as const;
+
+function AmountDirectionToggle({
+  value,
+  disabled,
+  onChange,
+}: {
+  value: AmountDirection;
+  disabled: boolean;
+  onChange: (value: AmountDirection) => void;
+}) {
+  const name = useId();
+
+  return (
+    <fieldset
+      aria-label="Transaction direction"
+      disabled={disabled}
+      className="relative isolate grid shrink-0 grid-cols-2 rounded-compact-control bg-bento-raised p-0.5 disabled:opacity-50"
+    >
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0.5"
+      >
+        <span
+          className={cn(
+            "block h-full w-1/2 rounded-lg bg-bento-surface shadow-sm transition-transform duration-150 ease-out motion-reduce:transition-none",
+            value === "income" && "translate-x-full"
+          )}
+        />
+      </span>
+      {amountDirections.map(({ value: direction, symbol, label }) => (
+        <label key={direction} className="relative">
+          <input
+            type="radio"
+            name={name}
+            value={direction}
+            checked={value === direction}
+            onChange={() => onChange(direction)}
+            className="peer sr-only"
+          />
+          <span
+            className={cn(
+              "pointer-press flex h-8 min-w-10 cursor-pointer items-center justify-center gap-1 rounded-lg px-1.5 text-xs font-medium transition-segmented select-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-inset peer-disabled:cursor-default",
+              value === direction
+                ? "text-bento-default"
+                : "text-bento-subtle hover:text-bento-default"
+            )}
+          >
+            <span aria-hidden="true" className="text-sm leading-none">
+              {symbol}
+            </span>
+            <span>{label}</span>
+          </span>
+        </label>
+      ))}
+    </fieldset>
+  );
 }
 
 const currencyNames = new Intl.DisplayNames("en-US", { type: "currency" });
@@ -338,6 +412,8 @@ export function TransactionEditor({
     !locked &&
     !draft.account.startsWith("plaid-") &&
     canEditTransactionCurrency(transaction);
+  const amountLocked =
+    locked || structurallyLocked || groupParent || splitChild;
   const reviewed = transaction.status === "reviewed";
   const canReview = isReviewableTransaction(transaction);
   const showStructureAction =
@@ -361,7 +437,13 @@ export function TransactionEditor({
     return changedPatch(transaction, {
       payee: draft.payee.trim(),
       date: draft.date,
-      amount: draft.amount,
+      ...(amountLocked
+        ? {}
+        : {
+            // The ledger shows credits as + and spending as −. Lunch Money stores the inverse.
+            amount:
+              draft.direction === "income" ? `-${draft.amount}` : draft.amount,
+          }),
       ...(canEditCurrency && { currency: draft.currency }),
       category_id: draft.categoryId,
       ...(draft.account === transactionAccountKey(transaction)
@@ -372,9 +454,9 @@ export function TransactionEditor({
       tag_ids: draft.tagIds,
       notes: draft.notes.trim() || null,
     });
-  }, [accounts, canEditCurrency, draft, transaction]);
+  }, [accounts, amountLocked, canEditCurrency, draft, transaction]);
 
-  const amountValid = /^-?\d+(\.\d{1,4})?$/.test(draft.amount);
+  const amountValid = amountLocked || /^\d+(\.\d{1,4})?$/.test(draft.amount);
   const categoryValid =
     !splitChild || draft.recurringId !== "none" || draft.categoryId != null;
   const valid = draft.date !== "" && amountValid && categoryValid;
@@ -521,12 +603,12 @@ export function TransactionEditor({
               {draft.amount.trim() !== "" && Number.isFinite(amount) && (
                 <p className="font-mono text-lg font-semibold text-bento-default tabular-nums">
                   {formatCurrency(
-                    Math.abs(amount),
+                    amount,
                     canEditCurrency ? draft.currency : transaction.currency,
                     true
                   )}
                   <span className="ml-2 text-xs font-normal text-bento-subtle">
-                    {amount < 0 ? "Credit" : "Debit"}
+                    {draft.direction === "income" ? "Credit" : "Debit"}
                   </span>
                 </p>
               )}
@@ -731,23 +813,41 @@ export function TransactionEditor({
                 )}
               </Field>
               <Field label="Amount">
-                <Input
-                  inputMode="decimal"
-                  aria-invalid={!amountValid}
-                  aria-label="Amount"
-                  value={draft.amount}
-                  disabled={
-                    locked || structurallyLocked || groupParent || splitChild
-                  }
-                  onChange={(event) =>
-                    updateDraft("amount", event.target.value)
-                  }
-                />
-                <p className="mt-1.5 px-1 text-xs wrap-anywhere text-bento-subtle">
-                  {amountValid
-                    ? "Negative amounts are credits."
-                    : "Enter a valid amount."}
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <AmountDirectionToggle
+                    value={draft.direction}
+                    disabled={amountLocked}
+                    onChange={(direction) =>
+                      updateDraft("direction", direction)
+                    }
+                  />
+                  <Input
+                    inputMode="decimal"
+                    aria-invalid={!amountValid}
+                    aria-label="Amount"
+                    value={draft.amount}
+                    disabled={amountLocked}
+                    className="tabular-nums"
+                    onChange={(event) => {
+                      const input = event.target.value.trim();
+                      const direction = input.startsWith("+")
+                        ? "income"
+                        : /^[-−]/.test(input)
+                          ? "spending"
+                          : null;
+                      setDraft((current) => ({
+                        ...current,
+                        amount: direction ? input.slice(1) : input,
+                        direction: direction ?? current.direction,
+                      }));
+                    }}
+                  />
+                </div>
+                {!amountValid && (
+                  <p className="mt-1.5 px-1 text-xs text-bento-negative">
+                    Enter a valid amount.
+                  </p>
+                )}
               </Field>
               <Field label="Currency">
                 {canEditCurrency ? (
