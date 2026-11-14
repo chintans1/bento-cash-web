@@ -1,13 +1,6 @@
 "use client";
 
-import {
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Autocomplete } from "@base-ui/react/autocomplete";
 import {
   AlertTriangle,
@@ -60,6 +53,17 @@ import {
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
@@ -115,68 +119,6 @@ function makeDraft(transaction: Transaction): Draft {
 }
 
 type AmountDirection = "spending" | "income";
-
-const amountDirections = [
-  { value: "spending", symbol: "−", label: "Spending" },
-  { value: "income", symbol: "+", label: "Income" },
-] as const;
-
-function AmountDirectionToggle({
-  value,
-  disabled,
-  onChange,
-}: {
-  value: AmountDirection;
-  disabled: boolean;
-  onChange: (value: AmountDirection) => void;
-}) {
-  const name = useId();
-
-  return (
-    <fieldset
-      aria-label="Transaction direction"
-      disabled={disabled}
-      className="relative isolate grid shrink-0 grid-cols-2 rounded-compact-control bg-bento-raised p-0.5 disabled:opacity-50"
-    >
-      <span
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0.5"
-      >
-        <span
-          className={cn(
-            "block h-full w-1/2 rounded-lg bg-bento-surface shadow-sm transition-transform duration-150 ease-out motion-reduce:transition-none",
-            value === "income" && "translate-x-full"
-          )}
-        />
-      </span>
-      {amountDirections.map(({ value: direction, symbol, label }) => (
-        <label key={direction} className="relative">
-          <input
-            type="radio"
-            name={name}
-            value={direction}
-            checked={value === direction}
-            onChange={() => onChange(direction)}
-            className="peer sr-only"
-          />
-          <span
-            className={cn(
-              "pointer-press flex h-8 min-w-10 cursor-pointer items-center justify-center gap-1 rounded-lg px-1.5 text-xs font-medium transition-segmented select-none peer-focus-visible:ring-2 peer-focus-visible:ring-ring peer-focus-visible:ring-inset peer-disabled:cursor-default",
-              value === direction
-                ? "text-bento-default"
-                : "text-bento-subtle hover:text-bento-default"
-            )}
-          >
-            <span aria-hidden="true" className="text-sm leading-none">
-              {symbol}
-            </span>
-            <span>{label}</span>
-          </span>
-        </label>
-      ))}
-    </fieldset>
-  );
-}
 
 const currencyNames = new Intl.DisplayNames("en-US", { type: "currency" });
 
@@ -813,15 +755,33 @@ export function TransactionEditor({
                 )}
               </Field>
               <Field label="Amount">
-                <div className="flex items-center gap-1.5">
-                  <AmountDirectionToggle
-                    value={draft.direction}
-                    disabled={amountLocked}
-                    onChange={(direction) =>
-                      updateDraft("direction", direction)
-                    }
-                  />
-                  <Input
+                <InputGroup
+                  className="rounded-3xl"
+                  data-disabled={amountLocked}
+                >
+                  <InputGroupAddon className="py-0 pl-1 has-[>button]:ml-0">
+                    <Tooltip>
+                      <TooltipTrigger
+                        render={<InputGroupButton size="icon-xs" />}
+                        aria-label="Apply income direction"
+                        aria-pressed={draft.direction === "income"}
+                        disabled={amountLocked}
+                        className="bg-bento-raised text-base leading-none hover:bg-foreground/10"
+                        onClick={() =>
+                          updateDraft(
+                            "direction",
+                            draft.direction === "income" ? "spending" : "income"
+                          )
+                        }
+                      >
+                        <span aria-hidden="true">
+                          {draft.direction === "income" ? "+" : "−"}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>− Spending · + Income</TooltipContent>
+                    </Tooltip>
+                  </InputGroupAddon>
+                  <InputGroupInput
                     inputMode="decimal"
                     aria-invalid={!amountValid}
                     aria-label="Amount"
@@ -842,7 +802,7 @@ export function TransactionEditor({
                       }));
                     }}
                   />
-                </div>
+                </InputGroup>
                 {!amountValid && (
                   <p className="mt-1.5 px-1 text-xs text-bento-negative">
                     Enter a valid amount.
