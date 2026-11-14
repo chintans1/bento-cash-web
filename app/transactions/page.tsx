@@ -525,6 +525,9 @@ function TransactionsPage() {
             Month summary
           </PageSidebarHeading>
           <MonthSummary
+            year={selectedYear}
+            month={selectedMonth}
+            comparisonKey={monthKey}
             transactions={transactions}
             categoryMap={categoryMap}
             primaryCurrency={primaryCurrency}

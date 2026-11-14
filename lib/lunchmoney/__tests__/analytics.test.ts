@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { spendingComparisonPeriod } from "../../date-utils";
 import type { Transaction, Category, CategoriesResponse } from "../client";
 import type { CategoryInfo } from "../categories";
 import {
@@ -369,6 +370,31 @@ describe("computeCategoryTotals", () => {
 });
 
 describe("computeTransactionSummary", () => {
+  it("compares the same days when the previous month is shorter", () => {
+    const today = new Date(2026, 2, 30);
+    const period = spendingComparisonPeriod(2026, 3, today);
+    expect(period.currentThrough).toBe("2026-03-28");
+    expect(period.previousThrough).toBe("2026-02-28");
+    expect(
+      spendingComparisonPeriod(2026, 2, today).currentThrough
+    ).toBeUndefined();
+
+    const categories = new Map([
+      [1, { name: "Shopping", is_income: false, exclude_from_totals: false }],
+    ]);
+    const transactions = [
+      makeTx({ amount: "30", category_id: 1, date: "2026-03-28" }),
+      makeTx({ amount: "-12", category_id: 1, date: "2026-03-28" }),
+      makeTx({ amount: "40", category_id: 1, date: "2026-03-29" }),
+    ];
+
+    expect(
+      computeTransactionSummary(transactions, categories, period.currentThrough)
+        .spend
+    ).toBe(18);
+    expect(computeTransactionSummary(transactions, categories).spend).toBe(58);
+  });
+
   it("ranks income categories by converted inflows and skips pending and excluded activity", () => {
     const categories = new Map([
       [1, { name: "Paycheck", is_income: true, exclude_from_totals: false }],

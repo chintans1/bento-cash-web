@@ -193,7 +193,8 @@ export function computeCategoryTotals(
 /** Totals for the Transactions summary, with credits offsetting spending within their category. */
 export function computeTransactionSummary(
   transactions: Transaction[],
-  catMap: Map<number, CategoryInfo>
+  catMap: Map<number, CategoryInfo>,
+  through?: string
 ) {
   const byCategory = new Map<
     number,
@@ -207,6 +208,7 @@ export function computeTransactionSummary(
     }
   >();
   for (const tx of transactions) {
+    if (through && tx.date > through) continue;
     if (tx.is_pending || !Number.isFinite(tx.to_base) || tx.to_base === 0)
       continue;
     const id = tx.category_id ?? UNCATEGORIZED_ID;

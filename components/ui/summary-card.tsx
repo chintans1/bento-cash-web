@@ -48,36 +48,41 @@ export function SummaryTotals({
   first,
   second,
   primaryCurrency,
+  footer,
 }: {
   first: { label: string; amount: number };
   second: { label: string; amount: number };
   primaryCurrency: string;
+  footer?: ReactNode;
 }) {
   return (
-    <dl className="mt-panel grid grid-cols-2 gap-4 border-b border-bento-hairline pb-panel">
-      {[first, second].map(({ label, amount }, index) => (
-        <div
-          key={label}
-          className={cn(
-            "min-w-0",
-            index === 1 && "border-l border-bento-hairline pl-4"
-          )}
-        >
-          <dt className="flex items-center gap-1.5 text-xs text-bento-subtle">
-            <span
-              aria-hidden="true"
-              className={cn(
-                "size-1.5 shrink-0 rounded-full",
-                index === 0 ? "bg-bento-positive" : "bg-bento-negative"
-              )}
-            />
-            {label}
-          </dt>
-          <dd className="mt-1.5 text-base font-medium wrap-anywhere tabular-nums">
-            {formatCurrency(amount, primaryCurrency, true)}
-          </dd>
-        </div>
-      ))}
-    </dl>
+    <div className="mt-panel border-b border-bento-hairline pb-panel">
+      <dl className="grid grid-cols-2 gap-4">
+        {[first, second].map(({ label, amount }, index) => (
+          <div
+            key={label}
+            className={cn(
+              "min-w-0",
+              index === 1 && "border-l border-bento-hairline pl-4"
+            )}
+          >
+            <dt className="flex items-center gap-1.5 text-xs text-bento-subtle">
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "size-1.5 shrink-0 rounded-full",
+                  index === 0 ? "bg-bento-positive" : "bg-bento-negative"
+                )}
+              />
+              {label}
+            </dt>
+            <dd className="mt-1.5 text-base font-medium wrap-anywhere tabular-nums">
+              {formatCurrency(amount, primaryCurrency, true)}
+            </dd>
+          </div>
+        ))}
+      </dl>
+      {footer}
+    </div>
   );
 }

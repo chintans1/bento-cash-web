@@ -14,6 +14,7 @@ import {
 import { categoryColor } from "@/lib/lunchmoney/category-colors";
 import type { CategoryInfo } from "@/lib/lunchmoney/categories";
 import type { Transaction } from "@/lib/lunchmoney/client";
+import { SpendingComparison } from "./spending-comparison";
 
 const CATEGORY_LIMIT = { Income: 5, Spending: 6 };
 
@@ -76,6 +77,9 @@ function CategoryBreakdown({
 }
 
 export function MonthSummary({
+  year,
+  month,
+  comparisonKey,
   transactions,
   categoryMap,
   primaryCurrency,
@@ -84,6 +88,9 @@ export function MonthSummary({
   selectedCategoryId,
   onCategorySelect,
 }: {
+  year: number;
+  month: number;
+  comparisonKey: string;
   transactions: Transaction[];
   categoryMap: Map<number, CategoryInfo>;
   primaryCurrency: string;
@@ -144,6 +151,17 @@ export function MonthSummary({
             first={{ label: "Income", amount: income }}
             second={{ label: "Spending", amount: spend }}
             primaryCurrency={primaryCurrency}
+            footer={
+              <SpendingComparison
+                key={comparisonKey}
+                year={year}
+                month={month}
+                transactions={transactions}
+                categoryMap={categoryMap}
+                primaryCurrency={primaryCurrency}
+                monthlySpend={spend}
+              />
+            }
           />
           <div className="hidden @page-sidebar/main:block">{breakdown}</div>
           <details className="group/breakdown @page-sidebar/main:hidden">

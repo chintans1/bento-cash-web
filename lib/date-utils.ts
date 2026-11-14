@@ -30,6 +30,34 @@ export function prevMonthOf(
     : { year, month: month - 1 };
 }
 
+/** Compare complete months or an equal number of calendar days for the current month. */
+export function spendingComparisonPeriod(
+  year: number,
+  month: number,
+  today: Date
+) {
+  const previous = prevMonthOf(year, month);
+  const monthToDate =
+    year === today.getFullYear() && month === today.getMonth() + 1;
+  const days = monthToDate
+    ? Math.min(
+        today.getDate(),
+        new Date(previous.year, previous.month, 0).getDate()
+      )
+    : null;
+  const endOfPeriod = (period: { year: number; month: number }) =>
+    days === null
+      ? undefined
+      : `${monthKeyOf(period.year, period.month)}-${String(days).padStart(2, "0")}`;
+
+  return {
+    previous,
+    days,
+    currentThrough: endOfPeriod({ year, month }),
+    previousThrough: endOfPeriod(previous),
+  };
+}
+
 export function nextMonthOf(
   year: number,
   month: number
