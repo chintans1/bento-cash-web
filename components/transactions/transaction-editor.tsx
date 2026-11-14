@@ -774,7 +774,15 @@ export function TransactionEditor({
                           )
                         }
                       >
-                        <span aria-hidden="true">
+                        <span
+                          aria-hidden="true"
+                          className={cn(
+                            "transition-colors motion-reduce:transition-none",
+                            draft.direction === "income"
+                              ? "text-bento-positive"
+                              : "text-bento-negative"
+                          )}
+                        >
                           {draft.direction === "income" ? "+" : "−"}
                         </span>
                       </TooltipTrigger>
