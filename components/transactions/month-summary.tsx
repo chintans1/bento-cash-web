@@ -15,7 +15,7 @@ import { categoryColor } from "@/lib/lunchmoney/category-colors";
 import type { CategoryInfo } from "@/lib/lunchmoney/categories";
 import type { Transaction } from "@/lib/lunchmoney/client";
 
-const CATEGORY_LIMIT = 4;
+const CATEGORY_LIMIT = 5;
 
 function CategoryBreakdown({
   label,
